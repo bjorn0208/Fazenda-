@@ -71,3 +71,12 @@ js/render.js    — renderização do mundo (terreno, construções, fantasma)
 js/ui.js        — HUD, painéis, modais, toasts, sons
 js/main.js      — inicialização, entrada (mouse/toque/teclado), loop
 ```
+
+## Correções e melhorias (revisão 2)
+
+- **Visual:** copas de árvores e flores agora escalam corretamente com o zoom (antes ficavam como pontos quase invisíveis).
+- **Celular:** `touch-action: none` no canvas (fim do scroll/zoom acidental da página); pinça de zoom não dispara mais cliques fantasma que colocavam construções por acidente; câmera não "salta" ao voltar de 2 dedos para 1; clique direito não interage mais com o mundo.
+- **Girar:** a construção original não é mais desenhada sobreposta ao fantasma de rotação; girar durante o modo Mover agora é aplicado na confirmação (antes a rotação era descartada).
+- **Progresso:** salvamento também ao fechar/minimizar a aba (antes era só a cada 15s); configurações mescladas com padrões ao carregar saves antigos; contadores de nível e pico de moedas sincronizados (conquistas de nível/riqueza agora registram corretamente).
+- **Sem botões decorativos:** toggle de Música toca uma melodia ambiente gerada via WebAudio; opção de Idioma traduz toda a interface (pt-BR/en-US); áudio retomado corretamente no iOS; configurações são salvas ao alterar.
+- **Usabilidade:** loja mostra "Sem moedas" quando não pode comprar; novo clique reposiciona o fantasma durante confirmação; `Esc` fecha modais/diálogos; barra de confirmação responsiva em telas pequenas.

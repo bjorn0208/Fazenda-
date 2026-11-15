@@ -80,7 +80,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   let selected = null;
   for (const b of sorted) {
     if (state.mode === 'move' && state.moveId === b.id) { selected = b; continue; }
-    if (state.mode === 'rotate' && state.rotateId === b.id) { selected = b; continue; }
+    // no modo girar o fantasma já mostra a rotação; não desenhar a original por cima
+    if (state.mode === 'rotate' && state.rotateId === b.id) continue;
     drawBuilding(ctx, cam, cw, ch, b);
   }
   if (selected) drawBuilding(ctx, cam, cw, ch, selected, true);
@@ -241,10 +242,10 @@ function drawFence(ctx, cam, cw, ch, gx, gy, rot, q) {
 /* --- Árvore: tronco + copa em esferas --- */
 function drawTree(ctx, cam, cw, ch, gx, gy, q) {
   drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, '#795548');
-  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.85, 0.42, '#43a047');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.9, 0.5, '#43a047');
   if (q !== 'baixa') {
-    drawSphere(ctx, cam, cw, ch, gx + 0.3, gy + 0.45, 0.65, 0.28, '#4caf50');
-    drawSphere(ctx, cam, cw, ch, gx + 0.68, gy + 0.6, 0.7, 0.26, '#388e3c');
+    drawSphere(ctx, cam, cw, ch, gx + 0.32, gy + 0.45, 0.68, 0.34, '#4caf50');
+    drawSphere(ctx, cam, cw, ch, gx + 0.66, gy + 0.6, 0.72, 0.3, '#388e3c');
   }
 }
 
@@ -256,7 +257,7 @@ function drawFlowers(ctx, cam, cw, ch, gx, gy) {
     const fx = gx + 0.3 + (i % 2) * 0.4;
     const fy = gy + 0.3 + Math.floor(i / 2) * 0.4;
     const sway = Math.sin(t + i) * 0.02;
-    drawSphere(ctx, cam, cw, ch, fx + sway, fy, 0.24, 0.09, colors[i]);
+    drawSphere(ctx, cam, cw, ch, fx + sway, fy, 0.26, 0.13, colors[i]);
   }
 }
 

@@ -15,6 +15,8 @@ const state = {
   highlightTile: null
 };
 
+let lastPointerGrid = { gx: 12, gy: 12 };
+
 /* ---------- Canvas / resize ---------- */
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -47,8 +49,9 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Entrada: mouse e toque ---------- */
-const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0, id: null };
+const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0 };
 const touches = new Map();
+let pinchActive = false;
 let pinchDist = 0;
 
 function eventPos(e) {
@@ -59,29 +62,33 @@ function eventPos(e) {
 function gridFromEvent(e) {
   const p = eventPos(e);
   const w = screenToWorld(cam, p.x, p.y, canvas.clientWidth, canvas.clientHeight);
-  return screenToGrid(w.x, w.y);
+  lastPointerGrid = screenToGrid(w.x, w.y);
+  return lastPointerGrid;
 }
 
 canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, eventPos(e));
     if (touches.size === 2) {
+      pinchActive = true;
       const [a, b] = [...touches.values()];
       pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
       return;
     }
   }
+
   pointer.down = true; pointer.dragging = false;
   pointer.sx = e.clientX; pointer.sy = e.clientY;
   pointer.cx = cam.x; pointer.cy = cam.y;
-  pointer.id = e.pointerId;
   canvas.setPointerCapture(e.pointerId);
 });
 
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
     touches.set(e.pointerId, eventPos(e));
-    if (touches.size === 2) {
+    if (touches.size >= 2) {
       const [a, b] = [...touches.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
       if (pinchDist > 0) {
@@ -93,9 +100,11 @@ canvas.addEventListener('pointermove', e => {
     }
   }
 
+  gridFromEvent(e);
+
   if (pointer.down) {
     const dx = e.clientX - pointer.sx, dy = e.clientY - pointer.sy;
-    if (Math.abs(dx) + Math.abs(dy) > 6) pointer.dragging = true;
+    if (!pointer.dragging && Math.abs(dx) + Math.abs(dy) > 6) pointer.dragging = true;
     if (pointer.dragging) {
       cam.x = pointer.cx - dx / cam.zoom;
       cam.y = pointer.cy - dy / cam.zoom;
@@ -104,17 +113,38 @@ canvas.addEventListener('pointermove', e => {
     }
   }
 
-  // fantasma segue o cursor nos modos de posicionamento
-  if (!state.ghostPinned && state.ghost && (state.mode === 'build' || state.mode === 'move')) {
-    const g = gridFromEvent(e);
-    updateGhostPosition(g.gx, g.gy);
+  if (!state.ghostPinned && state.ghost &&
+      (state.mode === 'build' || (state.mode === 'move' && state.moveId))) {
+    updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
   }
 });
 
 function endPointer(e) {
+  const wasPinch = pinchActive;
+
   if (e.pointerType === 'touch') touches.delete(e.pointerId);
-  if (touches.size < 2) pinchDist = 0;
+
+  if (touches.size === 1 && wasPinch) {
+    // pinça -> 1 dedo restante: reancora a câmera sem dar salto
+    const [a] = [...touches.values()];
+    const rect = canvas.getBoundingClientRect();
+    pointer.down = true; pointer.dragging = false;
+    pointer.sx = rect.left + a.x; pointer.sy = rect.top + a.y;
+    pointer.cx = cam.x; pointer.cy = cam.y;
+  }
+  if (touches.size === 0) {
+    pinchActive = false;
+    pinchDist = 0;
+  }
+
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (wasPinch) {
+    canvas.classList.remove('dragging');
+    if (touches.size === 0) pointer.down = false;
+    return;
+  }
   if (!pointer.down) return;
+
   canvas.classList.remove('dragging');
   const wasDragging = pointer.dragging;
   pointer.down = false; pointer.dragging = false;
@@ -123,6 +153,7 @@ function endPointer(e) {
 
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
@@ -135,16 +166,26 @@ function handleClick(e) {
   const g = gridFromEvent(e);
 
   if (state.mode === 'build' && state.ghost) {
-    if (!state.ghostPinned) {
+    if (state.ghostPinned) {
+      // novo clique reposiciona o fantasma em vez de ficar preso
+      state.ghostPinned = false;
+      hideConfirmBar();
       updateGhostPosition(g.gx, g.gy);
       if (state.ghost.valid) {
         state.ghostPinned = true;
         const def = BUILDINGS[state.ghost.type];
-        showConfirmBar(`${def.icon} ${def.name} — 🪙 ${def.price.toLocaleString('pt-BR')}`);
-      } else {
-        playSound('error');
-        showToast('🚫 Local inválido! Escolha uma área livre dentro do terreno.');
+        showConfirmBar(t('confirm.build', { icon: def.icon, name: t('b_' + def.id), price: def.price.toLocaleString('pt-BR') }));
       }
+      return;
+    }
+    updateGhostPosition(g.gx, g.gy);
+    if (state.ghost.valid) {
+      state.ghostPinned = true;
+      const def = BUILDINGS[state.ghost.type];
+      showConfirmBar(t('confirm.build', { icon: def.icon, name: t('b_' + def.id), price: def.price.toLocaleString('pt-BR') }));
+    } else {
+      playSound('error');
+      showToast(t('toast.invalid'));
     }
     return;
   }
@@ -152,21 +193,29 @@ function handleClick(e) {
   if (state.mode === 'move') {
     if (!state.moveId) {
       const sel = buildingAt(g.gx, g.gy);
-      if (!sel) { showToast('Clique em uma construção para mover.'); return; }
+      if (!sel) { showToast(t('toast.clickBuilding')); return; }
       state.moveId = sel.id;
       state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: sel.rot, valid: true };
-      showToast('Agora clique no novo local (R gira · Esc cancela).');
+      showToast(t('toast.moveSelect'));
       return;
     }
-    if (!state.ghostPinned && state.ghost) {
+    if (state.ghostPinned) {
+      state.ghostPinned = false;
+      hideConfirmBar();
       updateGhostPosition(g.gx, g.gy);
       if (state.ghost.valid) {
         state.ghostPinned = true;
-        showConfirmBar('✥ Mover para esta posição (grátis)');
-      } else {
-        playSound('error');
-        showToast('🚫 Local inválido!');
+        showConfirmBar(t('confirm.move'));
       }
+      return;
+    }
+    updateGhostPosition(g.gx, g.gy);
+    if (state.ghost.valid) {
+      state.ghostPinned = true;
+      showConfirmBar(t('confirm.move'));
+    } else {
+      playSound('error');
+      showToast(t('toast.invalid'));
     }
     return;
   }
@@ -176,16 +225,17 @@ function handleClick(e) {
   if (state.mode === 'remove') {
     if (b) {
       const def = BUILDINGS[b.type];
+      const refund = Math.floor(def.price * def.refund);
       confirmDialog(
-        `Remover ${def.icon} ${def.name}? Você receberá 🪙 ${Math.floor(def.price * def.refund)} de volta.`,
+        t('dialog.removeText', { icon: def.icon, name: t('b_' + def.id), refund: refund.toLocaleString('pt-BR') }),
         () => {
           const r = removeBuilding(b.id);
-          if (r) showToast(`🗑️ Removido! +🪙 ${r.refund}`);
+          if (r) showToast(t('toast.removed', { refund: r.refund.toLocaleString('pt-BR') }));
           refreshHud();
           autoClaimReady();
         });
     } else {
-      showToast('Clique em uma construção para remover.');
+      showToast(t('toast.removeHint'));
     }
     return;
   }
@@ -193,8 +243,8 @@ function handleClick(e) {
   if (state.mode === 'rotate') {
     if (b) {
       const def = BUILDINGS[b.type];
-      if (def.w === def.d && def.w === 1) {
-        showToast('Esta construção não precisa girar.');
+      if (def.w === 1 && def.d === 1) {
+        showToast(t('toast.noRotate'));
         return;
       }
       state.rotateId = b.id;
@@ -202,9 +252,9 @@ function handleClick(e) {
       const valid = canPlace(b.type, b.gx, b.gy, newRot, b.id);
       state.ghost = { type: b.type, gx: b.gx, gy: b.gy, rot: newRot, valid };
       state.ghostPinned = true;
-      showConfirmBar('🔄 Girar 90°?');
+      showConfirmBar(t('confirm.rotate'));
     } else {
-      showToast('Clique em uma construção para girar.');
+      showToast(t('toast.rotateHint'));
     }
     return;
   }
@@ -213,7 +263,7 @@ function handleClick(e) {
   if (b) {
     const def = BUILDINGS[b.type];
     state.highlightTile = { gx: b.gx, gy: b.gy };
-    showToast(`${def.icon} ${def.name}`);
+    showToast(t('toast.highlight', { icon: def.icon, name: t('b_' + def.id) }));
     setTimeout(() => { state.highlightTile = null; }, 1200);
   }
 }
@@ -236,7 +286,7 @@ function setMode(mode) {
   state.moveId = null;
   state.rotateId = null;
   hideConfirmBar();
-  canvas.className = '';
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
   const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate' };
@@ -246,11 +296,9 @@ function setMode(mode) {
 function enterBuildMode(typeId) {
   setMode('build');
   const def = BUILDINGS[typeId];
-  const center = { gx: Math.floor((game.ownedArea.x0 + game.ownedArea.x1) / 2),
-                   gy: Math.floor((game.ownedArea.y0 + game.ownedArea.y1) / 2) };
-  state.ghost = { type: typeId, gx: center.gx, gy: center.gy, rot: 0, valid: false };
-  updateGhostPosition(center.gx, center.gy);
-  showToast(`${def.icon} Escolha o local e clique para confirmar (R gira · Esc cancela)`);
+  state.ghost = { type: typeId, gx: lastPointerGrid.gx, gy: lastPointerGrid.gy, rot: 0, valid: false };
+  updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
+  showToast(t('toast.buildHint', { icon: def.icon }));
 }
 
 const uiHandlers = {
@@ -263,46 +311,45 @@ const uiHandlers = {
     playSound('click');
     if (state.mode === 'move') { setMode('idle'); return; }
     setMode('move');
-    showToast('✥ Clique em uma construção e depois no novo local.');
+    showToast(t('toast.moveHint'));
   },
   remove() {
     playSound('click');
     if (state.mode === 'remove') { setMode('idle'); return; }
     setMode('remove');
-    showToast('✖ Clique em uma construção para removê-la.');
+    showToast(t('toast.removeHint'));
   },
   rotate() {
     playSound('click');
     if (state.mode === 'rotate') { setMode('idle'); return; }
     setMode('rotate');
-    showToast('🔄 Clique em uma construção para visualizar a rotação.');
+    showToast(t('toast.rotateHint'));
   },
   confirmOk() {
     if (state.mode === 'build' && state.ghost) {
       const b = placeBuilding(state.ghost.type, state.ghost.gx, state.ghost.gy, state.ghost.rot);
       if (b) {
-        showToast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} construído!`);
+        showToast(t('toast.built', { icon: BUILDINGS[b.type].icon, name: t('b_' + b.type) }));
         autoClaimReady();
         refreshHud();
-        // continua no modo construir com o mesmo tipo
+        // continua no modo construir, fantasma livre a partir do cursor
         const type = state.ghost.type;
         setMode('build');
-        state.ghost = { type, gx: b.gx, gy: b.gy, rot: 0, valid: false };
-        updateGhostPosition(b.gx, b.gy);
-        state.ghostPinned = false;
+        state.ghost = { type, gx: lastPointerGrid.gx, gy: lastPointerGrid.gy, rot: 0, valid: false };
+        updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
       }
     } else if (state.mode === 'move' && state.moveId && state.ghost) {
-      if (moveBuilding(state.moveId, state.ghost.gx, state.ghost.gy)) {
-        showToast('✥ Construção movida!');
+      if (moveBuilding(state.moveId, state.ghost.gx, state.ghost.gy, state.ghost.rot)) {
+        showToast(t('toast.moved'));
         autoClaimReady();
       }
       setMode('idle');
     } else if (state.mode === 'rotate' && state.rotateId) {
       if (rotateBuilding(state.rotateId)) {
-        showToast('🔄 Construção girada!');
+        showToast(t('toast.rotated'));
       } else {
         playSound('error');
-        showToast('🚫 Sem espaço para girar aqui.');
+        showToast(t('toast.rotateNoSpace'));
       }
       setMode('idle');
     } else {
@@ -316,7 +363,16 @@ const uiHandlers = {
 
 /* ---------- Teclado ---------- */
 window.addEventListener('keydown', e => {
-  if (e.key === 'Escape') setMode('idle');
+  if (e.key === 'Escape') {
+    if (!$('modal-overlay').classList.contains('hidden')) { closeModal(); return; }
+    if (!$('dialog-overlay').classList.contains('hidden')) {
+      $('dialog-overlay').classList.add('hidden');
+      dialogCallback = null;
+      return;
+    }
+    setMode('idle');
+    return;
+  }
   if ((e.key === 'r' || e.key === 'R') && state.ghost && !state.ghostPinned &&
       (state.mode === 'build' || state.mode === 'move')) {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
@@ -325,12 +381,18 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Enter' && state.ghostPinned) uiHandlers.confirmOk();
 });
 
+/* ---------- Salvamento ao sair ---------- */
+window.addEventListener('beforeunload', () => saveGame(false));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveGame(false);
+});
+
 /* ---------- Loop ---------- */
 let lastTime = 0;
 let autosaveAcc = 0;
 
 function loop(ts) {
-  const dt = (ts - lastTime) / 1000;
+  const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
   autosaveAcc += dt;
@@ -346,14 +408,16 @@ function init() {
     // propriedade inicial: casa e poço já construídos
     placeBuilding('house', 12, 12, 0, true);
     placeBuilding('well', 16, 16, 0, true);
-    addCoins(0);
     saveGame(false);
   }
+  game.stats.level = game.level;
+  game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
+  applyLang();
   centerCamera();
   bindUi(uiHandlers);
   refreshHud();
   requestAnimationFrame(loop);
-  if (!loaded) showToast('🌾 Bem-vindo à sua fazenda! Use 🪧 Construir para começar.');
+  if (!loaded) showToast(t('toast.welcome'));
 }
 
 init();

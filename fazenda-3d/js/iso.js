@@ -168,11 +168,11 @@ function drawTileDiamond(ctx, corners, fill, stroke) {
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
 }
 
-/* Círculo "esfera" para copas de árvores. */
+/* Círculo "esfera" para copas de árvores. r é dado em unidades de tile. */
 function drawSphere(ctx, cam, cw, ch, gx, gy, gz, r, color) {
   const p = projectPoint(gx, gy, gz);
   const s = worldToScreen(cam, p.x, p.y, cw, ch);
-  const rr = r * cam.zoom;
+  const rr = r * (TILE_W / 2) * cam.zoom;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(s.x, s.y, rr, 0, Math.PI * 2);

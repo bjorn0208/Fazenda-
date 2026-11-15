@@ -73,7 +73,7 @@ function buildingAt(x, y) {
 /* ---------- Economia ---------- */
 function addCoins(n) {
   game.coins = Math.max(0, game.coins + n);
-  if (n > 0) game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
+  game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
   uiDirty.coins = true;
 }
 
@@ -86,7 +86,7 @@ function addXp(n) {
     game.xp -= xpForLevel(game.level);
     game.level++;
     game.stats.level = game.level;
-    showToast(`⭐ Nível ${game.level} alcançado! Novos itens desbloqueados.`);
+    showToast(t('toast.levelUp', { n: game.level }));
     playSound('level');
   }
 }
@@ -96,7 +96,7 @@ function placeBuilding(type, gx, gy, rot, free) {
   const def = BUILDINGS[type];
   if (!canPlace(type, gx, gy, rot)) return null;
   if (!free) {
-    if (game.coins < def.price) { showToast('🪙 Moedas insuficientes!'); return null; }
+    if (game.coins < def.price) { showToast(t('toast.noCoins')); return null; }
     addCoins(-def.price);
   }
   const building = {
@@ -126,12 +126,13 @@ function removeBuilding(id) {
   return { refund, def };
 }
 
-function moveBuilding(id, gx, gy) {
+function moveBuilding(id, gx, gy, rot) {
   const b = game.buildings.find(b => b.id === id);
   if (!b) return false;
-  if (!canPlace(b.type, gx, gy, b.rot, id)) return false;
+  const newRot = (rot === undefined) ? b.rot : rot;
+  if (!canPlace(b.type, gx, gy, newRot, id)) return false;
   markOccupancy(b, false);
-  b.gx = gx; b.gy = gy;
+  b.gx = gx; b.gy = gy; b.rot = newRot;
   markOccupancy(b, true);
   playSound('place');
   return true;
@@ -159,9 +160,9 @@ function canExpand() {
 }
 
 function buyLand() {
-  if (!canExpand()) { showToast('🚫 Limite de expansões atingido!'); return false; }
+  if (!canExpand()) { showToast(t('toast.expandLimit')); return false; }
   const price = expansionPrice();
-  if (game.coins < price) { showToast('🪙 Moedas insuficientes!'); return false; }
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
   addCoins(-price);
   game.landExpansions++;
   game.stats.land_expansions = game.landExpansions;
@@ -176,7 +177,7 @@ function buyLand() {
 
   addXp(60);
   playSound('level');
-  showToast(`🌍 Terreno ampliado! Área agora: ${a.x1 - a.x0 + 1}×${a.y1 - a.y0 + 1}`);
+  showToast(t('toast.landExpanded', { w: a.x1 - a.x0 + 1, h: a.y1 - a.y0 + 1 }));
   return true;
 }
 
@@ -192,7 +193,7 @@ function claimMission(m) {
   addCoins(m.rewardCoins);
   addXp(m.rewardXp);
   playSound('level');
-  showToast(`📋 Missão concluída! +${m.rewardCoins} 🪙 +${m.rewardXp} XP`);
+  showToast(t('toast.missionDone', { c: m.rewardCoins, x: m.rewardXp }));
   return true;
 }
 
@@ -206,7 +207,7 @@ function claimAchievement(a) {
   game.achievementsClaimed.push(a.id);
   addCoins(a.rewardCoins);
   playSound('level');
-  showToast(`🏆 Conquista desbloqueada! +${a.rewardCoins} 🪙`);
+  showToast(t('toast.achievementDone', { c: a.rewardCoins }));
   return true;
 }
 
@@ -231,7 +232,7 @@ function saveGame(showToastMsg) {
       settings: game.settings, landExpansions: game.landExpansions
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    if (showToastMsg) showToast('💾 Progresso salvo!');
+    if (showToastMsg) showToast(t('toast.saved'));
     return true;
   } catch (e) {
     console.error('Falha ao salvar', e);
@@ -252,9 +253,11 @@ function loadGame() {
       buildings: data.buildings ?? [], nextId: data.nextId ?? 1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
-      settings: data.settings ?? game.settings,
+      settings: { ...game.settings, ...(data.settings ?? {}) },
       landExpansions: data.landExpansions ?? 0
     });
+    game.stats.level = game.level;
+    game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
     occupancy.fill(null);
     for (const b of game.buildings) markOccupancy(b, true);
     return true;
