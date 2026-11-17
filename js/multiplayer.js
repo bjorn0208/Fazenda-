@@ -117,6 +117,7 @@ function visitFarm(code, onReady) {
 
 function enterVisitMode(data) {
   saveGame(false);
+  try { localStorage.setItem(SAVE_KEY + '_visit', JSON.stringify(snapshotData())); } catch (e) {}
   applySaveData(data);
   game.visiting = true;
   mpStatus = 'visiting';
@@ -131,7 +132,15 @@ function leaveVisitMode() {
   if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
   game.visiting = false;
   mpStatus = 'off';
-  loadGame();
+  let restored = false;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY + '_visit');
+    if (raw) {
+      restored = applySaveData(JSON.parse(raw));
+      localStorage.removeItem(SAVE_KEY + '_visit');
+    }
+  } catch (e) {}
+  if (!restored) loadGame();
   updateVisitBanner();
   showToast(t('toast.backHome'));
 }

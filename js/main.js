@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v30';
+const GAME_VERSION = 'v31';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -661,10 +661,12 @@ function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   try {
-    advanceClock(dt);
-    updateAnimals(dt);
-    updateFarmers(dt);
-    updateDogs(dt);
+    if (!game.visiting) {
+      advanceClock(dt);
+      updateAnimals(dt);
+      updateFarmers(dt);
+      updateDogs(dt);
+    }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();

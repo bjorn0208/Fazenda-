@@ -576,6 +576,7 @@ function snapshotData() {
 }
 
 function saveGame(showToastMsg) {
+  if (game.visiting) return false;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));

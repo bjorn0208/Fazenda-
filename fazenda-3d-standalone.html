@@ -633,7 +633,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v30</div>
+<div id="debug-badge">v31</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1684,6 +1684,7 @@ function snapshotData() {
 }
 
 function saveGame(showToastMsg) {
+  if (game.visiting) return false;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));
@@ -6313,6 +6314,7 @@ function visitFarm(code, onReady) {
 
 function enterVisitMode(data) {
   saveGame(false);
+  try { localStorage.setItem(SAVE_KEY + '_visit', JSON.stringify(snapshotData())); } catch (e) {}
   applySaveData(data);
   game.visiting = true;
   mpStatus = 'visiting';
@@ -6327,7 +6329,15 @@ function leaveVisitMode() {
   if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
   game.visiting = false;
   mpStatus = 'off';
-  loadGame();
+  let restored = false;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY + '_visit');
+    if (raw) {
+      restored = applySaveData(JSON.parse(raw));
+      localStorage.removeItem(SAVE_KEY + '_visit');
+    }
+  } catch (e) {}
+  if (!restored) loadGame();
   updateVisitBanner();
   showToast(t('toast.backHome'));
 }
@@ -6405,7 +6415,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v30';
+const GAME_VERSION = 'v31';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -7014,10 +7024,12 @@ function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   try {
-    advanceClock(dt);
-    updateAnimals(dt);
-    updateFarmers(dt);
-    updateDogs(dt);
+    if (!game.visiting) {
+      advanceClock(dt);
+      updateAnimals(dt);
+      updateFarmers(dt);
+      updateDogs(dt);
+    }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();

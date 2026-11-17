@@ -162,6 +162,12 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 24 — Visita corrigida: volta para casa de verdade
+
+- **Fazenda do visitante nunca mais é perdida**: ao visitar, o jogo faz um backup dedicado da fazenda de quem visita. Antes, o autosave gravava a fazenda do anfitrião por cima do save do visitante — e, na hora de voltar, o jogo carregava a fazenda errada (a visita "não voltava"). Agora o botão Voltar restaura a sua fazenda exatamente como estava.
+- **Visita é só leitura de verdade**: durante a visita, a simulação local fica congelada — os fazendeiros do anfitrião não ficam conversando e trabalhando sozinhos no seu celular; o que aparece é o estado real da fazenda, atualizado a cada 10 segundos.
+- **Nada é salvo durante a visita**: nem o autosave, nem ao sair do aplicativo, gravam a fazenda alheia no seu save.
+
 ## Revisão 23 — Campo de código arrumado
 
 - **Visitar ficou no topo**: ao abrir o multiplayer, o campo para digitar o código do amigo (com o botão **Visitar** ao lado) agora vem primeiro, bem destacado.

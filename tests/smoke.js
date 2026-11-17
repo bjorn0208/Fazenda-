@@ -433,6 +433,24 @@ vm.runInContext(`
   if (!applySaveData(JSON.parse(snapBefore))) throw new Error('applySaveData falhou');
   if (JSON.stringify(snapshotData()) !== snapBefore) throw new Error('snapshot/applySaveData divergiu');
   updateMultiplayer(0.016);
+
+  // modo visita: save bloqueado, simulacao congelada e volta para a fazenda certa
+  const homeCoins = game.coins;
+  const homeBuildings = game.buildings.length;
+  const hostSnap = JSON.parse(JSON.stringify(snapshotData()));
+  hostSnap.coins = 99999;
+  hostSnap.buildings = hostSnap.buildings.slice(0, 1);
+  hostSnap.farmers = [];
+  enterVisitMode(hostSnap);
+  if (!game.visiting) throw new Error('nao entrou em modo visita');
+  if (game.coins !== 99999 || game.buildings.length !== 1) throw new Error('fazenda do host nao carregou');
+  if (saveGame(false) !== false) throw new Error('save durante visita deveria ser bloqueado');
+  for (let i = 0; i < 50; i++) { updateAnimals(0.1); updateFarmers(0.1); updateDogs(0.1); }
+  leaveVisitMode();
+  if (game.visiting) throw new Error('nao saiu do modo visita');
+  if (game.coins !== homeCoins) throw new Error('moedas da fazenda propria nao restauradas: ' + game.coins + ' vs ' + homeCoins);
+  if (game.buildings.length !== homeBuildings) throw new Error('construcoes da fazenda propria nao restauradas');
+
   const coinsG = game.coins;
   const g1 = receiveGift({ kind: 'coins', n: 500 });
   if (!g1 || game.coins !== coinsG + 500) throw new Error('presente de moedas falhou');
