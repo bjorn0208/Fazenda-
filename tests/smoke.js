@@ -423,11 +423,11 @@ vm.runInContext(`
 
   // multiplayer: codigo da fazenda, snapshot/apply e presentes
   const code = ensureFarmCode();
-  if (!/^[A-Z]{3}[2-9]{3}$/.test(code)) throw new Error('codigo de fazenda invalido: ' + code);
+  if (!/^[0-9]{6}$/.test(code)) throw new Error('codigo de fazenda invalido: ' + code);
   if (ensureFarmCode() !== code) throw new Error('codigo mudou entre chamadas');
   game.farmCode = 'F3D-AB12';
-  if (!/^[A-Z]{3}[2-9]{3}$/.test(ensureFarmCode())) throw new Error('codigo antigo nao migrou');
-  if (normalizeFarmCode('abc-123') !== 'ABC123' || normalizeFarmCode('F3D-XY9') !== 'XY9') throw new Error('normalizeFarmCode errado');
+  if (!/^[0-9]{6}$/.test(ensureFarmCode())) throw new Error('codigo antigo nao migrou');
+  if (normalizeFarmCode('12 34 56') !== '123456' || normalizeFarmCode('F3D-XY9') !== '39') throw new Error('normalizeFarmCode errado');
   game.farmCode = null;
   const snapBefore = JSON.stringify(snapshotData());
   if (!applySaveData(JSON.parse(snapBefore))) throw new Error('applySaveData falhou');

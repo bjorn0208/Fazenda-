@@ -162,6 +162,11 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 22 — Menu limpo e código só com números
+
+- **Botão Amigos removido**: aquele aviso antigo de "sistema de amigos em breve" saiu do menu — o multiplayer por código 🌐 é quem fica.
+- **Código da fazenda agora é só números**: **6 dígitos** (ex.: `482913`). O campo de visita aceita apenas números e o teclado do celular abre em modo numérico.
+
 ## Revisão 21 — Multiplayer simplificado e código novo
 
 - **Código novo**: **3 letras + 3 números** (ex.: `ABC123`) — sem prefixo, sem tracinho. Códigos antigos (F3D-XXXX) migram sozinhos ao abrir o jogo.

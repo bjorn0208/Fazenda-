@@ -28,7 +28,7 @@ const game = {
   settings: { sound: true, music: false, quality: 'alta', language: 'pt-BR' },
   landExpansions: 0,
   meetingDone: false,     // reuniao matinal dos fazendeiro ja aconteceu hoje
-  farmCode: null,         // codigo da sala multiplayer (ex.: ABC123)
+  farmCode: null,         // codigo da sala multiplayer (6 numeros, ex.: 482913)
   visiting: false         // modo visita: somente leitura
 };
 
@@ -626,13 +626,10 @@ function applySaveData(data) {
   }
 }
 
-const FARM_CODE_LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ';
-const FARM_CODE_DIGITS = '23456789';
-const FARM_CODE_RE = /^[A-Z]{3}[2-9]{3}$/;
+const FARM_CODE_RE = /^[0-9]{6}$/;
 function genFarmCode() {
   let c = '';
-  for (let i = 0; i < 3; i++) c += FARM_CODE_LETTERS[Math.floor(Math.random() * FARM_CODE_LETTERS.length)];
-  for (let i = 0; i < 3; i++) c += FARM_CODE_DIGITS[Math.floor(Math.random() * FARM_CODE_DIGITS.length)];
+  for (let i = 0; i < 6; i++) c += String(Math.floor(Math.random() * 10));
   return c;
 }
 
@@ -642,9 +639,7 @@ function ensureFarmCode() {
 }
 
 function normalizeFarmCode(raw) {
-  let s = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (/^F3D/.test(s)) s = s.slice(3);
-  return s;
+  return String(raw || '').replace(/[^0-9]/g, '').slice(0, 6);
 }
 
 /* ---------- Pa: remove qualquer coisa e devolve a grama ---------- */

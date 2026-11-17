@@ -122,7 +122,7 @@ const I18N = {
     'toast.backHome': '🏡 Você voltou para a sua fazenda.',
     'toast.visitingBlock': 'Modo visita: somente leitura.',
     'toast.mpError': 'Multiplayer: {err}',
-    'toast.mpBadCode': 'Código inválido. Use 3 letras e 3 números (ex.: ABC123).',
+    'toast.mpBadCode': 'Código inválido. Use 6 números (ex.: 482913).',
     'toast.mpCodeCopied': 'Código copiado!',
     'visit.banner': '👀 Visitando: {name}',
     'visit.back': '🏡 Voltar',
@@ -303,7 +303,7 @@ const I18N = {
     'toast.backHome': '🏡 You are back at your farm.',
     'toast.visitingBlock': 'Visit mode: read only.',
     'toast.mpError': 'Multiplayer: {err}',
-    'toast.mpBadCode': 'Invalid code. Use 3 letters and 3 numbers (e.g., ABC123).',
+    'toast.mpBadCode': 'Invalid code. Use 6 numbers (e.g., 482913).',
     'toast.mpCodeCopied': 'Code copied!',
     'visit.banner': '👀 Visiting: {name}',
     'visit.back': '🏡 Back',
@@ -896,13 +896,6 @@ function openAchievements() {
   });
 }
 
-/* ---------- Amigos ---------- */
-function openFriends() {
-  openModal(t('modal.friends'), body => {
-    body.innerHTML = `<div class="friends-placeholder">${t('friends.placeholder')}</div>`;
-  });
-}
-
 /* ---------- Configurações ---------- */
 function openSettings() {
   openModal(t('modal.settings'), body => {
@@ -1125,19 +1118,19 @@ function openMultiplayer() {
     visitRow.className = 'mp-visit-row';
     const input = document.createElement('input');
     input.className = 'mp-input';
-    input.placeholder = 'ABC123';
+    input.placeholder = '482913';
     input.maxLength = 6;
     input.autocomplete = 'off';
-    input.autocapitalize = 'characters';
+    input.inputMode = 'numeric';
     input.addEventListener('input', () => {
-      input.value = normalizeFarmCode(input.value).slice(0, 6);
+      input.value = input.value.replace(/[^0-9]/g, '').slice(0, 6);
     });
     const go = document.createElement('button');
     go.className = 'mp-big-btn';
     go.textContent = t('mp.visitBtn');
     const tryVisit = () => {
-      const code2 = normalizeFarmCode(input.value);
-      if (!/^[A-Z]{3}[2-9]{3}$/.test(code2)) { showToast(t('toast.mpBadCode')); return; }
+      const code2 = input.value.replace(/[^0-9]/g, '');
+      if (!/^[0-9]{6}$/.test(code2)) { showToast(t('toast.mpBadCode')); return; }
       go.disabled = true;
       visitFarm(code2, err => {
         go.disabled = false;
@@ -1268,7 +1261,6 @@ function bindUi(handlers) {
       if (panel === 'missions') openMissions();
       else if (panel === 'shop') openShop();
       else if (panel === 'achievements') openAchievements();
-      else if (panel === 'friends') openFriends();
       else if (panel === 'farmers') openFarmersPanel();
       else if (panel === 'multiplayer') openMultiplayer();
     };
