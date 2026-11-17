@@ -130,3 +130,11 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Lago 3× maior** (5×5 tiles)
 - **Caminhada realista dos animais**: velocidade individual, pastagem (cabeça baixa), virada suave
 - **Fazendeiro automático** (🧑‍🌾 na aba Ajudantes): toque nele, encha o **baú** com sementes — ele caminha, planta, rega, colhe e vende sozinho. Preço dobra a cada contratação.
+
+## Revisão 6 — Produção animal e fazendeiro em fileiras
+
+- **Ovos 🥚 e Leite 🥛**: galinha produz a cada 40s (🪙15) e vaca a cada 60s (🪙25); até 3 unidades guardadas. Ícone aparece sobre o animal quando pronto — toque no animal para **coletar e vender** na hora.
+- **Porco → Bacon 🥓**: aos **5 minutos de vida** o porco pode ser abatido (ícone 🥓 sobre ele) — abate rende **🪙300**. Porco jovem mostra aviso explicativo.
+- **Fazendeiro automático**: além de plantar/regar/colher, agora ele também **coleta ovos, leite e abate porcos** prontos automaticamente.
+- **Plantio em fileiras**: o fazendeiro planta **um ao lado do outro** (vizinhos de plantações existentes), preferindo formar **clusters da mesma cultura** em vez de espalhar pelo mapa.
+- Testes: coleta de ovo/leite, recusa de abate de porco jovem, abate com 5min, e verificação de que todo plantio do fazendeiro fica adjacente a outra plantação.

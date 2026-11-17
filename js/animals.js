@@ -3,10 +3,12 @@
    da fazenda, com animação de passos e pausas para descansar. */
 
 const ANIMAL_KINDS = {
-  chicken: { speed: 0.9, scale: 0.55 },
-  cow:     { speed: 0.45, scale: 1.0 },
+  chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
+  cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 }
 };
+
+const MAX_PRODUCT = 3;
 
 const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
@@ -42,12 +44,22 @@ function makeAnimal(kind, spot) {
     phase: Math.random() * 10,
     speedMul: 0.85 + Math.random() * 0.3,
     grazing: false,
-    dirCur: Math.random() < 0.5 ? -1 : 1
+    dirCur: Math.random() < 0.5 ? -1 : 1,
+    bornAt: Date.now(),
+    product: 0,
+    prodT: 0
   };
 }
 
 function animalUpdateOne(a, dt) {
   a.phase += dt;
+  if (a.kind !== 'pig') {
+    a.prodT += dt;
+    if (a.prodT >= ANIMAL_KINDS[a.kind].cycle) {
+      a.prodT = 0;
+      if (a.product < MAX_PRODUCT) a.product++;
+    }
+  }
   const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
   a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
   if (a.walking) {
@@ -95,6 +107,9 @@ function updateAnimals(dt) {
       a.grazing = false;
       a.dirCur = 1;
     }
+    if (a.bornAt === undefined) a.bornAt = Date.now();
+    if (a.product === undefined) a.product = 0;
+    if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
   }
 }
@@ -123,6 +138,19 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   else drawPig(ctx, bob, dir, a.walking, a.phase);
 
   ctx.restore();
+
+  let icon = null;
+  if (a.kind === 'pig') {
+    if (a.bornAt !== undefined && Date.now() - a.bornAt >= 300000) icon = '🥓';
+  } else if (a.product > 0) {
+    icon = ANIMALS[a.kind].product;
+  }
+  if (icon) {
+    const bob2 = Math.sin(a.phase * 3) * 2 * z;
+    ctx.font = Math.max(10, 13 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
+  }
 }
 
 function drawChicken(ctx, bob, dir, walking, phase) {

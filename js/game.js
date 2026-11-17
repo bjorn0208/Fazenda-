@@ -209,6 +209,35 @@ function harvestAllCrops() {
   return { n, coins, xp };
 }
 
+/* ---------- Producao dos animais ---------- */
+const PIG_SLAUGHTER_MS = 300000;
+
+function pigReady(a) {
+  return a.kind === 'pig' && a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS;
+}
+
+function collectAnimal(a) {
+  if (pigReady(a)) {
+    const value = ANIMALS.pig.bacon;
+    const idx = game.animals.indexOf(a);
+    if (idx === -1) return false;
+    game.animals.splice(idx, 1);
+    addCoins(value);
+    game.stats.slaughtered = (game.stats.slaughtered || 0) + 1;
+    spawnFloater(a.gx - 0.5, a.gy - 0.5, '+' + value + ' 🪙', '#ff8a65');
+    playSound('harvest');
+    return true;
+  }
+  if (!a.product) return false;
+  const def = ANIMALS[a.kind];
+  const value = def.value * a.product;
+  addCoins(value);
+  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
+  a.product = 0;
+  playSound('harvest');
+  return true;
+}
+
 /* ---------- Fazendeiro (ajudante automatico) ---------- */
 function farmerPrice() {
   return HELPERS.farmer.price * Math.pow(2, game.farmers.length);

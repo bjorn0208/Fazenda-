@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v12';
+const GAME_VERSION = 'v13';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -368,6 +368,22 @@ function handleClick(e) {
         openFarmerChest(f);
         return;
       }
+    }
+    let nearest = null, nd = Infinity;
+    for (const a of game.animals) {
+      const d = Math.hypot(a.gx - (g.gx + 0.5), a.gy - (g.gy + 0.5));
+      if (d < 0.9 && d < nd) { nd = d; nearest = a; }
+    }
+    if (nearest) {
+      if (collectAnimal(nearest)) {
+        refreshHud();
+        autoClaimReady();
+      } else if (nearest.kind === 'pig') {
+        showToast(t('toast.pigYoung'));
+      } else {
+        showToast(t('toast.animalNotReady'));
+      }
+      return;
     }
   }
 

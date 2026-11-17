@@ -462,7 +462,7 @@ html, body {
 </div>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v11</div>
+<div id="debug-badge">v13</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -590,15 +590,18 @@ const BUILDINGS = {
 const ANIMALS = {
   chicken: {
     id: 'chicken', name: 'Galinha', icon: '🐔',
-    price: 150, level: 1, desc: 'Ciscando feliz (põe ovos na fase 3).'
+    price: 150, level: 1, desc: 'Põe ovos a cada 40s (toque para coletar e vender).',
+    product: '🥚', cycle: 40, value: 15
   },
   pig: {
     id: 'pig', name: 'Porco', icon: '🐖',
-    price: 350, level: 2, desc: 'Adora um banho de lama.'
+    price: 350, level: 2, desc: 'Aos 5 minutos de vida pode ser abatido e vira bacon.',
+    bacon: 300
   },
   cow: {
     id: 'cow', name: 'Vaca', icon: '🐄',
-    price: 600, level: 3, desc: 'Produz leite (fase 3).'
+    price: 600, level: 3, desc: 'Dá leite a cada 60s (toque para coletar e vender).',
+    product: '🥛', cycle: 60, value: 25
   }
 };
 
@@ -1120,6 +1123,35 @@ function harvestAllCrops() {
     if (r) { n++; coins += r.sell; xp += r.xp; }
   }
   return { n, coins, xp };
+}
+
+/* ---------- Producao dos animais ---------- */
+const PIG_SLAUGHTER_MS = 300000;
+
+function pigReady(a) {
+  return a.kind === 'pig' && a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS;
+}
+
+function collectAnimal(a) {
+  if (pigReady(a)) {
+    const value = ANIMALS.pig.bacon;
+    const idx = game.animals.indexOf(a);
+    if (idx === -1) return false;
+    game.animals.splice(idx, 1);
+    addCoins(value);
+    game.stats.slaughtered = (game.stats.slaughtered || 0) + 1;
+    spawnFloater(a.gx - 0.5, a.gy - 0.5, '+' + value + ' 🪙', '#ff8a65');
+    playSound('harvest');
+    return true;
+  }
+  if (!a.product) return false;
+  const def = ANIMALS[a.kind];
+  const value = def.value * a.product;
+  addCoins(value);
+  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
+  a.product = 0;
+  playSound('harvest');
+  return true;
 }
 
 /* ---------- Fazendeiro (ajudante automatico) ---------- */
@@ -2313,10 +2345,12 @@ function drawGhost(ctx, cam, cw, ch, state) {
    da fazenda, com animação de passos e pausas para descansar. */
 
 const ANIMAL_KINDS = {
-  chicken: { speed: 0.9, scale: 0.55 },
-  cow:     { speed: 0.45, scale: 1.0 },
+  chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
+  cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 }
 };
+
+const MAX_PRODUCT = 3;
 
 const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
@@ -2352,12 +2386,22 @@ function makeAnimal(kind, spot) {
     phase: Math.random() * 10,
     speedMul: 0.85 + Math.random() * 0.3,
     grazing: false,
-    dirCur: Math.random() < 0.5 ? -1 : 1
+    dirCur: Math.random() < 0.5 ? -1 : 1,
+    bornAt: Date.now(),
+    product: 0,
+    prodT: 0
   };
 }
 
 function animalUpdateOne(a, dt) {
   a.phase += dt;
+  if (a.kind !== 'pig') {
+    a.prodT += dt;
+    if (a.prodT >= ANIMAL_KINDS[a.kind].cycle) {
+      a.prodT = 0;
+      if (a.product < MAX_PRODUCT) a.product++;
+    }
+  }
   const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
   a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
   if (a.walking) {
@@ -2405,6 +2449,9 @@ function updateAnimals(dt) {
       a.grazing = false;
       a.dirCur = 1;
     }
+    if (a.bornAt === undefined) a.bornAt = Date.now();
+    if (a.product === undefined) a.product = 0;
+    if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
   }
 }
@@ -2433,6 +2480,19 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   else drawPig(ctx, bob, dir, a.walking, a.phase);
 
   ctx.restore();
+
+  let icon = null;
+  if (a.kind === 'pig') {
+    if (a.bornAt !== undefined && Date.now() - a.bornAt >= 300000) icon = '🥓';
+  } else if (a.product > 0) {
+    icon = ANIMALS[a.kind].product;
+  }
+  if (icon) {
+    const bob2 = Math.sin(a.phase * 3) * 2 * z;
+    ctx.font = Math.max(10, 13 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
+  }
 }
 
 function drawChicken(ctx, bob, dir, walking, phase) {
@@ -2625,24 +2685,51 @@ function farmerFindJob(f) {
     if (d < bestD) { bestD = d; best = c; }
   }
   if (best) return { kind: 'harvest', target: best };
+  let an = null;
+  bestD = Infinity;
+  for (const a of game.animals) {
+    const ready = pigReady(a) || a.product > 0;
+    if (!ready) continue;
+    const d = Math.hypot(a.gx - f.gx, a.gy - f.gy);
+    if (d < bestD) { bestD = d; an = a; }
+  }
+  if (an) return { kind: 'animal', target: an };
   for (const type of Object.keys(f.chest)) {
     if (f.chest[type] > 0) return { kind: 'plant', type };
   }
   return null;
 }
 
-function farmerFindPlantSpot(f) {
+function farmerFindPlantSpot(f, type) {
   const a = game.ownedArea;
+  const candidates = new Set();
+  for (const c of game.crops) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = c.gx + dx, y = c.gy + dy;
+      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) {
+        candidates.add(x + ',' + y);
+      }
+    }
+  }
   let best = null, bestScore = -Infinity;
+  for (const key of candidates) {
+    const [x, y] = key.split(',').map(Number);
+    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
+    let score = -d;
+    if (isTilled(x, y)) score += 50;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nb = occupancy[occIndex(x + dx, y + dy)];
+      if (nb && nb.isCrop) score += (nb.type === type ? 20 : 5);
+    }
+    if (score > bestScore) { bestScore = score; best = { x, y }; }
+  }
+  if (best) return best;
   for (let tries = 0; tries < 40; tries++) {
     const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
     const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
-    if (occupancy[occIndex(x, y)]) continue;
-    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
-    const score = (isTilled(x, y) ? 100 : 0) - d;
-    if (score > bestScore) { bestScore = score; best = { x, y }; }
+    if (!occupancy[occIndex(x, y)]) return { x, y };
   }
-  return best;
+  return null;
 }
 
 function updateFarmers(dt) {
@@ -2682,12 +2769,25 @@ function updateFarmers(dt) {
       continue;
     }
 
+    if (job && job.kind === 'animal') {
+      const a = job.target;
+      if (Math.hypot(a.gx - f.gx, a.gy - f.gy) < 1.4) {
+        collectAnimal(a);
+        f.wait = 0.5;
+      } else {
+        f.tx = a.gx; f.ty = a.gy;
+        f.walking = true;
+      }
+      continue;
+    }
+
     if (job && job.kind === 'plant') {
       let spot = f.jobSpot;
       if (!spot || occupancy[occIndex(spot.x, spot.y)]) {
-        spot = farmerFindPlantSpot(f);
+        spot = farmerFindPlantSpot(f, job.type);
         if (!spot) { f.wait = 2; continue; }
         f.jobSpot = spot;
+        f.jobType = job.type;
       }
       if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.9) {
         const crop = plantCrop(job.type, spot.x, spot.y, true);
@@ -2894,6 +2994,9 @@ const I18N = {
     'chest.hint': 'Compre sementes para o baú — ele planta, rega, colhe e vende por você.',
     'chest.in': 'no baú: {n}',
     'toast.seedsBought': '{icon} {n}× {name} no baú',
+    'toast.collected': '{icon} Coletado e vendido: +{n} 🪙!',
+    'toast.animalNotReady': 'Ainda não há produto para coletar.',
+    'toast.pigYoung': '🐖 O porco fica pronto para abate aos 5 minutos de vida.',
     'c_coffee': 'Café', 'c_sugarcane': 'Cana',
     'b_tree_pine': 'Pinheiro', 'b_tree_pine_desc': 'Perene e resistente.',
     'b_tree_cherry': 'Cerejeira', 'b_tree_cherry_desc': 'Flores rosas na primavera.'
@@ -2998,6 +3101,9 @@ const I18N = {
     'chest.hint': 'Buy seeds into the chest — he plants, waters, harvests and sells for you.',
     'chest.in': 'in chest: {n}',
     'toast.seedsBought': '{icon} {n}× {name} in chest',
+    'toast.collected': '{icon} Collected and sold: +{n} 🪙!',
+    'toast.animalNotReady': 'No product to collect yet.',
+    'toast.pigYoung': '🐖 Pigs are ready for slaughter after 5 minutes of life.',
     'c_coffee': 'Coffee', 'c_sugarcane': 'Sugarcane',
     'b_tree_pine': 'Pine Tree', 'b_tree_pine_desc': 'Evergreen and hardy.',
     'b_tree_cherry': 'Cherry Tree', 'b_tree_cherry_desc': 'Pink spring blossoms.',
@@ -3603,7 +3709,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v12';
+const GAME_VERSION = 'v13';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -3920,6 +4026,22 @@ function handleClick(e) {
         openFarmerChest(f);
         return;
       }
+    }
+    let nearest = null, nd = Infinity;
+    for (const a of game.animals) {
+      const d = Math.hypot(a.gx - (g.gx + 0.5), a.gy - (g.gy + 0.5));
+      if (d < 0.9 && d < nd) { nd = d; nearest = a; }
+    }
+    if (nearest) {
+      if (collectAnimal(nearest)) {
+        refreshHud();
+        autoClaimReady();
+      } else if (nearest.kind === 'pig') {
+        showToast(t('toast.pigYoung'));
+      } else {
+        showToast(t('toast.animalNotReady'));
+      }
+      return;
     }
   }
 

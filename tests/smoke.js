@@ -213,6 +213,46 @@ vm.runInContext(`
   updateAnimals(0.016);
   render(ctx, cam, 800, 600, state);
 
+  // producao dos animais: ovo e leite
+  game.coins = 999999;
+  const hen = game.animals.find(a => a.kind === 'chicken');
+  hen.product = 2;
+  const coinsBefore = game.coins;
+  if (!collectAnimal(hen)) throw new Error('coleta de ovo falhou');
+  if (game.coins !== coinsBefore + 30) throw new Error('valor do ovo errado');
+  if (hen.product !== 0) throw new Error('produto nao zerado');
+  const cow2 = game.animals.find(a => a.kind === 'cow');
+  cow2.product = 1;
+  if (!collectAnimal(cow2)) throw new Error('coleta de leite falhou');
+
+  // porco: jovem nao pode ser abatido; aos 5 min vira bacon
+  buyAnimal('pig');
+  const porky = game.animals[game.animals.length - 1];
+  if (collectAnimal(porky)) throw new Error('porco jovem foi abatido');
+  porky.bornAt -= 301000;
+  const pigsBefore = game.animals.filter(a => a.kind === 'pig').length;
+  if (!collectAnimal(porky)) throw new Error('abate do porco falhou');
+  if (game.animals.filter(a => a.kind === 'pig').length !== pigsBefore - 1) throw new Error('porco nao removido');
+
+  // fazendeiro coleta produtos e planta em fileiras adjacentes
+  buyFarmer();
+  const fm2 = game.farmers[game.farmers.length - 1];
+  depositSeed(fm2, 'wheat', 6);
+  game.crops.forEach(c => { c.product = undefined; });
+  const anchor = plantCrop('wheat', 5, 40, true);
+  const cropsBefore2 = game.crops.length;
+  for (let i = 0; i < 1200; i++) updateFarmers(0.1);
+  const newCrops = game.crops.slice(cropsBefore2);
+  if (newCrops.length === 0) throw new Error('fazendeiro nao plantou em fileira');
+  for (const c of newCrops) {
+    const adj = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => {
+      const nb = occupancy[occIndex(c.gx + dx, c.gy + dy)];
+      return nb && nb.isCrop;
+    });
+    if (!adj) throw new Error('plantio fora da fileira em ' + c.gx + ',' + c.gy);
+  }
+  render(ctx, cam, 800, 600, state);
+
   // colher tudo
   for (const c of game.crops) c.plantedAt -= CROPS[c.type].growTime * 1000;
   const total = game.crops.length;

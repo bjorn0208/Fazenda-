@@ -88,15 +88,18 @@ const BUILDINGS = {
 const ANIMALS = {
   chicken: {
     id: 'chicken', name: 'Galinha', icon: '🐔',
-    price: 150, level: 1, desc: 'Ciscando feliz (põe ovos na fase 3).'
+    price: 150, level: 1, desc: 'Põe ovos a cada 40s (toque para coletar e vender).',
+    product: '🥚', cycle: 40, value: 15
   },
   pig: {
     id: 'pig', name: 'Porco', icon: '🐖',
-    price: 350, level: 2, desc: 'Adora um banho de lama.'
+    price: 350, level: 2, desc: 'Aos 5 minutos de vida pode ser abatido e vira bacon.',
+    bacon: 300
   },
   cow: {
     id: 'cow', name: 'Vaca', icon: '🐄',
-    price: 600, level: 3, desc: 'Produz leite (fase 3).'
+    price: 600, level: 3, desc: 'Dá leite a cada 60s (toque para coletar e vender).',
+    product: '🥛', cycle: 60, value: 25
   }
 };
 

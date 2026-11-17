@@ -17,24 +17,51 @@ function farmerFindJob(f) {
     if (d < bestD) { bestD = d; best = c; }
   }
   if (best) return { kind: 'harvest', target: best };
+  let an = null;
+  bestD = Infinity;
+  for (const a of game.animals) {
+    const ready = pigReady(a) || a.product > 0;
+    if (!ready) continue;
+    const d = Math.hypot(a.gx - f.gx, a.gy - f.gy);
+    if (d < bestD) { bestD = d; an = a; }
+  }
+  if (an) return { kind: 'animal', target: an };
   for (const type of Object.keys(f.chest)) {
     if (f.chest[type] > 0) return { kind: 'plant', type };
   }
   return null;
 }
 
-function farmerFindPlantSpot(f) {
+function farmerFindPlantSpot(f, type) {
   const a = game.ownedArea;
+  const candidates = new Set();
+  for (const c of game.crops) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = c.gx + dx, y = c.gy + dy;
+      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) {
+        candidates.add(x + ',' + y);
+      }
+    }
+  }
   let best = null, bestScore = -Infinity;
+  for (const key of candidates) {
+    const [x, y] = key.split(',').map(Number);
+    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
+    let score = -d;
+    if (isTilled(x, y)) score += 50;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nb = occupancy[occIndex(x + dx, y + dy)];
+      if (nb && nb.isCrop) score += (nb.type === type ? 20 : 5);
+    }
+    if (score > bestScore) { bestScore = score; best = { x, y }; }
+  }
+  if (best) return best;
   for (let tries = 0; tries < 40; tries++) {
     const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
     const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
-    if (occupancy[occIndex(x, y)]) continue;
-    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
-    const score = (isTilled(x, y) ? 100 : 0) - d;
-    if (score > bestScore) { bestScore = score; best = { x, y }; }
+    if (!occupancy[occIndex(x, y)]) return { x, y };
   }
-  return best;
+  return null;
 }
 
 function updateFarmers(dt) {
@@ -74,12 +101,25 @@ function updateFarmers(dt) {
       continue;
     }
 
+    if (job && job.kind === 'animal') {
+      const a = job.target;
+      if (Math.hypot(a.gx - f.gx, a.gy - f.gy) < 1.4) {
+        collectAnimal(a);
+        f.wait = 0.5;
+      } else {
+        f.tx = a.gx; f.ty = a.gy;
+        f.walking = true;
+      }
+      continue;
+    }
+
     if (job && job.kind === 'plant') {
       let spot = f.jobSpot;
       if (!spot || occupancy[occIndex(spot.x, spot.y)]) {
-        spot = farmerFindPlantSpot(f);
+        spot = farmerFindPlantSpot(f, job.type);
         if (!spot) { f.wait = 2; continue; }
         f.jobSpot = spot;
+        f.jobType = job.type;
       }
       if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.9) {
         const crop = plantCrop(job.type, spot.x, spot.y, true);
