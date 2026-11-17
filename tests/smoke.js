@@ -464,6 +464,23 @@ vm.runInContext(`
   game.time = 0.1;
   render(ctx, cam, 800, 600, state);
 
+  // pa: remove plantacao, des-ara a terra e derruba construcao, grama volta
+  const sc2 = plantCrop('wheat', 40, 2, true);
+  if (!sc2) throw new Error('plantio para teste da pa falhou');
+  const r1 = shovelTile(40, 2);
+  if (!r1 || occupancy[occIndex(40, 2)]) throw new Error('pa nao removeu plantacao');
+  if (!tillSoil(41, 2)) throw new Error('till para teste da pa falhou');
+  const r3 = shovelTile(41, 2);
+  if (!r3 || isTilled(41, 2)) throw new Error('pa nao restaurou a grama arada');
+  const bb = game.buildings[game.buildings.length - 1];
+  if (bb) {
+    const rB = shovelTile(bb.gx, bb.gy);
+    if (!rB || buildingAt(bb.gx, bb.gy)) throw new Error('pa nao removeu construcao');
+  }
+  const rNone = shovelTile(47, 47);
+  updateGhostPosition(10, 10);
+  render(ctx, cam, 800, 600, state);
+
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');

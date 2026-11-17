@@ -42,6 +42,7 @@ html, body {
 #game-canvas.dragging { cursor: grabbing; }
 #game-canvas.mode-build, #game-canvas.mode-move { cursor: crosshair; }
 #game-canvas.mode-remove { cursor: not-allowed; }
+#game-canvas.mode-shovel { cursor: crosshair; }
 #game-canvas.mode-rotate { cursor: pointer; }
 #game-canvas.mode-plant { cursor: cell; }
 #game-canvas.mode-water { cursor: pointer; }
@@ -189,7 +190,7 @@ html, body {
 /* ---------- Controles de zoom ---------- */
 #zoom-controls {
   position: absolute;
-  right: calc(12px + env(safe-area-inset-right, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; gap: 8px; z-index: 15;
 }
@@ -224,7 +225,7 @@ body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(
 #side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
 body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
-body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0; pointer-events: none; }
+body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -352,10 +353,10 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 }
 
 @media (max-width: 480px) {
-  #zoom-controls { bottom: 88px; right: 8px; }
+  #zoom-controls { bottom: 88px; left: 8px; }
   #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
   #build-bar {
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    top: calc(108px + env(safe-area-inset-top, 0px));
     bottom: calc(150px + env(safe-area-inset-bottom, 0px));
     right: calc(6px + env(safe-area-inset-right, 0px));
     gap: 7px; padding: 3px 2px;

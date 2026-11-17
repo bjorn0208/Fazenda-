@@ -162,6 +162,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 15 — HUD sem sobreposição, roleta infinita e pá
+
+- **Zoom e centralização para a esquerda**: os controles de zoom agora ficam no canto inferior esquerdo, livres da coluna de ações.
+- **Coluna de ações sem sobrepor o HUD**: no celular em pé, a coluna começa abaixo dos cartões de moedas/dia.
+- **Roleta infinita**: arrastar a coluna de ações (e o menu lateral) até o fim continua do começo — rolagem sem fim nos dois sentidos.
+- **Pá 🪏** na coluna de ações: toque com a pá ativa para **remover qualquer coisa** — plantação, construção, cerca ou terra arada — e a **grama de baixo volta ao normal**. Devolve parte do valor em moedas.
+
 ## Revisão 14 — Fazendeiros vivos: personalidade, pensamento e conversa
 
 - Cada fazendeiro agora tem **nome próprio** (João, Maria, Tião...) e uma **personalidade**: Trabalhador, Sonhador, Rabugento, Brincalhão ou Sábio.

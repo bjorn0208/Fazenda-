@@ -131,7 +131,11 @@ const I18N = {
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
-    'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'build.shovel': 'Pá',
+    'shovel.tilled': 'Terra arada',
+    'toast.shovelHint': '🪏 Pá ativa: toque no que quiser remover — plantação, construção ou terra arada. A grama volta ao normal.',
+    'toast.shoveled': 'Removido: {what} (+🪙{refund})',
+    'toast.shovelNothing': 'Nada para remover aqui.', 'build.harvestAll': 'Colher Tudo',
     'build.collectAll': 'Recolher',
     'toast.collectAll': '🥚 {n} coletados e vendidos (+{c} 🪙)',
     'toast.nothingToCollect': 'Nenhum ovo, leite ou porco pronto ainda.',
@@ -303,7 +307,11 @@ const I18N = {
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
-    'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'build.shovel': 'Shovel',
+    'shovel.tilled': 'Tilled soil',
+    'toast.shovelHint': '🪏 Shovel active: tap anything to remove it — crops, buildings or tilled soil. The grass grows back.',
+    'toast.shoveled': 'Removed: {what} (+🪙{refund})',
+    'toast.shovelNothing': 'Nothing to remove here.', 'build.harvestAll': 'Harvest All',
     'build.collectAll': 'Collect',
     'toast.collectAll': '🥚 {n} collected and sold (+{c} 🪙)',
     'toast.nothingToCollect': 'No eggs, milk or pig ready yet.',
@@ -1192,11 +1200,25 @@ function buildGiftPicker(body, kind) {
   body.appendChild(send);
 }
 
+function setupWheel(el) {
+  if (!el || !el.addEventListener) return;
+  let lastTop = 0;
+  el.addEventListener('scroll', () => {
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 8) return;
+    const down = el.scrollTop > lastTop;
+    if (down && el.scrollTop >= max - 2) el.scrollTop = 0;
+    else if (!down && el.scrollTop <= 2) el.scrollTop = max;
+    lastTop = el.scrollTop;
+  }, { passive: true });
+}
+
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-shovel').onclick = () => handlers.shovel();
   $('btn-till').onclick = () => handlers.till();
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
@@ -1233,6 +1255,9 @@ function bindUi(handlers) {
       else if (panel === 'multiplayer') openMultiplayer();
     };
   }
+
+  setupWheel($('build-bar'));
+  setupWheel($('side-menu'));
 
   $('modal-close').onclick = closeModal;
   $('modal-overlay').onclick = e => { if (e.target === $('modal-overlay')) closeModal(); };

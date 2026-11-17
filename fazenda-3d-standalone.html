@@ -49,6 +49,7 @@ html, body {
 #game-canvas.dragging { cursor: grabbing; }
 #game-canvas.mode-build, #game-canvas.mode-move { cursor: crosshair; }
 #game-canvas.mode-remove { cursor: not-allowed; }
+#game-canvas.mode-shovel { cursor: crosshair; }
 #game-canvas.mode-rotate { cursor: pointer; }
 #game-canvas.mode-plant { cursor: cell; }
 #game-canvas.mode-water { cursor: pointer; }
@@ -196,7 +197,7 @@ html, body {
 /* ---------- Controles de zoom ---------- */
 #zoom-controls {
   position: absolute;
-  right: calc(12px + env(safe-area-inset-right, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; gap: 8px; z-index: 15;
 }
@@ -231,7 +232,7 @@ body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(
 #side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
 body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
-body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0; pointer-events: none; }
+body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -359,10 +360,10 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 }
 
 @media (max-width: 480px) {
-  #zoom-controls { bottom: 88px; right: 8px; }
+  #zoom-controls { bottom: 88px; left: 8px; }
   #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
   #build-bar {
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    top: calc(108px + env(safe-area-inset-top, 0px));
     bottom: calc(150px + env(safe-area-inset-bottom, 0px));
     right: calc(6px + env(safe-area-inset-right, 0px));
     gap: 7px; padding: 3px 2px;
@@ -593,6 +594,7 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
   <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
+  <button class="build-btn" id="btn-shovel"><span class="build-icon">🪏</span><span class="build-label" data-i18n="build.shovel">Pá</span></button>
   <button class="build-btn" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
   <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
@@ -618,7 +620,7 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v21</div>
+<div id="debug-badge">v22</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1687,6 +1689,33 @@ function genFarmCode() {
 function ensureFarmCode() {
   if (!game.farmCode) game.farmCode = genFarmCode();
   return game.farmCode;
+}
+
+/* ---------- Pa: remove qualquer coisa e devolve a grama ---------- */
+function shovelTile(gx, gy) {
+  const c = cropAt(gx, gy);
+  if (c) {
+    const idx = game.crops.indexOf(c);
+    if (idx !== -1) game.crops.splice(idx, 1);
+    occupancy[occIndex(gx, gy)] = null;
+    const def = CROPS[c.type];
+    const refund = Math.floor((def.seedCost || 0) * 0.25);
+    if (refund > 0) addCoins(refund);
+    playSound('remove');
+    return { what: t('c_' + c.type), refund };
+  }
+  const b = buildingAt(gx, gy);
+  if (b) {
+    const r = removeBuilding(b.id);
+    return r ? { what: t('b_' + r.def.id), refund: r.refund } : null;
+  }
+  const key = gx + ',' + gy;
+  if (game.tilled[key]) {
+    delete game.tilled[key];
+    playSound('remove');
+    return { what: t('shovel.tilled'), refund: 0 };
+  }
+  return null;
 }
 
 /* ---------- Presentes de visitantes ---------- */
@@ -4280,7 +4309,11 @@ const I18N = {
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
-    'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'build.shovel': 'Pá',
+    'shovel.tilled': 'Terra arada',
+    'toast.shovelHint': '🪏 Pá ativa: toque no que quiser remover — plantação, construção ou terra arada. A grama volta ao normal.',
+    'toast.shoveled': 'Removido: {what} (+🪙{refund})',
+    'toast.shovelNothing': 'Nada para remover aqui.', 'build.harvestAll': 'Colher Tudo',
     'build.collectAll': 'Recolher',
     'toast.collectAll': '🥚 {n} coletados e vendidos (+{c} 🪙)',
     'toast.nothingToCollect': 'Nenhum ovo, leite ou porco pronto ainda.',
@@ -4452,7 +4485,11 @@ const I18N = {
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
-    'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'build.shovel': 'Shovel',
+    'shovel.tilled': 'Tilled soil',
+    'toast.shovelHint': '🪏 Shovel active: tap anything to remove it — crops, buildings or tilled soil. The grass grows back.',
+    'toast.shoveled': 'Removed: {what} (+🪙{refund})',
+    'toast.shovelNothing': 'Nothing to remove here.', 'build.harvestAll': 'Harvest All',
     'build.collectAll': 'Collect',
     'toast.collectAll': '🥚 {n} collected and sold (+{c} 🪙)',
     'toast.nothingToCollect': 'No eggs, milk or pig ready yet.',
@@ -5341,11 +5378,25 @@ function buildGiftPicker(body, kind) {
   body.appendChild(send);
 }
 
+function setupWheel(el) {
+  if (!el || !el.addEventListener) return;
+  let lastTop = 0;
+  el.addEventListener('scroll', () => {
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 8) return;
+    const down = el.scrollTop > lastTop;
+    if (down && el.scrollTop >= max - 2) el.scrollTop = 0;
+    else if (!down && el.scrollTop <= 2) el.scrollTop = max;
+    lastTop = el.scrollTop;
+  }, { passive: true });
+}
+
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-shovel').onclick = () => handlers.shovel();
   $('btn-till').onclick = () => handlers.till();
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
@@ -5382,6 +5433,9 @@ function bindUi(handlers) {
       else if (panel === 'multiplayer') openMultiplayer();
     };
   }
+
+  setupWheel($('build-bar'));
+  setupWheel($('side-menu'));
 
   $('modal-close').onclick = closeModal;
   $('modal-overlay').onclick = e => { if (e.target === $('modal-overlay')) closeModal(); };
@@ -5614,7 +5668,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v21';
+const GAME_VERSION = 'v22';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -5800,6 +5854,18 @@ function handleClick(e) {
     } else {
       playSound('error');
       showToast(t('toast.invalid'));
+    }
+    return;
+  }
+
+  if (state.mode === 'shovel') {
+    const r = shovelTile(g.gx, g.gy);
+    if (r) {
+      showToast(t('toast.shoveled', { what: r.what, refund: (r.refund || 0).toLocaleString('pt-BR') }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.shovelNothing'));
     }
     return;
   }
@@ -6005,10 +6071,10 @@ function setMode(mode) {
   state.rotateId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', shovel: 'btn-shovel' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -6090,6 +6156,12 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  },
+  shovel() {
+    playSound('click');
+    if (state.mode === 'shovel') { setMode('idle'); return; }
+    setMode('shovel');
+    showToast(t('toast.shovelHint'));
   },
   till() {
     playSound('click');
@@ -6175,7 +6247,7 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
-  for (const k of ['build', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+  for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
     const orig = uiHandlers[k];
     uiHandlers[k] = (...a) => {
       if (game.visiting) { showToast(t('toast.visitingBlock')); return; }

@@ -608,6 +608,33 @@ function ensureFarmCode() {
   return game.farmCode;
 }
 
+/* ---------- Pa: remove qualquer coisa e devolve a grama ---------- */
+function shovelTile(gx, gy) {
+  const c = cropAt(gx, gy);
+  if (c) {
+    const idx = game.crops.indexOf(c);
+    if (idx !== -1) game.crops.splice(idx, 1);
+    occupancy[occIndex(gx, gy)] = null;
+    const def = CROPS[c.type];
+    const refund = Math.floor((def.seedCost || 0) * 0.25);
+    if (refund > 0) addCoins(refund);
+    playSound('remove');
+    return { what: t('c_' + c.type), refund };
+  }
+  const b = buildingAt(gx, gy);
+  if (b) {
+    const r = removeBuilding(b.id);
+    return r ? { what: t('b_' + r.def.id), refund: r.refund } : null;
+  }
+  const key = gx + ',' + gy;
+  if (game.tilled[key]) {
+    delete game.tilled[key];
+    playSound('remove');
+    return { what: t('shovel.tilled'), refund: 0 };
+  }
+  return null;
+}
+
 /* ---------- Presentes de visitantes ---------- */
 function receiveGift(gift) {
   if (!gift || game.visiting) return null;

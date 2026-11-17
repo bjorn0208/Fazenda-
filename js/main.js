@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v21';
+const GAME_VERSION = 'v22';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -237,6 +237,18 @@ function handleClick(e) {
     } else {
       playSound('error');
       showToast(t('toast.invalid'));
+    }
+    return;
+  }
+
+  if (state.mode === 'shovel') {
+    const r = shovelTile(g.gx, g.gy);
+    if (r) {
+      showToast(t('toast.shoveled', { what: r.what, refund: (r.refund || 0).toLocaleString('pt-BR') }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.shovelNothing'));
     }
     return;
   }
@@ -442,10 +454,10 @@ function setMode(mode) {
   state.rotateId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', shovel: 'btn-shovel' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -527,6 +539,12 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  },
+  shovel() {
+    playSound('click');
+    if (state.mode === 'shovel') { setMode('idle'); return; }
+    setMode('shovel');
+    showToast(t('toast.shovelHint'));
   },
   till() {
     playSound('click');
@@ -612,7 +630,7 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
-  for (const k of ['build', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+  for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
     const orig = uiHandlers[k];
     uiHandlers[k] = (...a) => {
       if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
