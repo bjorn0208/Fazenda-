@@ -33,7 +33,6 @@ function render(ctx, cam, cw, ch, state) {
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
   drawFloaters(ctx, cam, cw, ch, performance.now());
-  drawClouds(ctx, cam, cw, ch);
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -131,7 +130,9 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       }
 
       const occupied = !!occupancy[occIndex(x, y)];
-      if (owned && !occupied) {
+      if (owned && !occupied && isTilled(x, y)) {
+        drawTilledSoil(ctx, cam, cw, ch, x, y);
+      } else if (owned && !occupied) {
         if (h > 0.955) {
           drawDirtPatch(ctx, cam, cw, ch, x, y, h);
         } else if (h > 0.9) {
@@ -330,6 +331,20 @@ function drawCrop(ctx, cam, cw, ch, b) {
   }
 }
 
+function drawTilledSoil(ctx, cam, cw, ch, x, y) {
+  const corners = tileCorners(cam, cw, ch, x, y);
+  drawTileDiamond(ctx, corners, '#8a5f34', 'rgba(0,0,0,0.18)');
+  ctx.strokeStyle = 'rgba(60,35,15,0.35)';
+  ctx.lineWidth = Math.max(1, 1 * cam.zoom);
+  for (let i = 1; i <= 2; i++) {
+    const a = projectPoint(x + 0.08, y + i / 3, 0);
+    const b = projectPoint(x + 0.92, y + i / 3, 0);
+    const as = worldToScreen(cam, a.x, a.y, cw, ch);
+    const bs = worldToScreen(cam, b.x, b.y, cw, ch);
+    ctx.beginPath(); ctx.moveTo(as.x, as.y); ctx.lineTo(bs.x, bs.y); ctx.stroke();
+  }
+}
+
 function drawDirtPatch(ctx, cam, cw, ch, x, y, h) {
   const corners = tileCorners(cam, cw, ch, x, y);
   ctx.save();
@@ -380,6 +395,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
+  for (const fm of game.farmers) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -391,6 +407,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawBuilding(ctx, cam, cw, ch, b);
     } else if (it.kind === 'c') {
       drawCrop(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'f') {
+      drawFarmer(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }
@@ -425,6 +443,8 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'stall':   drawStall(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'fence':   drawFence(ctx, cam, cw, ch, gx, gy, b.rot, q); break;
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
+    case 'tree_pine':   drawTree(ctx, cam, cw, ch, gx, gy, q, 'pine'); break;
+    case 'tree_cherry': drawTree(ctx, cam, cw, ch, gx, gy, q, 'cherry'); break;
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
@@ -696,17 +716,46 @@ function drawFence(ctx, cam, cw, ch, gx, gy, rot, q) {
 }
 
 /* --- Árvore: copa em camadas, frutas, sombra --- */
-function drawTree(ctx, cam, cw, ch, gx, gy, q) {
+function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
+  if (variant === 'pine') {
+    drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
+    const c = projectPoint(gx + 0.5, gy + 0.5, 0);
+    const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+    const z = cam.zoom;
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(cs.x - 2 * z, cs.y - 9 * z, 4 * z, 9 * z);
+    const tri = (w, h, yBase, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(cs.x, cs.y - (yBase + h) * z);
+      ctx.lineTo(cs.x - w * z, cs.y - yBase * z);
+      ctx.lineTo(cs.x + w * z, cs.y - yBase * z);
+      ctx.closePath();
+      ctx.fill();
+    };
+    tri(14, 13, 6, '#1b5e20');
+    tri(11, 12, 14, '#2e7d32');
+    tri(8, 11, 22, '#388e3c');
+    return;
+  }
+  const cherry = variant === 'cherry';
   drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
-  drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, '#795548');
+  drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, cherry ? '#4e342e' : '#795548');
   drawPrism(ctx, cam, cw, ch, gx + 0.46, gy + 0.46, 0.08, 0.08, 0.62, '#5d4037');
-  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.95, 0.5, '#2e7d32');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.95, 0.5, cherry ? '#f06292' : '#2e7d32');
   if (q !== 'baixa') {
-    drawSphere(ctx, cam, cw, ch, gx + 0.3, gy + 0.45, 0.72, 0.34, '#388e3c');
-    drawSphere(ctx, cam, cw, ch, gx + 0.68, gy + 0.6, 0.78, 0.3, '#43a047');
-    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.35, 1.15, 0.3, '#4caf50');
+    drawSphere(ctx, cam, cw, ch, gx + 0.3, gy + 0.45, 0.72, 0.34, cherry ? '#f48fb1' : '#388e3c');
+    drawSphere(ctx, cam, cw, ch, gx + 0.68, gy + 0.6, 0.78, 0.3, cherry ? '#f8bbd0' : '#43a047');
+    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.35, 1.15, 0.3, cherry ? '#fce4ec' : '#4caf50');
     const h = tileHash(gx + 3, gy + 7);
-    if (h > 0.4) {
+    if (cherry) {
+      ctx.fillStyle = 'rgba(244, 143, 177, 0.8)';
+      for (const [ox, oy] of [[0.2, 0.8], [0.8, 0.3], [0.55, 0.85]]) {
+        const p = projectPoint(gx + ox + Math.sin(performance.now() / 900 + ox * 7) * 0.05, gy + oy, 0.05);
+        const s = worldToScreen(cam, p.x, p.y, cw, ch);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1.6 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (h > 0.4) {
       ctx.fillStyle = '#e53935';
       for (const [ox, oy, oz] of [[0.35, 0.5, 0.95], [0.62, 0.42, 1.1], [0.5, 0.68, 0.85]]) {
         const p = projectPoint(gx + ox, gy + oy, oz);

@@ -52,6 +52,18 @@ const BUILDINGS = {
     desc: 'Decoração natural da fazenda.',
     refund: 0.5
   },
+  tree_pine: {
+    id: 'tree_pine', name: 'Pinheiro', icon: '🌲',
+    price: 80, w: 1, d: 1, level: 2, category: 'arvores',
+    desc: 'Perene e resistente.',
+    refund: 0.5
+  },
+  tree_cherry: {
+    id: 'tree_cherry', name: 'Cerejeira', icon: '🌸',
+    price: 120, w: 1, d: 1, level: 3, category: 'arvores',
+    desc: 'Flores rosas na primavera.',
+    refund: 0.5
+  },
   flowers: {
     id: 'flowers', name: 'Canteiro de Flores', icon: '🌷',
     price: 30, w: 1, d: 1, level: 1, category: 'decoracoes',
@@ -66,7 +78,7 @@ const BUILDINGS = {
   },
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
-    price: 800, w: 3, d: 3, level: 2, category: 'natureza',
+    price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
     desc: 'Água viva com vitórias-régias e taboas.',
     refund: 0.3
   }
@@ -127,6 +139,14 @@ const CROPS = {
     id: 'grape', name: 'Uva', icon: '🍇',
     seedCost: 130, growTime: 300, sell: 420, xp: 55, level: 6
   },
+  coffee: {
+    id: 'coffee', name: 'Café', icon: '☕',
+    seedCost: 200, growTime: 420, sell: 600, xp: 90, level: 5
+  },
+  sugarcane: {
+    id: 'sugarcane', name: 'Cana', icon: '🎋',
+    seedCost: 60, growTime: 200, sell: 160, xp: 30, level: 3
+  },
   sunflower: {
     id: 'sunflower', name: 'Girassol', icon: '🌻',
     seedCost: 160, growTime: 360, sell: 520, xp: 70, level: 7
@@ -139,8 +159,14 @@ const SHOP_CATEGORIES = [
   { id: 'natureza', name: 'Natureza' },
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
-  { id: 'arvores', name: 'Árvores' }
+  { id: 'arvores', name: 'Árvores' },
+  { id: 'ajudantes', name: 'Ajudantes' }
 ];
+
+/* Ajudantes contrataveis (NPCs que trabalham sozinhos). */
+const HELPERS = {
+  farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 }
+};
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */
 const MISSIONS = [

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fazenda 3D — Simulador Isométrico</title>
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -49,8 +49,10 @@
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
   <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
+  <button class="build-btn" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
   <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
+  <button class="build-btn" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
@@ -102,12 +104,13 @@
   </div>
 </div>
 
-<script src="js/data.js?v=11"></script>
-<script src="js/iso.js?v=11"></script>
-<script src="js/game.js?v=11"></script>
-<script src="js/render.js?v=11"></script>
-<script src="js/animals.js?v=11"></script>
-<script src="js/ui.js?v=11"></script>
-<script src="js/main.js?v=11"></script>
+<script src="js/data.js?v=12"></script>
+<script src="js/iso.js?v=12"></script>
+<script src="js/game.js?v=12"></script>
+<script src="js/render.js?v=12"></script>
+<script src="js/animals.js?v=12"></script>
+<script src="js/farmers.js?v=12"></script>
+<script src="js/ui.js?v=12"></script>
+<script src="js/main.js?v=12"></script>
 </body>
 </html>

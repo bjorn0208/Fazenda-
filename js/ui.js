@@ -94,7 +94,23 @@ const I18N = {
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
-    'toast.animalLimit': 'Limite de 15 animais atingido!'
+    'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
+    'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'toast.tillHint': '⛏️ Toque no chão para arar (plantio 25% mais rápido)',
+    'toast.tilled': '⛏️ Terra arada!',
+    'toast.harvestAll': '🧺 {n} plantações colhidas (+{c} 🪙)',
+    'toast.noneReady': 'Nada pronto para colher ainda.',
+    'cat.ajudantes': 'Ajudantes',
+    'h_farmer': 'Fazendeiro', 'h_farmer_desc': 'Planta, rega, colhe e vende sozinho. Encha o baú dele com sementes!',
+    'shop.hire': 'Contratar',
+    'toast.farmerBought': '🧑‍🌾 Fazendeiro contratado! Toque nele para encher o baú.',
+    'chest.title': '🧺 Baú do Fazendeiro',
+    'chest.hint': 'Compre sementes para o baú — ele planta, rega, colhe e vende por você.',
+    'chest.in': 'no baú: {n}',
+    'toast.seedsBought': '{icon} {n}× {name} no baú',
+    'c_coffee': 'Café', 'c_sugarcane': 'Cana',
+    'b_tree_pine': 'Pinheiro', 'b_tree_pine_desc': 'Perene e resistente.',
+    'b_tree_cherry': 'Cerejeira', 'b_tree_cherry_desc': 'Flores rosas na primavera.'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
@@ -182,6 +198,23 @@ const I18N = {
     'an_cow': 'Cow', 'an_cow_desc': 'Produces milk (phase 3).',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
+    'toast.animalLimit': 'Maximum of 100 animals of each kind!',
+    'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'toast.tillHint': '⛏️ Tap the ground to till (planting 25% faster)',
+    'toast.tilled': '⛏️ Soil tilled!',
+    'toast.harvestAll': '🧺 {n} crops harvested (+{c} 🪙)',
+    'toast.noneReady': 'Nothing ready to harvest yet.',
+    'cat.ajudantes': 'Helpers',
+    'h_farmer': 'Farmhand', 'h_farmer_desc': 'Plants, waters, harvests and sells on his own. Fill his chest with seeds!',
+    'shop.hire': 'Hire',
+    'toast.farmerBought': '🧑‍🌾 Farmhand hired! Tap him to fill the chest.',
+    'chest.title': '🧺 Farmhand Chest',
+    'chest.hint': 'Buy seeds into the chest — he plants, waters, harvests and sells for you.',
+    'chest.in': 'in chest: {n}',
+    'toast.seedsBought': '{icon} {n}× {name} in chest',
+    'c_coffee': 'Coffee', 'c_sugarcane': 'Sugarcane',
+    'b_tree_pine': 'Pine Tree', 'b_tree_pine_desc': 'Evergreen and hardy.',
+    'b_tree_cherry': 'Cherry Tree', 'b_tree_cherry_desc': 'Pink spring blossoms.',
     'toast.animalBought': '{icon} {name} arrived at the farm!',
     'toast.animalLimit': 'Animal limit of 15 reached!'
   }
@@ -219,7 +252,7 @@ function playSound(kind) {
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
       rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
-      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16]
+      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16], dig: [180, 0.14]
     };
     const [freq, dur] = notes[kind] || notes.click;
     const osc = ac.createOscillator();
@@ -334,7 +367,7 @@ function openShop() {
       for (const def of Object.values(ANIMALS)) {
         const locked = game.level < def.level;
         const afford = game.coins >= def.price;
-        const full = game.animals.length >= MAX_ANIMALS;
+        const full = game.animals.filter(a => a.kind === def.id).length >= MAX_PER_KIND;
         const item = document.createElement('div');
         item.className = 'shop-item';
         item.innerHTML = `
@@ -351,6 +384,37 @@ function openShop() {
         buyBtn.onclick = () => {
           if (buyAnimal(def.id)) {
             showToast(t('toast.animalBought', { icon: def.icon, name: t('an_' + def.id) }));
+            refreshHud();
+            openShop();
+          }
+        };
+        item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'ajudantes') {
+      for (const def of Object.values(HELPERS)) {
+        const locked = game.level < def.level;
+        const price = farmerPrice();
+        const afford = game.coins >= price;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('h_' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('h_' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'shop-buy-btn';
+        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (!afford ? t('shop.noCoins') : t('shop.hire'));
+        buyBtn.disabled = locked || !afford;
+        buyBtn.onclick = () => {
+          if (buyFarmer()) {
+            showToast(t('toast.farmerBought'));
             refreshHud();
             openShop();
           }
@@ -416,6 +480,46 @@ function openCoinShop() {
 function openGemShop() {
   openModal(t('modal.gems'), body => {
     body.innerHTML = `<p style="text-align:center">${t('gemshop.body')}</p>`;
+  });
+}
+
+/* ---------- Baú do fazendeiro ---------- */
+function openFarmerChest(farmer) {
+  openModal(t('chest.title'), body => {
+    body.innerHTML = `<p style="font-size:12px;color:#6d4c41;text-align:center;margin-bottom:10px">${t('chest.hint')}</p>`;
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    for (const def of Object.values(CROPS)) {
+      const n = farmer.chest[def.id] || 0;
+      const afford = game.coins >= def.seedCost;
+      const item = document.createElement('div');
+      item.className = 'shop-item';
+      item.innerHTML = `
+        <div class="shop-item-icon">${def.icon}</div>
+        <div class="shop-item-name">${t('c_' + def.id)}</div>
+        <div class="shop-item-price">🪙 ${def.seedCost}</div>
+        <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('chest.in', { n })}</div>
+      `;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:4px;justify-content:center';
+      for (const qty of [1, 10]) {
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.textContent = '+' + qty;
+        btn.disabled = !afford;
+        btn.onclick = () => {
+          if (depositSeed(farmer, def.id, qty)) {
+            showToast(t('toast.seedsBought', { icon: def.icon, n: qty, name: t('c_' + def.id) }));
+            refreshHud();
+            openFarmerChest(farmer);
+          }
+        };
+        row.appendChild(btn);
+      }
+      item.appendChild(row);
+      grid.appendChild(item);
+    }
+    body.appendChild(grid);
   });
 }
 
@@ -617,8 +721,10 @@ function bindUi(handlers) {
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-till').onclick = () => handlers.till();
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
+  $('btn-harvestall').onclick = () => handlers.harvestAll();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();

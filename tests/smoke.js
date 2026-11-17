@@ -9,7 +9,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const SCRIPTS = ['data.js', 'iso.js', 'game.js', 'render.js', 'animals.js', 'ui.js', 'main.js'];
+const SCRIPTS = ['data.js', 'iso.js', 'game.js', 'render.js', 'animals.js', 'farmers.js', 'ui.js', 'main.js'];
 
 let failures = 0;
 const fail = msg => { failures++; console.error('FALHOU: ' + msg); };
@@ -185,8 +185,43 @@ vm.runInContext(`
   const restored = JSON.stringify({ coins: game.coins, crops: game.crops.length, animals: game.animals.length });
   if (snapshot !== restored) throw new Error('save/load divergiu: ' + snapshot + ' vs ' + restored);
 
-  console.log('render: todas as construcoes, culturas e estagios desenhados sem erro');
-  console.log('acoes: zoom, plantio, rega, colheita, animais OK');
+  // aracao + bonus de crescimento
+  if (!tillSoil(30, 30)) throw new Error('tillSoil falhou');
+  if (!isTilled(30, 30)) throw new Error('isTilled falhou');
+  const tc = plantCrop('wheat', 30, 30);
+  if (!(cropProgress(tc) > 0.2)) throw new Error('bonus de terra arada nao aplicado');
+
+  // fazendeiro: contrata, enche o bau, deixa trabalhar e vender
+  game.coins = 999999;
+  game.level = 5;
+  if (!buyFarmer()) throw new Error('buyFarmer falhou');
+  const fm = game.farmers[0];
+  if (!depositSeed(fm, 'corn', 5)) throw new Error('depositSeed falhou');
+  if (fm.chest.corn !== 5) throw new Error('bau com contagem errada');
+  const plantedBefore = game.stats.planted || 0;
+  const harvestedBefore = game.stats.harvested || 0;
+  for (let i = 0; i < 900; i++) updateFarmers(0.1);
+  if ((game.stats.planted || 0) <= plantedBefore) throw new Error('fazendeiro nao plantou');
+  if ((game.stats.harvested || 0) <= harvestedBefore) throw new Error('fazendeiro nao colheu/vendeu');
+  render(ctx, cam, 800, 600, state);
+
+  // teto de 100 por especie
+  game.coins = 99999999;
+  for (let i = 0; i < 105; i++) buyAnimal('chicken');
+  const chickens = game.animals.filter(a => a.kind === 'chicken').length;
+  if (chickens !== 100) throw new Error('limite de 100 por especie falhou: ' + chickens);
+  updateAnimals(0.016);
+  render(ctx, cam, 800, 600, state);
+
+  // colher tudo
+  for (const c of game.crops) c.plantedAt -= CROPS[c.type].growTime * 1000;
+  const total = game.crops.length;
+  const ha = harvestAllCrops();
+  if (ha.n !== total) throw new Error('harvestAllCrops colheu ' + ha.n + ' de ' + total);
+  render(ctx, cam, 800, 600, state);
+
+  console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
+  console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');
 `, sandbox, { filename: 'smoke' });
 

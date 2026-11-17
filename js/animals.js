@@ -29,49 +29,73 @@ function spawnAnimals() {
   for (const kind of ANIMAL_SPAWN) {
     const spot = randomFreeTile();
     if (!spot) return;
-    game.animals.push({
-      id: game.nextId++, kind,
-      gx: spot.x + 0.5, gy: spot.y + 0.5,
-      tx: spot.x + 0.5, ty: spot.y + 0.5,
-      walking: false, wait: 1 + Math.random() * 4,
-      phase: Math.random() * 10
-    });
+    game.animals.push(makeAnimal(kind, spot));
+  }
+}
+
+function makeAnimal(kind, spot) {
+  return {
+    id: game.nextId++, kind,
+    gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1 + Math.random() * 4,
+    phase: Math.random() * 10,
+    speedMul: 0.85 + Math.random() * 0.3,
+    grazing: false,
+    dirCur: Math.random() < 0.5 ? -1 : 1
+  };
+}
+
+function animalUpdateOne(a, dt) {
+  a.phase += dt;
+  const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
+  a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
+  if (a.walking) {
+    a.grazing = false;
+    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
+    const dx = a.tx - a.gx, dy = a.ty - a.gy;
+    const dist = Math.hypot(dx, dy);
+    const step = speed * dt;
+    if (dist <= step) {
+      a.gx = a.tx; a.gy = a.ty;
+      a.walking = false;
+      if (Math.random() < 0.45) {
+        a.grazing = true;
+        a.wait = 2 + Math.random() * 4;
+      } else {
+        a.wait = 1 + Math.random() * 3.5;
+      }
+    } else {
+      a.gx += dx / dist * step;
+      a.gy += dy / dist * step;
+    }
+  } else {
+    a.wait -= dt;
+    if (a.wait <= 0) {
+      const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+      const opts = [];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (animalWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+      }
+      if (opts.length) {
+        const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+        a.tx = nx + 0.5; a.ty = ny + 0.5;
+        a.walking = true;
+      } else {
+        a.wait = 2;
+      }
+    }
   }
 }
 
 function updateAnimals(dt) {
   for (const a of game.animals) {
-    a.phase += dt;
-    if (a.walking) {
-      const speed = ANIMAL_KINDS[a.kind].speed;
-      const dx = a.tx - a.gx, dy = a.ty - a.gy;
-      const dist = Math.hypot(dx, dy);
-      const step = speed * dt;
-      if (dist <= step) {
-        a.gx = a.tx; a.gy = a.ty;
-        a.walking = false;
-        a.wait = 1.5 + Math.random() * 4;
-      } else {
-        a.gx += dx / dist * step;
-        a.gy += dy / dist * step;
-      }
-    } else {
-      a.wait -= dt;
-      if (a.wait <= 0) {
-        const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
-        const opts = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          if (animalWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
-        }
-        if (opts.length) {
-          const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-          a.tx = nx + 0.5; a.ty = ny + 0.5;
-          a.walking = true;
-        } else {
-          a.wait = 2;
-        }
-      }
+    if (a.speedMul === undefined) {
+      a.speedMul = 0.85 + Math.random() * 0.3;
+      a.grazing = false;
+      a.dirCur = 1;
     }
+    animalUpdateOne(a, dt);
   }
 }
 
@@ -80,12 +104,14 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const s = worldToScreen(cam, p.x, p.y, cw, ch);
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
-  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z;
-  const dir = a.walking ? (a.tx >= a.gx ? 1 : -1) : (Math.sin(a.phase * 0.5) > 0 ? 1 : -1);
+  const grazing = !!a.grazing && !a.walking;
+  const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
+  const dir = a.dirCur !== undefined ? a.dirCur : 1;
 
   ctx.save();
   ctx.translate(s.x, s.y);
   ctx.scale(z * k.scale, z * k.scale);
+  if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
   ctx.beginPath();

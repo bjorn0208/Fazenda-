@@ -16,6 +16,8 @@ const game = {
   buildings: [],          // {id, type, gx, gy, rot}
   crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
+  tilled: {},             // "gx,gy" -> 1 (terra arada: plantio 25% mais rapido)
+  farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -163,22 +165,82 @@ function cropAt(x, y) {
   return (occ && occ.isCrop) ? occ : null;
 }
 
-function plantCrop(type, gx, gy) {
+function plantCrop(type, gx, gy, free) {
   const def = CROPS[type];
   if (!def) return null;
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
   if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
-  if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
-  addCoins(-def.seedCost);
+  if (!free) {
+    if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
+    addCoins(-def.seedCost);
+  }
+  const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
     id: game.nextId++, isCrop: true, type, gx, gy,
-    plantedAt: Date.now(), watered: false
+    plantedAt: Date.now() - bonus, watered: false
   };
   game.crops.push(crop);
   occupancy[occIndex(gx, gy)] = crop;
   game.stats.planted = (game.stats.planted || 0) + 1;
   playSound('plant');
   return crop;
+}
+
+/* ---------- Aracao ---------- */
+function tillSoil(gx, gy) {
+  if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) return false;
+  if (occupancy[occIndex(gx, gy)]) return false;
+  game.tilled[gx + ',' + gy] = 1;
+  playSound('dig');
+  return true;
+}
+
+function isTilled(gx, gy) {
+  return !!game.tilled[gx + ',' + gy];
+}
+
+/* ---------- Colher tudo ---------- */
+function harvestAllCrops() {
+  let n = 0, coins = 0, xp = 0;
+  for (let i = game.crops.length - 1; i >= 0; i--) {
+    const r = harvestCrop(game.crops[i]);
+    if (r) { n++; coins += r.sell; xp += r.xp; }
+  }
+  return { n, coins, xp };
+}
+
+/* ---------- Fazendeiro (ajudante automatico) ---------- */
+function farmerPrice() {
+  return HELPERS.farmer.price * Math.pow(2, game.farmers.length);
+}
+
+function buyFarmer() {
+  const def = HELPERS.farmer;
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  const price = farmerPrice();
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  const spot = randomFreeTile();
+  if (!spot) { showToast(t('toast.invalid')); return false; }
+  addCoins(-price);
+  game.farmers.push({
+    id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1, phase: Math.random() * 10,
+    chest: {}
+  });
+  playSound('level');
+  return true;
+}
+
+function depositSeed(farmer, type, n) {
+  const def = CROPS[type];
+  if (!def || n <= 0) return false;
+  const cost = def.seedCost * n;
+  if (game.coins < cost) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-cost);
+  farmer.chest[type] = (farmer.chest[type] || 0) + n;
+  playSound('click');
+  return true;
 }
 
 function waterCrop(crop) {
@@ -218,24 +280,19 @@ function removeCrop(crop) {
 }
 
 /* ---------- Animais compráveis ---------- */
-const MAX_ANIMALS = 15;
+const MAX_PER_KIND = 100;
 
 function buyAnimal(kind) {
   const def = ANIMALS[kind];
   if (!def) return false;
-  if (game.animals.length >= MAX_ANIMALS) { showToast(t('toast.animalLimit')); return false; }
+  const kindCount = game.animals.filter(a => a.kind === kind).length;
+  if (kindCount >= MAX_PER_KIND) { showToast(t('toast.animalLimit')); return false; }
   if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
   if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
   addCoins(-def.price);
-  game.animals.push({
-    id: game.nextId++, kind,
-    gx: spot.x + 0.5, gy: spot.y + 0.5,
-    tx: spot.x + 0.5, ty: spot.y + 0.5,
-    walking: false, wait: 1 + Math.random() * 3,
-    phase: Math.random() * 10
-  });
+  game.animals.push(makeAnimal(kind, spot));
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
   playSound('place');
   return true;
@@ -318,6 +375,7 @@ function saveGame(showToastMsg) {
       coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
       farmName: game.farmName, ownedArea: game.ownedArea,
       buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
+      tilled: game.tilled, farmers: game.farmers,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -342,6 +400,7 @@ function loadGame() {
       farmName: data.farmName ?? 'Fazenda do Jogador',
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
+      tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },

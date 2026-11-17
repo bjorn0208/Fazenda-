@@ -118,3 +118,15 @@ node tests/smoke.js
 ```
 
 Varredura estática de chamadas indefinidas + simulação completa (render de todas as construções/culturas/estágios, zoom, plantio, rega, colheita, animais, save/load).
+
+## Revisão 5 — Ciclo completo de plantio e fazendeiro automático
+
+- **Arar** (⛏️): novo modo; terra arada dá plantio 25% mais rápido
+- **Colher Tudo** (🧺): colhe de uma vez todas as plantações prontas
+- **Animais**: sem limite global — até **100 de cada espécie**
+- **Nuvens removidas**
+- **Novas árvores**: Pinheiro 🌲 e Cerejeira 🌸 (com pétalas caindo)
+- **Novas culturas**: Café ☕ e Cana 🎋 (12 no total)
+- **Lago 3× maior** (5×5 tiles)
+- **Caminhada realista dos animais**: velocidade individual, pastagem (cabeça baixa), virada suave
+- **Fazendeiro automático** (🧑‍🌾 na aba Ajudantes): toque nele, encha o **baú** com sementes — ele caminha, planta, rega, colhe e vende sozinho. Preço dobra a cada contratação.

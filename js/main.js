@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v11';
+const GAME_VERSION = 'v12';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -240,6 +240,15 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'till') {
+    if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
+    if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    if (tillSoil(g.gx, g.gy)) {
+      spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
+    }
+    return;
+  }
+
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
@@ -353,6 +362,15 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'idle') {
+    for (const f of game.farmers) {
+      if (Math.hypot(f.gx - (g.gx + 0.5), f.gy - (g.gy + 0.5)) < 0.9) {
+        openFarmerChest(f);
+        return;
+      }
+    }
+  }
+
   // modo normal: colher plantação pronta ou destacar construção
   if (b && b.isCrop) {
     const p = cropProgress(b);
@@ -391,7 +409,7 @@ function setMode(mode) {
   state.rotateId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
   const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water' };
@@ -476,6 +494,23 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  },
+  till() {
+    playSound('click');
+    if (state.mode === 'till') { setMode('idle'); return; }
+    setMode('till');
+    showToast(t('toast.tillHint'));
+  },
+  harvestAll() {
+    playSound('click');
+    const r = harvestAllCrops();
+    if (r.n > 0) {
+      showToast(t('toast.harvestAll', { n: r.n, c: r.coins }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.noneReady'));
+    }
   }
 };
 
@@ -539,6 +574,7 @@ function loop(ts) {
   lastTime = ts;
   try {
     updateAnimals(dt);
+    updateFarmers(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
   } catch (err) {
     if (dbgBadge) {

@@ -444,8 +444,10 @@ html, body {
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
   <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
+  <button class="build-btn" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
   <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
+  <button class="build-btn" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
@@ -552,6 +554,18 @@ const BUILDINGS = {
     desc: 'Decoração natural da fazenda.',
     refund: 0.5
   },
+  tree_pine: {
+    id: 'tree_pine', name: 'Pinheiro', icon: '🌲',
+    price: 80, w: 1, d: 1, level: 2, category: 'arvores',
+    desc: 'Perene e resistente.',
+    refund: 0.5
+  },
+  tree_cherry: {
+    id: 'tree_cherry', name: 'Cerejeira', icon: '🌸',
+    price: 120, w: 1, d: 1, level: 3, category: 'arvores',
+    desc: 'Flores rosas na primavera.',
+    refund: 0.5
+  },
   flowers: {
     id: 'flowers', name: 'Canteiro de Flores', icon: '🌷',
     price: 30, w: 1, d: 1, level: 1, category: 'decoracoes',
@@ -566,7 +580,7 @@ const BUILDINGS = {
   },
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
-    price: 800, w: 3, d: 3, level: 2, category: 'natureza',
+    price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
     desc: 'Água viva com vitórias-régias e taboas.',
     refund: 0.3
   }
@@ -627,6 +641,14 @@ const CROPS = {
     id: 'grape', name: 'Uva', icon: '🍇',
     seedCost: 130, growTime: 300, sell: 420, xp: 55, level: 6
   },
+  coffee: {
+    id: 'coffee', name: 'Café', icon: '☕',
+    seedCost: 200, growTime: 420, sell: 600, xp: 90, level: 5
+  },
+  sugarcane: {
+    id: 'sugarcane', name: 'Cana', icon: '🎋',
+    seedCost: 60, growTime: 200, sell: 160, xp: 30, level: 3
+  },
   sunflower: {
     id: 'sunflower', name: 'Girassol', icon: '🌻',
     seedCost: 160, growTime: 360, sell: 520, xp: 70, level: 7
@@ -639,8 +661,14 @@ const SHOP_CATEGORIES = [
   { id: 'natureza', name: 'Natureza' },
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
-  { id: 'arvores', name: 'Árvores' }
+  { id: 'arvores', name: 'Árvores' },
+  { id: 'ajudantes', name: 'Ajudantes' }
 ];
+
+/* Ajudantes contrataveis (NPCs que trabalham sozinhos). */
+const HELPERS = {
+  farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 }
+};
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */
 const MISSIONS = [
@@ -901,6 +929,8 @@ const game = {
   buildings: [],          // {id, type, gx, gy, rot}
   crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
+  tilled: {},             // "gx,gy" -> 1 (terra arada: plantio 25% mais rapido)
+  farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -1048,22 +1078,82 @@ function cropAt(x, y) {
   return (occ && occ.isCrop) ? occ : null;
 }
 
-function plantCrop(type, gx, gy) {
+function plantCrop(type, gx, gy, free) {
   const def = CROPS[type];
   if (!def) return null;
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
   if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
-  if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
-  addCoins(-def.seedCost);
+  if (!free) {
+    if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
+    addCoins(-def.seedCost);
+  }
+  const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
     id: game.nextId++, isCrop: true, type, gx, gy,
-    plantedAt: Date.now(), watered: false
+    plantedAt: Date.now() - bonus, watered: false
   };
   game.crops.push(crop);
   occupancy[occIndex(gx, gy)] = crop;
   game.stats.planted = (game.stats.planted || 0) + 1;
   playSound('plant');
   return crop;
+}
+
+/* ---------- Aracao ---------- */
+function tillSoil(gx, gy) {
+  if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) return false;
+  if (occupancy[occIndex(gx, gy)]) return false;
+  game.tilled[gx + ',' + gy] = 1;
+  playSound('dig');
+  return true;
+}
+
+function isTilled(gx, gy) {
+  return !!game.tilled[gx + ',' + gy];
+}
+
+/* ---------- Colher tudo ---------- */
+function harvestAllCrops() {
+  let n = 0, coins = 0, xp = 0;
+  for (let i = game.crops.length - 1; i >= 0; i--) {
+    const r = harvestCrop(game.crops[i]);
+    if (r) { n++; coins += r.sell; xp += r.xp; }
+  }
+  return { n, coins, xp };
+}
+
+/* ---------- Fazendeiro (ajudante automatico) ---------- */
+function farmerPrice() {
+  return HELPERS.farmer.price * Math.pow(2, game.farmers.length);
+}
+
+function buyFarmer() {
+  const def = HELPERS.farmer;
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  const price = farmerPrice();
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  const spot = randomFreeTile();
+  if (!spot) { showToast(t('toast.invalid')); return false; }
+  addCoins(-price);
+  game.farmers.push({
+    id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1, phase: Math.random() * 10,
+    chest: {}
+  });
+  playSound('level');
+  return true;
+}
+
+function depositSeed(farmer, type, n) {
+  const def = CROPS[type];
+  if (!def || n <= 0) return false;
+  const cost = def.seedCost * n;
+  if (game.coins < cost) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-cost);
+  farmer.chest[type] = (farmer.chest[type] || 0) + n;
+  playSound('click');
+  return true;
 }
 
 function waterCrop(crop) {
@@ -1103,24 +1193,19 @@ function removeCrop(crop) {
 }
 
 /* ---------- Animais compráveis ---------- */
-const MAX_ANIMALS = 15;
+const MAX_PER_KIND = 100;
 
 function buyAnimal(kind) {
   const def = ANIMALS[kind];
   if (!def) return false;
-  if (game.animals.length >= MAX_ANIMALS) { showToast(t('toast.animalLimit')); return false; }
+  const kindCount = game.animals.filter(a => a.kind === kind).length;
+  if (kindCount >= MAX_PER_KIND) { showToast(t('toast.animalLimit')); return false; }
   if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
   if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
   addCoins(-def.price);
-  game.animals.push({
-    id: game.nextId++, kind,
-    gx: spot.x + 0.5, gy: spot.y + 0.5,
-    tx: spot.x + 0.5, ty: spot.y + 0.5,
-    walking: false, wait: 1 + Math.random() * 3,
-    phase: Math.random() * 10
-  });
+  game.animals.push(makeAnimal(kind, spot));
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
   playSound('place');
   return true;
@@ -1203,6 +1288,7 @@ function saveGame(showToastMsg) {
       coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
       farmName: game.farmName, ownedArea: game.ownedArea,
       buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
+      tilled: game.tilled, farmers: game.farmers,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -1227,6 +1313,7 @@ function loadGame() {
       farmName: data.farmName ?? 'Fazenda do Jogador',
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
+      tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
@@ -1286,7 +1373,6 @@ function render(ctx, cam, cw, ch, state) {
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
   drawFloaters(ctx, cam, cw, ch, performance.now());
-  drawClouds(ctx, cam, cw, ch);
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -1384,7 +1470,9 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       }
 
       const occupied = !!occupancy[occIndex(x, y)];
-      if (owned && !occupied) {
+      if (owned && !occupied && isTilled(x, y)) {
+        drawTilledSoil(ctx, cam, cw, ch, x, y);
+      } else if (owned && !occupied) {
         if (h > 0.955) {
           drawDirtPatch(ctx, cam, cw, ch, x, y, h);
         } else if (h > 0.9) {
@@ -1583,6 +1671,20 @@ function drawCrop(ctx, cam, cw, ch, b) {
   }
 }
 
+function drawTilledSoil(ctx, cam, cw, ch, x, y) {
+  const corners = tileCorners(cam, cw, ch, x, y);
+  drawTileDiamond(ctx, corners, '#8a5f34', 'rgba(0,0,0,0.18)');
+  ctx.strokeStyle = 'rgba(60,35,15,0.35)';
+  ctx.lineWidth = Math.max(1, 1 * cam.zoom);
+  for (let i = 1; i <= 2; i++) {
+    const a = projectPoint(x + 0.08, y + i / 3, 0);
+    const b = projectPoint(x + 0.92, y + i / 3, 0);
+    const as = worldToScreen(cam, a.x, a.y, cw, ch);
+    const bs = worldToScreen(cam, b.x, b.y, cw, ch);
+    ctx.beginPath(); ctx.moveTo(as.x, as.y); ctx.lineTo(bs.x, bs.y); ctx.stroke();
+  }
+}
+
 function drawDirtPatch(ctx, cam, cw, ch, x, y, h) {
   const corners = tileCorners(cam, cw, ch, x, y);
   ctx.save();
@@ -1633,6 +1735,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
+  for (const fm of game.farmers) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -1644,6 +1747,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawBuilding(ctx, cam, cw, ch, b);
     } else if (it.kind === 'c') {
       drawCrop(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'f') {
+      drawFarmer(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }
@@ -1678,6 +1783,8 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'stall':   drawStall(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'fence':   drawFence(ctx, cam, cw, ch, gx, gy, b.rot, q); break;
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
+    case 'tree_pine':   drawTree(ctx, cam, cw, ch, gx, gy, q, 'pine'); break;
+    case 'tree_cherry': drawTree(ctx, cam, cw, ch, gx, gy, q, 'cherry'); break;
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
@@ -1949,17 +2056,46 @@ function drawFence(ctx, cam, cw, ch, gx, gy, rot, q) {
 }
 
 /* --- Árvore: copa em camadas, frutas, sombra --- */
-function drawTree(ctx, cam, cw, ch, gx, gy, q) {
+function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
+  if (variant === 'pine') {
+    drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
+    const c = projectPoint(gx + 0.5, gy + 0.5, 0);
+    const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+    const z = cam.zoom;
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(cs.x - 2 * z, cs.y - 9 * z, 4 * z, 9 * z);
+    const tri = (w, h, yBase, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(cs.x, cs.y - (yBase + h) * z);
+      ctx.lineTo(cs.x - w * z, cs.y - yBase * z);
+      ctx.lineTo(cs.x + w * z, cs.y - yBase * z);
+      ctx.closePath();
+      ctx.fill();
+    };
+    tri(14, 13, 6, '#1b5e20');
+    tri(11, 12, 14, '#2e7d32');
+    tri(8, 11, 22, '#388e3c');
+    return;
+  }
+  const cherry = variant === 'cherry';
   drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
-  drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, '#795548');
+  drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, cherry ? '#4e342e' : '#795548');
   drawPrism(ctx, cam, cw, ch, gx + 0.46, gy + 0.46, 0.08, 0.08, 0.62, '#5d4037');
-  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.95, 0.5, '#2e7d32');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.95, 0.5, cherry ? '#f06292' : '#2e7d32');
   if (q !== 'baixa') {
-    drawSphere(ctx, cam, cw, ch, gx + 0.3, gy + 0.45, 0.72, 0.34, '#388e3c');
-    drawSphere(ctx, cam, cw, ch, gx + 0.68, gy + 0.6, 0.78, 0.3, '#43a047');
-    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.35, 1.15, 0.3, '#4caf50');
+    drawSphere(ctx, cam, cw, ch, gx + 0.3, gy + 0.45, 0.72, 0.34, cherry ? '#f48fb1' : '#388e3c');
+    drawSphere(ctx, cam, cw, ch, gx + 0.68, gy + 0.6, 0.78, 0.3, cherry ? '#f8bbd0' : '#43a047');
+    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.35, 1.15, 0.3, cherry ? '#fce4ec' : '#4caf50');
     const h = tileHash(gx + 3, gy + 7);
-    if (h > 0.4) {
+    if (cherry) {
+      ctx.fillStyle = 'rgba(244, 143, 177, 0.8)';
+      for (const [ox, oy] of [[0.2, 0.8], [0.8, 0.3], [0.55, 0.85]]) {
+        const p = projectPoint(gx + ox + Math.sin(performance.now() / 900 + ox * 7) * 0.05, gy + oy, 0.05);
+        const s = worldToScreen(cam, p.x, p.y, cw, ch);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1.6 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (h > 0.4) {
       ctx.fillStyle = '#e53935';
       for (const [ox, oy, oz] of [[0.35, 0.5, 0.95], [0.62, 0.42, 1.1], [0.5, 0.68, 0.85]]) {
         const p = projectPoint(gx + ox, gy + oy, oz);
@@ -2203,49 +2339,73 @@ function spawnAnimals() {
   for (const kind of ANIMAL_SPAWN) {
     const spot = randomFreeTile();
     if (!spot) return;
-    game.animals.push({
-      id: game.nextId++, kind,
-      gx: spot.x + 0.5, gy: spot.y + 0.5,
-      tx: spot.x + 0.5, ty: spot.y + 0.5,
-      walking: false, wait: 1 + Math.random() * 4,
-      phase: Math.random() * 10
-    });
+    game.animals.push(makeAnimal(kind, spot));
+  }
+}
+
+function makeAnimal(kind, spot) {
+  return {
+    id: game.nextId++, kind,
+    gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1 + Math.random() * 4,
+    phase: Math.random() * 10,
+    speedMul: 0.85 + Math.random() * 0.3,
+    grazing: false,
+    dirCur: Math.random() < 0.5 ? -1 : 1
+  };
+}
+
+function animalUpdateOne(a, dt) {
+  a.phase += dt;
+  const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
+  a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
+  if (a.walking) {
+    a.grazing = false;
+    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
+    const dx = a.tx - a.gx, dy = a.ty - a.gy;
+    const dist = Math.hypot(dx, dy);
+    const step = speed * dt;
+    if (dist <= step) {
+      a.gx = a.tx; a.gy = a.ty;
+      a.walking = false;
+      if (Math.random() < 0.45) {
+        a.grazing = true;
+        a.wait = 2 + Math.random() * 4;
+      } else {
+        a.wait = 1 + Math.random() * 3.5;
+      }
+    } else {
+      a.gx += dx / dist * step;
+      a.gy += dy / dist * step;
+    }
+  } else {
+    a.wait -= dt;
+    if (a.wait <= 0) {
+      const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+      const opts = [];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (animalWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+      }
+      if (opts.length) {
+        const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+        a.tx = nx + 0.5; a.ty = ny + 0.5;
+        a.walking = true;
+      } else {
+        a.wait = 2;
+      }
+    }
   }
 }
 
 function updateAnimals(dt) {
   for (const a of game.animals) {
-    a.phase += dt;
-    if (a.walking) {
-      const speed = ANIMAL_KINDS[a.kind].speed;
-      const dx = a.tx - a.gx, dy = a.ty - a.gy;
-      const dist = Math.hypot(dx, dy);
-      const step = speed * dt;
-      if (dist <= step) {
-        a.gx = a.tx; a.gy = a.ty;
-        a.walking = false;
-        a.wait = 1.5 + Math.random() * 4;
-      } else {
-        a.gx += dx / dist * step;
-        a.gy += dy / dist * step;
-      }
-    } else {
-      a.wait -= dt;
-      if (a.wait <= 0) {
-        const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
-        const opts = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          if (animalWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
-        }
-        if (opts.length) {
-          const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-          a.tx = nx + 0.5; a.ty = ny + 0.5;
-          a.walking = true;
-        } else {
-          a.wait = 2;
-        }
-      }
+    if (a.speedMul === undefined) {
+      a.speedMul = 0.85 + Math.random() * 0.3;
+      a.grazing = false;
+      a.dirCur = 1;
     }
+    animalUpdateOne(a, dt);
   }
 }
 
@@ -2254,12 +2414,14 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const s = worldToScreen(cam, p.x, p.y, cw, ch);
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
-  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z;
-  const dir = a.walking ? (a.tx >= a.gx ? 1 : -1) : (Math.sin(a.phase * 0.5) > 0 ? 1 : -1);
+  const grazing = !!a.grazing && !a.walking;
+  const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
+  const dir = a.dirCur !== undefined ? a.dirCur : 1;
 
   ctx.save();
   ctx.translate(s.x, s.y);
   ctx.scale(z * k.scale, z * k.scale);
+  if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
   ctx.beginPath();
@@ -2444,6 +2606,184 @@ function drawPig(ctx, bob, dir, walking, phase) {
 
 </script>
 <script>
+/* ================= FAZENDA 3D — FAZENDEIRO AUTOMÁTICO =================
+   NPC contratável: caminha pela fazenda, planta as sementes do baú,
+   rega, colhe o que ficar pronto e vende na hora pelos você. */
+
+const FARMER_SPEED = 1.1;
+
+function farmerWalkable(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+}
+
+/* Escolhe o próximo trabalho: colher pronto > plantar do baú > passear. */
+function farmerFindJob(f) {
+  let best = null, bestD = Infinity;
+  for (const c of game.crops) {
+    if (cropProgress(c) < 1) continue;
+    const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  if (best) return { kind: 'harvest', target: best };
+  for (const type of Object.keys(f.chest)) {
+    if (f.chest[type] > 0) return { kind: 'plant', type };
+  }
+  return null;
+}
+
+function farmerFindPlantSpot(f) {
+  const a = game.ownedArea;
+  let best = null, bestScore = -Infinity;
+  for (let tries = 0; tries < 40; tries++) {
+    const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
+    const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
+    if (occupancy[occIndex(x, y)]) continue;
+    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
+    const score = (isTilled(x, y) ? 100 : 0) - d;
+    if (score > bestScore) { bestScore = score; best = { x, y }; }
+  }
+  return best;
+}
+
+function updateFarmers(dt) {
+  for (const f of game.farmers) {
+    f.phase += dt;
+
+    if (f.walking) {
+      const dx = f.tx - f.gx, dy = f.ty - f.gy;
+      const dist = Math.hypot(dx, dy);
+      const step = FARMER_SPEED * dt;
+      if (dist <= step) {
+        f.gx = f.tx; f.gy = f.ty;
+        f.walking = false;
+        f.wait = 0.3;
+      } else {
+        f.gx += dx / dist * step;
+        f.gy += dy / dist * step;
+      }
+      continue;
+    }
+
+    f.wait -= dt;
+    if (f.wait > 0) continue;
+
+    const job = farmerFindJob(f);
+
+    if (job && job.kind === 'harvest') {
+      const c = job.target;
+      if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
+        const r = harvestCrop(c);
+        if (r) spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+        f.wait = 0.4;
+      } else {
+        f.tx = c.gx + 0.5; f.ty = c.gy + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'plant') {
+      let spot = f.jobSpot;
+      if (!spot || occupancy[occIndex(spot.x, spot.y)]) {
+        spot = farmerFindPlantSpot(f);
+        if (!spot) { f.wait = 2; continue; }
+        f.jobSpot = spot;
+      }
+      if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.9) {
+        const crop = plantCrop(job.type, spot.x, spot.y, true);
+        f.jobSpot = null;
+        if (crop) {
+          f.chest[job.type]--;
+          if (f.chest[job.type] <= 0) delete f.chest[job.type];
+          waterCrop(crop);
+          spawnFloater(spot.x, spot.y, '🌱', '#aed581');
+        }
+        f.wait = 0.5;
+      } else {
+        f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    const cx = Math.floor(f.gx), cy = Math.floor(f.gy);
+    const opts = [];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (farmerWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+    }
+    if (opts.length) {
+      const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+      f.tx = nx + 0.5; f.ty = ny + 0.5;
+      f.walking = true;
+    } else {
+      f.wait = 2;
+    }
+  }
+}
+
+function drawFarmer(ctx, cam, cw, ch, f) {
+  const p = projectPoint(f.gx, f.gy, 0);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const bob = f.walking ? Math.abs(Math.sin(f.phase * 8)) * 2.5 * z : Math.sin(f.phase * 2) * 0.6 * z;
+  const legSwing = f.walking ? Math.sin(f.phase * 8) * 3 : 0;
+  const armSwing = f.walking ? Math.sin(f.phase * 8 + Math.PI) * 2 : 0;
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.scale(z, z);
+
+  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 1, 8, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#5d4037';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-2.5, -8); ctx.lineTo(-2.5 + legSwing, 0);
+  ctx.moveTo(2.5, -8); ctx.lineTo(2.5 - legSwing, 0);
+  ctx.stroke();
+
+  ctx.fillStyle = '#3949ab';
+  ctx.beginPath();
+  ctx.rect(-5, -18 + bob * 0.4, 10, 11);
+  ctx.fill();
+
+  ctx.fillStyle = '#303f9f';
+  ctx.fillRect(-5, -12 + bob * 0.4, 10, 2);
+
+  ctx.strokeStyle = '#3949ab';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-5, -16 + bob * 0.4); ctx.lineTo(-8, -11 + armSwing + bob * 0.4);
+  ctx.moveTo(5, -16 + bob * 0.4); ctx.lineTo(8, -11 - armSwing + bob * 0.4);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffcc80';
+  ctx.beginPath();
+  ctx.arc(0, -22 + bob * 0.4, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#5d4037';
+  ctx.beginPath();
+  ctx.arc(0, -23.5 + bob * 0.4, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#e6c465';
+  ctx.beginPath();
+  ctx.ellipse(0, -24.5 + bob * 0.4, 7, 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d4af37';
+  ctx.beginPath();
+  ctx.ellipse(0, -25.8 + bob * 0.4, 4, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+</script>
+<script>
 /* ================= FAZENDA 3D — INTERFACE (DOM) =================
    HUD, painéis, modais, toasts, sons, música e i18n. */
 
@@ -2540,7 +2880,23 @@ const I18N = {
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
-    'toast.animalLimit': 'Limite de 15 animais atingido!'
+    'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
+    'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'toast.tillHint': '⛏️ Toque no chão para arar (plantio 25% mais rápido)',
+    'toast.tilled': '⛏️ Terra arada!',
+    'toast.harvestAll': '🧺 {n} plantações colhidas (+{c} 🪙)',
+    'toast.noneReady': 'Nada pronto para colher ainda.',
+    'cat.ajudantes': 'Ajudantes',
+    'h_farmer': 'Fazendeiro', 'h_farmer_desc': 'Planta, rega, colhe e vende sozinho. Encha o baú dele com sementes!',
+    'shop.hire': 'Contratar',
+    'toast.farmerBought': '🧑‍🌾 Fazendeiro contratado! Toque nele para encher o baú.',
+    'chest.title': '🧺 Baú do Fazendeiro',
+    'chest.hint': 'Compre sementes para o baú — ele planta, rega, colhe e vende por você.',
+    'chest.in': 'no baú: {n}',
+    'toast.seedsBought': '{icon} {n}× {name} no baú',
+    'c_coffee': 'Café', 'c_sugarcane': 'Cana',
+    'b_tree_pine': 'Pinheiro', 'b_tree_pine_desc': 'Perene e resistente.',
+    'b_tree_cherry': 'Cerejeira', 'b_tree_cherry_desc': 'Flores rosas na primavera.'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
@@ -2628,6 +2984,23 @@ const I18N = {
     'an_cow': 'Cow', 'an_cow_desc': 'Produces milk (phase 3).',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
+    'toast.animalLimit': 'Maximum of 100 animals of each kind!',
+    'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'toast.tillHint': '⛏️ Tap the ground to till (planting 25% faster)',
+    'toast.tilled': '⛏️ Soil tilled!',
+    'toast.harvestAll': '🧺 {n} crops harvested (+{c} 🪙)',
+    'toast.noneReady': 'Nothing ready to harvest yet.',
+    'cat.ajudantes': 'Helpers',
+    'h_farmer': 'Farmhand', 'h_farmer_desc': 'Plants, waters, harvests and sells on his own. Fill his chest with seeds!',
+    'shop.hire': 'Hire',
+    'toast.farmerBought': '🧑‍🌾 Farmhand hired! Tap him to fill the chest.',
+    'chest.title': '🧺 Farmhand Chest',
+    'chest.hint': 'Buy seeds into the chest — he plants, waters, harvests and sells for you.',
+    'chest.in': 'in chest: {n}',
+    'toast.seedsBought': '{icon} {n}× {name} in chest',
+    'c_coffee': 'Coffee', 'c_sugarcane': 'Sugarcane',
+    'b_tree_pine': 'Pine Tree', 'b_tree_pine_desc': 'Evergreen and hardy.',
+    'b_tree_cherry': 'Cherry Tree', 'b_tree_cherry_desc': 'Pink spring blossoms.',
     'toast.animalBought': '{icon} {name} arrived at the farm!',
     'toast.animalLimit': 'Animal limit of 15 reached!'
   }
@@ -2665,7 +3038,7 @@ function playSound(kind) {
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
       rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
-      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16]
+      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16], dig: [180, 0.14]
     };
     const [freq, dur] = notes[kind] || notes.click;
     const osc = ac.createOscillator();
@@ -2780,7 +3153,7 @@ function openShop() {
       for (const def of Object.values(ANIMALS)) {
         const locked = game.level < def.level;
         const afford = game.coins >= def.price;
-        const full = game.animals.length >= MAX_ANIMALS;
+        const full = game.animals.filter(a => a.kind === def.id).length >= MAX_PER_KIND;
         const item = document.createElement('div');
         item.className = 'shop-item';
         item.innerHTML = `
@@ -2797,6 +3170,37 @@ function openShop() {
         buyBtn.onclick = () => {
           if (buyAnimal(def.id)) {
             showToast(t('toast.animalBought', { icon: def.icon, name: t('an_' + def.id) }));
+            refreshHud();
+            openShop();
+          }
+        };
+        item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'ajudantes') {
+      for (const def of Object.values(HELPERS)) {
+        const locked = game.level < def.level;
+        const price = farmerPrice();
+        const afford = game.coins >= price;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('h_' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('h_' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'shop-buy-btn';
+        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (!afford ? t('shop.noCoins') : t('shop.hire'));
+        buyBtn.disabled = locked || !afford;
+        buyBtn.onclick = () => {
+          if (buyFarmer()) {
+            showToast(t('toast.farmerBought'));
             refreshHud();
             openShop();
           }
@@ -2862,6 +3266,46 @@ function openCoinShop() {
 function openGemShop() {
   openModal(t('modal.gems'), body => {
     body.innerHTML = `<p style="text-align:center">${t('gemshop.body')}</p>`;
+  });
+}
+
+/* ---------- Baú do fazendeiro ---------- */
+function openFarmerChest(farmer) {
+  openModal(t('chest.title'), body => {
+    body.innerHTML = `<p style="font-size:12px;color:#6d4c41;text-align:center;margin-bottom:10px">${t('chest.hint')}</p>`;
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    for (const def of Object.values(CROPS)) {
+      const n = farmer.chest[def.id] || 0;
+      const afford = game.coins >= def.seedCost;
+      const item = document.createElement('div');
+      item.className = 'shop-item';
+      item.innerHTML = `
+        <div class="shop-item-icon">${def.icon}</div>
+        <div class="shop-item-name">${t('c_' + def.id)}</div>
+        <div class="shop-item-price">🪙 ${def.seedCost}</div>
+        <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('chest.in', { n })}</div>
+      `;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:4px;justify-content:center';
+      for (const qty of [1, 10]) {
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.textContent = '+' + qty;
+        btn.disabled = !afford;
+        btn.onclick = () => {
+          if (depositSeed(farmer, def.id, qty)) {
+            showToast(t('toast.seedsBought', { icon: def.icon, n: qty, name: t('c_' + def.id) }));
+            refreshHud();
+            openFarmerChest(farmer);
+          }
+        };
+        row.appendChild(btn);
+      }
+      item.appendChild(row);
+      grid.appendChild(item);
+    }
+    body.appendChild(grid);
   });
 }
 
@@ -3063,8 +3507,10 @@ function bindUi(handlers) {
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-till').onclick = () => handlers.till();
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
+  $('btn-harvestall').onclick = () => handlers.harvestAll();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
@@ -3157,7 +3603,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v11';
+const GAME_VERSION = 'v12';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -3346,6 +3792,15 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'till') {
+    if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
+    if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    if (tillSoil(g.gx, g.gy)) {
+      spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
+    }
+    return;
+  }
+
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
@@ -3459,6 +3914,15 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'idle') {
+    for (const f of game.farmers) {
+      if (Math.hypot(f.gx - (g.gx + 0.5), f.gy - (g.gy + 0.5)) < 0.9) {
+        openFarmerChest(f);
+        return;
+      }
+    }
+  }
+
   // modo normal: colher plantação pronta ou destacar construção
   if (b && b.isCrop) {
     const p = cropProgress(b);
@@ -3497,7 +3961,7 @@ function setMode(mode) {
   state.rotateId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
   const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water' };
@@ -3582,6 +4046,23 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  },
+  till() {
+    playSound('click');
+    if (state.mode === 'till') { setMode('idle'); return; }
+    setMode('till');
+    showToast(t('toast.tillHint'));
+  },
+  harvestAll() {
+    playSound('click');
+    const r = harvestAllCrops();
+    if (r.n > 0) {
+      showToast(t('toast.harvestAll', { n: r.n, c: r.coins }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.noneReady'));
+    }
   }
 };
 
@@ -3645,6 +4126,7 @@ function loop(ts) {
   lastTime = ts;
   try {
     updateAnimals(dt);
+    updateFarmers(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
   } catch (err) {
     if (dbgBadge) {
