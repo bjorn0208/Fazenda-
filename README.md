@@ -162,6 +162,12 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 23 — Campo de código arrumado
+
+- **Visitar ficou no topo**: ao abrir o multiplayer, o campo para digitar o código do amigo (com o botão **Visitar** ao lado) agora vem primeiro, bem destacado.
+- **Seu código virou um cartão de cópia**: o box do seu código não parece mais um campo de digitação — agora é um chip escuro com 📋 e o aviso "Toque para copiar". Toque nele e o código vai para a área de transferência.
+- Corrigido o emoji do cartão que aparecia como texto quebrado.
+
 ## Revisão 22 — Menu limpo e código só com números
 
 - **Botão Amigos removido**: aquele aviso antigo de "sistema de amigos em breve" saiu do menu — o multiplayer por código 🌐 é quem fica.

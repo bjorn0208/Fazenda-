@@ -102,6 +102,9 @@ const I18N = {
     'menu.multiplayer': 'Multiplayer',
     'mp.title': '🌐 Multiplayer',
     'mp.myCode': 'Código da sua fazenda',
+    'mp.visitTitle': 'Visitar a fazenda de um amigo',
+    'mp.hint2': 'Peça o código de 6 números ao seu amigo.',
+    'mp.myCodeHint': 'Toque para copiar',
     'mp.host': 'Abrir minha fazenda para visitas',
     'mp.stop': 'Fechar minha fazenda',
     'mp.hosting': '✅ Fazenda aberta! Amigos entram com o código.',
@@ -283,6 +286,9 @@ const I18N = {
     'menu.multiplayer': 'Multiplayer',
     'mp.title': '🌐 Multiplayer',
     'mp.myCode': 'Your farm code',
+    'mp.visitTitle': 'Visit the farm of a friend',
+    'mp.hint2': 'Ask your friend for the 6-number code.',
+    'mp.myCodeHint': 'Tap to copy',
     'mp.host': 'Open my farm for visits',
     'mp.stop': 'Close my farm',
     'mp.hosting': '✅ Farm open! Friends join with the code.',
@@ -1055,47 +1061,6 @@ function updateVisitBanner() {
 
 function openMultiplayer() {
   openModal(t('mp.title'), body => {
-    const code = ensureFarmCode();
-    const codeRow = document.createElement('div');
-    codeRow.className = 'mp-code-row';
-    const codeLbl = document.createElement('div');
-    codeLbl.className = 'mp-label';
-    codeLbl.textContent = t('mp.myCode');
-    const codeBtn = document.createElement('button');
-    codeBtn.className = 'mp-code';
-    codeBtn.textContent = code;
-    codeBtn.onclick = () => {
-      if (navigator.clipboard) navigator.clipboard.writeText(code);
-      showToast(t('toast.mpCodeCopied'));
-    };
-    codeRow.appendChild(codeLbl);
-    codeRow.appendChild(codeBtn);
-    body.appendChild(codeRow);
-
-    const hostBtn = document.createElement('button');
-    hostBtn.className = 'mp-big-btn';
-    hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
-    hostBtn.onclick = () => {
-      if (mpStatus === 'hosting') { stopHosting(); closeModal(); return; }
-      hostBtn.disabled = true;
-      hostFarm(err => {
-        hostBtn.disabled = false;
-        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
-        openMultiplayer();
-      });
-    };
-    body.appendChild(hostBtn);
-    if (mpStatus === 'hosting') {
-      const st = document.createElement('div');
-      st.className = 'mp-status';
-      st.textContent = t('mp.hosting');
-      body.appendChild(st);
-    }
-
-    const hr = document.createElement('hr');
-    hr.className = 'mp-hr';
-    body.appendChild(hr);
-
     if (game.visiting) {
       const leave = document.createElement('button');
       leave.className = 'mp-big-btn mp-danger';
@@ -1112,8 +1077,9 @@ function openMultiplayer() {
 
     const visitLbl = document.createElement('div');
     visitLbl.className = 'mp-label';
-    visitLbl.textContent = t('mp.visit');
+    visitLbl.textContent = t('mp.visitTitle');
     body.appendChild(visitLbl);
+
     const visitRow = document.createElement('div');
     visitRow.className = 'mp-visit-row';
     const input = document.createElement('input');
@@ -1126,7 +1092,7 @@ function openMultiplayer() {
       input.value = input.value.replace(/[^0-9]/g, '').slice(0, 6);
     });
     const go = document.createElement('button');
-    go.className = 'mp-big-btn';
+    go.className = 'mp-big-btn mp-go';
     go.textContent = t('mp.visitBtn');
     const tryVisit = () => {
       const code2 = input.value.replace(/[^0-9]/g, '');
@@ -1149,8 +1115,47 @@ function openMultiplayer() {
 
     const hint = document.createElement('div');
     hint.className = 'mp-status';
-    hint.textContent = t('mp.hint');
+    hint.textContent = t('mp.hint2');
     body.appendChild(hint);
+
+    const hr = document.createElement('hr');
+    hr.className = 'mp-hr';
+    body.appendChild(hr);
+
+    const codeLbl = document.createElement('div');
+    codeLbl.className = 'mp-label';
+    codeLbl.textContent = t('mp.myCode');
+    body.appendChild(codeLbl);
+
+    const code = ensureFarmCode();
+    const codeBtn = document.createElement('button');
+    codeBtn.className = 'mp-code';
+    codeBtn.innerHTML = '📋 ' + code + ' <small>' + t('mp.myCodeHint') + '</small>';
+    codeBtn.onclick = () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+      showToast(t('toast.mpCodeCopied'));
+    };
+    body.appendChild(codeBtn);
+
+    const hostBtn = document.createElement('button');
+    hostBtn.className = 'mp-big-btn';
+    hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
+    hostBtn.onclick = () => {
+      if (mpStatus === 'hosting') { stopHosting(); openMultiplayer(); return; }
+      hostBtn.disabled = true;
+      hostFarm(err => {
+        hostBtn.disabled = false;
+        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
+        openMultiplayer();
+      });
+    };
+    body.appendChild(hostBtn);
+    if (mpStatus === 'hosting') {
+      const st = document.createElement('div');
+      st.className = 'mp-status';
+      st.textContent = t('mp.hosting');
+      body.appendChild(st);
+    }
   });
 }
 
