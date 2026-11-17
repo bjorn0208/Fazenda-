@@ -122,6 +122,7 @@ const I18N = {
     'toast.backHome': '🏡 Você voltou para a sua fazenda.',
     'toast.visitingBlock': 'Modo visita: somente leitura.',
     'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpBadCode': 'Código inválido. Use 3 letras e 3 números (ex.: ABC123).',
     'toast.mpCodeCopied': 'Código copiado!',
     'visit.banner': '👀 Visitando: {name}',
     'visit.back': '🏡 Voltar',
@@ -302,6 +303,7 @@ const I18N = {
     'toast.backHome': '🏡 You are back at your farm.',
     'toast.visitingBlock': 'Visit mode: read only.',
     'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpBadCode': 'Invalid code. Use 3 letters and 3 numbers (e.g., ABC123).',
     'toast.mpCodeCopied': 'Code copied!',
     'visit.banner': '👀 Visiting: {name}',
     'visit.back': '🏡 Back',
@@ -1123,14 +1125,19 @@ function openMultiplayer() {
     visitRow.className = 'mp-visit-row';
     const input = document.createElement('input');
     input.className = 'mp-input';
-    input.placeholder = 'F3D-AB12';
-    input.maxLength = 8;
+    input.placeholder = 'ABC123';
+    input.maxLength = 6;
+    input.autocomplete = 'off';
+    input.autocapitalize = 'characters';
+    input.addEventListener('input', () => {
+      input.value = normalizeFarmCode(input.value).slice(0, 6);
+    });
     const go = document.createElement('button');
     go.className = 'mp-big-btn';
     go.textContent = t('mp.visitBtn');
-    go.onclick = () => {
-      const code2 = input.value.trim().toUpperCase();
-      if (!/^F3D-[A-Z2-9]{4}$/.test(code2)) { showToast(t('toast.mpError', { err: code2 })); return; }
+    const tryVisit = () => {
+      const code2 = normalizeFarmCode(input.value);
+      if (!/^[A-Z]{3}[2-9]{3}$/.test(code2)) { showToast(t('toast.mpBadCode')); return; }
       go.disabled = true;
       visitFarm(code2, err => {
         go.disabled = false;
@@ -1138,6 +1145,11 @@ function openMultiplayer() {
         closeModal();
       });
     };
+    go.onclick = tryVisit;
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); tryVisit(); }
+      ev.stopPropagation();
+    });
     visitRow.appendChild(input);
     visitRow.appendChild(go);
     body.appendChild(visitRow);

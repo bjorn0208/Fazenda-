@@ -162,6 +162,12 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 21 — Multiplayer simplificado e código novo
+
+- **Código novo**: **3 letras + 3 números** (ex.: `ABC123`) — sem prefixo, sem tracinho. Códigos antigos (F3D-XXXX) migram sozinhos ao abrir o jogo.
+- **Campo de código corrigido**: digita só letras e números (vira maiúscula sozinho), máximo de 6 caracteres, e **Enter** já visita. Mensagem de erro clara se o código estiver errado.
+- Painel multiplayer enxuto: seu código (toque para copiar), abrir/fechar a fazenda e visitar — nada mais.
+
 ## Revisão 20 — Cerejeira realista, mato alto, fazendeiros espalhados e bar de verdade
 
 - **Cerejeira redesenhada**: tronco curvo com galhos, copa em camadas de rosa (do vinho ao claro), botões escuros, brilhos e **pétalas caindo** devagar.
