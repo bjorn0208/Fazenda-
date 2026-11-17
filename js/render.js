@@ -30,6 +30,7 @@ function render(ctx, cam, cw, ch, state) {
 
   drawTerrain(ctx, cam, cw, ch, view);
   drawBuildings(ctx, cam, cw, ch, state);
+  if (state.mode === 'pen') drawPenPreview(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
   drawFloaters(ctx, cam, cw, ch, performance.now());
@@ -396,6 +397,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
+  if (game.dog) items.push({ key: game.dog.gx + game.dog.gy, kind: 'd', ref: game.dog });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -409,6 +411,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawCrop(ctx, cam, cw, ch, b);
     } else if (it.kind === 'f') {
       drawFarmer(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'd') {
+      drawDog(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }
@@ -968,6 +972,30 @@ function drawClouds(ctx, cam, cw, ch) {
 }
 
 /* ---------- Prévia fantasma (construir / mover / girar) ---------- */
+/* Previa do curral: retangulo verde/vermelho antes de confirmar. */
+function drawPenPreview(ctx, cam, cw, ch, state) {
+  const n = state.penSize || 8;
+  const r = penRect(lastPointerGrid.gx, lastPointerGrid.gy, n);
+  const valid = penValid(r);
+  const pts = [
+    projectPoint(r.x0, r.y0, 0), projectPoint(r.x1 + 1, r.y0, 0),
+    projectPoint(r.x1 + 1, r.y1 + 1, 0), projectPoint(r.x0, r.y1 + 1, 0)
+  ].map(p => worldToScreen(cam, p.x, p.y, cw, ch));
+  ctx.fillStyle = valid ? 'rgba(76,175,80,0.16)' : 'rgba(229,57,53,0.16)';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y);
+  ctx.lineTo(pts[2].x, pts[2].y); ctx.lineTo(pts[3].x, pts[3].y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = valid ? 'rgba(51,105,30,0.8)' : 'rgba(183,28,28,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = Math.max(11, 15 * cam.zoom) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(valid ? '\u2713' : '\u2717', (pts[0].x + pts[2].x) / 2, (pts[0].y + pts[2].y) / 2);
+}
+
 function drawGhost(ctx, cam, cw, ch, state) {
   const g = state.ghost;
   const valid = g.valid;

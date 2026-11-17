@@ -18,6 +18,8 @@ const game = {
   animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
   tilled: {},             // "gx,gy" -> 1 (terra arada: plantio 25% mais rapido)
   farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
+  pen: null,              // {x0, y0, x1, y1, gateX, gateY, paid}
+  dog: null,              // {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -207,6 +209,100 @@ function harvestAllCrops() {
     if (r) { n++; coins += r.sell; xp += r.xp; }
   }
   return { n, coins, xp };
+}
+
+/* ---------- Curral (cerca automatica com porteiro) ---------- */
+function penSegments(n) { return 4 * n - 4; }
+
+function penPrice(n) { return penSegments(n) * PEN_PRICE_PER_TILE; }
+
+function penRect(cx, cy, n) {
+  const x0 = cx - Math.floor(n / 2), y0 = cy - Math.floor(n / 2);
+  return { x0, y0, x1: x0 + n - 1, y1: y0 + n - 1, n };
+}
+
+function penValid(r) {
+  for (let x = r.x0; x <= r.x1; x++) {
+    if (!penTileFree(x, r.y0) || !penTileFree(x, r.y1)) return false;
+  }
+  for (let y = r.y0; y <= r.y1; y++) {
+    if (!penTileFree(r.x0, y) || !penTileFree(r.x1, y)) return false;
+  }
+  return true;
+}
+
+function penTileFree(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+}
+
+function placePen(cx, cy, n) {
+  const price = penPrice(n);
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  const r = penRect(cx, cy, n);
+  if (!penValid(r)) { showToast(t('toast.penInvalid')); return false; }
+  const gateX = r.x0 + Math.floor(n / 2);
+  for (let x = r.x0; x <= r.x1; x++) {
+    addPenFence(x, r.y0);
+    if (x !== gateX) addPenFence(x, r.y1);
+  }
+  for (let y = r.y0 + 1; y <= r.y1 - 1; y++) {
+    addPenFence(r.x0, y);
+    addPenFence(r.x1, y);
+  }
+  addCoins(-price);
+  game.pen = { x0: r.x0, y0: r.y0, x1: r.x1, y1: r.y1, gateX, gateY: r.y1, paid: price };
+  playSound('place');
+  return true;
+}
+
+function addPenFence(x, y) {
+  if (!penTileFree(x, y)) return;
+  const seg = { id: game.nextId++, type: 'fence', gx: x, gy: y, rot: 0 };
+  game.buildings.push(seg);
+  markOccupancy(seg, true);
+  game.stats.built_any = (game.stats.built_any || 0) + 1;
+  game.stats.built_fence = (game.stats.built_fence || 0) + 1;
+}
+
+function removePen() {
+  const pen = game.pen;
+  if (!pen) return 0;
+  const keep = [];
+  let removed = 0;
+  for (const b of game.buildings) {
+    const onPerimeter = b.type === 'fence' && (
+      (b.gy === pen.y0 && b.gx >= pen.x0 && b.gx <= pen.x1) ||
+      (b.gy === pen.y1 && b.gx >= pen.x0 && b.gx <= pen.x1) ||
+      (b.gx === pen.x0 && b.gy >= pen.y0 && b.gy <= pen.y1) ||
+      (b.gx === pen.x1 && b.gy >= pen.y0 && b.gy <= pen.y1));
+    if (onPerimeter) { markOccupancy(b, false); removed++; }
+    else keep.push(b);
+  }
+  game.buildings = keep;
+  const refund = Math.floor(pen.paid / 2);
+  addCoins(refund);
+  game.pen = null;
+  playSound('dig');
+  return refund;
+}
+
+/* ---------- Cachorro (pastor automatico) ---------- */
+function buyDog() {
+  const def = HELPERS.dog;
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  if (game.dog) { showToast(t('toast.dogOwned')); return false; }
+  if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
+  const spot = randomFreeTile();
+  if (!spot) { showToast(t('toast.invalid')); return false; }
+  addCoins(-def.price);
+  game.dog = {
+    gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1, phase: Math.random() * 10,
+    active: false, face: 0, lastDir: 1
+  };
+  playSound('level');
+  return true;
 }
 
 /* ---------- Producao dos animais ---------- */
@@ -414,6 +510,7 @@ function saveGame(showToastMsg) {
       farmName: game.farmName, ownedArea: game.ownedArea,
       buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
       tilled: game.tilled, farmers: game.farmers,
+      pen: game.pen, dog: game.dog,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -439,6 +536,7 @@ function loadGame() {
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
       tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
+      pen: data.pen ?? null, dog: data.dog ?? null,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },

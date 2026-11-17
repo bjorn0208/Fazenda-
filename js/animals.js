@@ -29,8 +29,46 @@ function randomFreeTile() {
   return null;
 }
 
-function animalWalkable(x, y) {
-  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+function animalWalkable(a, x, y) {
+  if (!inBounds(x, y) || !inOwnedArea(x, y) || occupancy[occIndex(x, y)]) return false;
+  const pen = game.pen;
+  if (!pen) return true;
+  if (x === pen.gateX && y === pen.gateY) return false;
+  const inside = Math.floor(a.gx) >= pen.x0 && Math.floor(a.gx) <= pen.x1 &&
+                 Math.floor(a.gy) >= pen.y0 && Math.floor(a.gy) <= pen.y1;
+  if (inside && (x < pen.x0 || x > pen.x1 || y < pen.y0 || y > pen.y1)) return false;
+  return true;
+}
+
+function inPen(a) {
+  const pen = game.pen;
+  if (!pen) return false;
+  return Math.floor(a.gx) >= pen.x0 && Math.floor(a.gx) <= pen.x1 &&
+         Math.floor(a.gy) >= pen.y0 && Math.floor(a.gy) <= pen.y1;
+}
+
+function randomPenTile() {
+  const pen = game.pen;
+  if (!pen) return null;
+  for (let tries = 0; tries < 60; tries++) {
+    const x = pen.x0 + 1 + Math.floor(Math.random() * (pen.x1 - pen.x0 - 1));
+    const y = pen.y0 + 1 + Math.floor(Math.random() * (pen.y1 - pen.y0 - 1));
+    if (!occupancy[occIndex(x, y)]) return { x, y };
+  }
+  return null;
+}
+
+/* Cachorro assusta: o animal corre para o portao e entra no curral. */
+function herdAnimal(a) {
+  const pen = game.pen;
+  if (!pen || inPen(a)) return false;
+  a.scaredT = 8;
+  a.grazing = false;
+  a.herdStage = 1;
+  a.tx = pen.gateX + 0.5;
+  a.ty = pen.gateY + 0.5;
+  a.walking = true;
+  return true;
 }
 
 function spawnAnimals() {
@@ -54,6 +92,8 @@ function makeAnimal(kind, spot) {
     dirCur: Math.random() < 0.5 ? -1 : 1,
     face: 0,
     lastDir: 1,
+    herdStage: 0,
+    scaredT: 0,
     bornAt: Date.now(),
     product: 0,
     prodT: 0
@@ -71,7 +111,8 @@ function animalUpdateOne(a, dt) {
   }
   if (a.walking) {
     a.grazing = false;
-    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
+    if (a.scaredT > 0) a.scaredT -= dt;
+    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1) * (a.scaredT > 0 ? 1.8 : 1);
     const dx = a.tx - a.gx, dy = a.ty - a.gy;
     const sdx = dx - dy, sdy = (dx + dy) * 0.5;
     if (sdx * sdx + sdy * sdy > 1e-6) {
@@ -83,12 +124,24 @@ function animalUpdateOne(a, dt) {
     const step = speed * dt;
     if (dist <= step) {
       a.gx = a.tx; a.gy = a.ty;
-      a.walking = false;
-      if (Math.random() < 0.45) {
+      if (a.herdStage === 1) {
+        a.herdStage = 2;
+        const spot = randomPenTile();
+        if (spot) { a.tx = spot.x + 0.5; a.ty = spot.y + 0.5; }
+        else { a.herdStage = 0; a.walking = false; a.wait = 1; }
+      } else if (a.herdStage === 2) {
+        a.herdStage = 0;
+        a.walking = false;
         a.grazing = true;
-        a.wait = 2 + Math.random() * 4;
+        a.wait = 2 + Math.random() * 3;
       } else {
-        a.wait = 1 + Math.random() * 3.5;
+        a.walking = false;
+        if (Math.random() < 0.45) {
+          a.grazing = true;
+          a.wait = 2 + Math.random() * 4;
+        } else {
+          a.wait = 1 + Math.random() * 3.5;
+        }
       }
     } else {
       a.gx += dx / dist * step;
@@ -100,7 +153,7 @@ function animalUpdateOne(a, dt) {
       const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
       const opts = [];
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (animalWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+        if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
       }
       if (opts.length) {
         const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
@@ -122,6 +175,8 @@ function updateAnimals(dt) {
     }
     if (a.face === undefined) a.face = (a.dirCur || 1) >= 0 ? 0 : Math.PI;
     if (a.lastDir === undefined) a.lastDir = (a.dirCur || 1) >= 0 ? 1 : -1;
+    if (a.herdStage === undefined) a.herdStage = 0;
+    if (a.scaredT === undefined) a.scaredT = 0;
     if (a.bornAt === undefined) a.bornAt = Date.now();
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
@@ -415,4 +470,160 @@ function drawPig(ctx, bob, dir, walking, phase) {
   ctx.beginPath();
   ctx.arc(dir * 13, -16 + bob, 1, 0, Math.PI * 2);
   ctx.fill();
+}
+
+
+/* ================= CACHORRO PASTOR ================= */
+
+function dogWalkable(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+}
+
+function updateDog(dt) {
+  const d = game.dog;
+  if (!d) return;
+  d.phase += dt;
+  if (d.walking) {
+    const dx = d.tx - d.gx, dy = d.ty - d.gy;
+    const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+    if (sdx * sdx + sdy * sdy > 1e-6) {
+      d.face = lerpAngle(d.face || 0, Math.atan2(sdy, sdx), Math.min(1, dt * 8));
+      const fx = Math.cos(d.face);
+      if (Math.abs(fx) >= 0.15) d.lastDir = fx >= 0 ? 1 : -1;
+    }
+    const dist = Math.hypot(dx, dy);
+    const step = 1.7 * dt;
+    if (dist <= step) {
+      d.gx = d.tx; d.gy = d.ty;
+      d.walking = false;
+      d.wait = 0.2;
+    } else {
+      d.gx += dx / dist * step;
+      d.gy += dy / dist * step;
+    }
+    return;
+  }
+  d.wait -= dt;
+  if (d.wait > 0) return;
+  if (d.active && game.pen) {
+    let best = null, bestD = Infinity;
+    for (const a of game.animals) {
+      if (inPen(a)) continue;
+      const dist = Math.hypot(a.gx - d.gx, a.gy - d.gy);
+      if (dist < bestD) { bestD = dist; best = a; }
+    }
+    if (best) {
+      if (bestD < 1.3) {
+        herdAnimal(best);
+        d.wait = 0.5;
+      } else {
+        d.tx = best.gx; d.ty = best.gy;
+        d.walking = true;
+      }
+      return;
+    }
+  }
+  const cx = Math.floor(d.gx), cy = Math.floor(d.gy);
+  const opts = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    if (dogWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+  }
+  if (opts.length) {
+    const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+    d.tx = nx + 0.5; d.ty = ny + 0.5;
+    d.walking = true;
+  } else {
+    d.wait = 2;
+  }
+}
+
+function drawDog(ctx, cam, cw, ch, d) {
+  const p = projectPoint(d.gx, d.gy, 0);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const bob = d.walking ? Math.abs(Math.sin(d.phase * 10)) * 2.5 * z : Math.sin(d.phase * 2) * 0.7 * z;
+  const face = d.face || 0;
+  const fx = Math.cos(face);
+  const dir = Math.abs(fx) < 0.15 ? (d.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const squash = Math.max(0.5, Math.abs(fx));
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.scale(z * 0.75 * squash, z * 0.75);
+
+  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 13, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const legSwing = d.walking ? Math.sin(d.phase * 10) * 3 : 0;
+  ctx.strokeStyle = '#8d6e63';
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-8, -7); ctx.lineTo(-8 + legSwing, 1);
+  ctx.moveTo(8, -7); ctx.lineTo(8 - legSwing, 1);
+  ctx.moveTo(-3, -7); ctx.lineTo(-3 - legSwing, 1);
+  ctx.moveTo(3, -7); ctx.lineTo(3 + legSwing, 1);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  const wag = d.active ? Math.sin(d.phase * 12) * 4 : Math.sin(d.phase * 3) * 1.5;
+  ctx.strokeStyle = '#795548';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(dir * -11, -13 + bob);
+  ctx.quadraticCurveTo(dir * -16, -17 + bob + wag, dir * -18, -14 + bob + wag);
+  ctx.stroke();
+
+  ctx.fillStyle = '#a1887f';
+  ctx.beginPath();
+  ctx.ellipse(0, -11 + bob * 0.5, 12, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(120,100,85,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -6.5 + bob * 0.5, 9, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#a1887f';
+  ctx.beginPath();
+  ctx.ellipse(dir * 12, -16 + bob, 6, 5.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#795548';
+  ctx.beginPath();
+  ctx.moveTo(dir * 9, -20 + bob);
+  ctx.lineTo(dir * 8, -26 + bob);
+  ctx.lineTo(dir * 12.5, -21.5 + bob);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(dir * 14, -20.5 + bob);
+  ctx.lineTo(dir * 15.5, -26 + bob);
+  ctx.lineTo(dir * 17, -20 + bob);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#8d6e63';
+  ctx.beginPath();
+  ctx.ellipse(dir * 17.5, -15 + bob, 3, 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.arc(dir * 20, -15 + bob, 1.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(dir * 13.5, -17.5 + bob, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#e53935';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(dir * 8.5, -13.5 + bob, 3.2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
 }

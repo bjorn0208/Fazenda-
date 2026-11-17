@@ -161,3 +161,10 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Fazendeiro**: botas, avental de couro, camisa xadrez vermelha com mãos, sorriso.
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
+
+## Revisão 10 — Curral com porteiro e cachorro pastor
+
+- **Botão Curral 🚧** (coluna de ações): escolha o tamanho — **8×8** (🪙420), **16×16** (🪙900) ou **36×36** (🪙2100) — e toque no mapa. Prévia verde/vermelha mostra se dá para montar. Cerca de verdade, com **portão** de um lado.
+- **Animais presos no curral**: quem está dentro não sai andando; quem está fora não entra por conta própria.
+- **Cachorro 🐕** (loja → Ajudantes, 🪙3500, nível 5): depois de comprar, aparece o botão 🐕 na coluna de ações. Toque para **soltá-lo**: ele corre pela fazenda, assusta os animais um a um e eles **entram pelo portão** e ficam no curral. Toque de novo e ele descansa.
+- Remover curral devolve 50% do valor (botão 🚧 → Remover).

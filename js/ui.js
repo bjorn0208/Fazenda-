@@ -114,6 +114,22 @@ const I18N = {
     'farmers.chest': 'Baú',
     'farmers.hire': 'Contratar fazendeiro — 🪙 {price}',
     'farmers.roleSet': '{name} agora trabalha com: {role}',
+    'build.pen': 'Montar curral', 'build.dog': 'Cachorro',
+    'pen.title': 'Curral', 'pen.desc': 'Cerca pronta com porteiro; os animais ficam dentro.',
+    'pen.current': 'Curral atual: {n}×{n}',
+    'pen.remove': 'Remover curral (reembolso 🪙 {price})',
+    'toast.penHint': '🚧 Toque no mapa para montar o curral (verde = ok)',
+    'toast.penPlaced': '🚧 Curral {n}×{n} pronto! Use o cachorro para juntar os animais.',
+    'toast.penInvalid': '🚧 Não dá para montar aí — área ocupada ou fora da fazenda.',
+    'toast.penRemoved': '🚧 Curral removido.',
+    'toast.needPen': '🐕 Construa um curral primeiro (botão 🚧).',
+    'toast.dogOn': '🐕 O cachorro está juntando os animais no curral!',
+    'toast.dogOff': '🐕 O cachorro foi descansar.',
+    'toast.noDog': '🐕 Compre um cachorro na loja (aba Ajudantes)!',
+    'toast.dogOwned': 'Você já tem um cachorro.',
+    'toast.dogBought': '🐕 Cachorro chegou! Toque no botão 🐕 para soltá-lo.',
+    'h_dog': 'Cachorro', 'h_dog_desc': 'Solte-o e ele assusta os animais para dentro do curral.',
+    'shop.dogOwned': 'Já tem um',
     'h_farmer': 'Fazendeiro', 'h_farmer_desc': 'Planta, rega, colhe e vende sozinho. Encha o baú dele com sementes!',
     'shop.hire': 'Contratar',
     'toast.farmerBought': '🧑‍🌾 Fazendeiro contratado! Toque nele para encher o baú.',
@@ -234,6 +250,22 @@ const I18N = {
     'farmers.chest': 'Chest',
     'farmers.hire': 'Hire farmhand — 🪙 {price}',
     'farmers.roleSet': '{name} now works as: {role}',
+    'build.pen': 'Build pen', 'build.dog': 'Dog',
+    'pen.title': 'Pen', 'pen.desc': 'Ready-made fence with a gate; animals stay inside.',
+    'pen.current': 'Current pen: {n}×{n}',
+    'pen.remove': 'Remove pen (refund 🪙 {price})',
+    'toast.penHint': '🚧 Tap the map to build the pen (green = ok)',
+    'toast.penPlaced': '🚧 {n}×{n} pen ready! Use the dog to gather the animals.',
+    'toast.penInvalid': '🚧 Cannot build there — occupied or outside the farm.',
+    'toast.penRemoved': '🚧 Pen removed.',
+    'toast.needPen': '🐕 Build a pen first (🚧 button).',
+    'toast.dogOn': '🐕 The dog is gathering the animals into the pen!',
+    'toast.dogOff': '🐕 The dog went to rest.',
+    'toast.noDog': '🐕 Buy a dog in the shop (Helpers tab)!',
+    'toast.dogOwned': 'You already have a dog.',
+    'toast.dogBought': '🐕 Dog arrived! Tap the 🐕 button to release him.',
+    'h_dog': 'Dog', 'h_dog_desc': 'Release him and he scares the animals into the pen.',
+    'shop.dogOwned': 'Already owned',
     'h_farmer': 'Farmhand', 'h_farmer_desc': 'Plants, waters, harvests and sells on his own. Fill his chest with seeds!',
     'shop.hire': 'Hire',
     'toast.farmerBought': '🧑‍🌾 Farmhand hired! Tap him to fill the chest.',
@@ -354,6 +386,11 @@ function showToast(msg) {
 
 /* ---------- HUD ---------- */
 function refreshHud() {
+  const dogBtn = $('btn-dog');
+  if (dogBtn) {
+    dogBtn.classList.toggle('hidden', !game.dog);
+    dogBtn.classList.toggle('active', !!(game.dog && game.dog.active));
+  }
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
@@ -429,7 +466,8 @@ function openShop() {
     if (currentShopTab === 'ajudantes') {
       for (const def of Object.values(HELPERS)) {
         const locked = game.level < def.level;
-        const price = farmerPrice();
+        const price = def.id === 'farmer' ? farmerPrice() : def.price;
+        const owned = def.id === 'dog' && game.dog;
         const afford = game.coins >= price;
         const item = document.createElement('div');
         item.className = 'shop-item';
@@ -442,11 +480,13 @@ function openShop() {
         `;
         const buyBtn = document.createElement('button');
         buyBtn.className = 'shop-buy-btn';
-        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (!afford ? t('shop.noCoins') : t('shop.hire'));
-        buyBtn.disabled = locked || !afford;
+        const buyLabel = def.id === 'farmer' ? t('shop.hire') : t('shop.buyAnimal');
+        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (owned ? t('shop.dogOwned') : (!afford ? t('shop.noCoins') : buyLabel));
+        buyBtn.disabled = locked || !afford || owned;
         buyBtn.onclick = () => {
-          if (buyFarmer()) {
-            showToast(t('toast.farmerBought'));
+          const ok = def.id === 'farmer' ? buyFarmer() : buyDog();
+          if (ok) {
+            showToast(def.id === 'farmer' ? t('toast.farmerBought') : t('toast.dogBought'));
             refreshHud();
             openShop();
           }
@@ -549,6 +589,56 @@ function openFarmerChest(farmer) {
         row.appendChild(btn);
       }
       item.appendChild(row);
+      grid.appendChild(item);
+    }
+    body.appendChild(grid);
+  });
+}
+
+/* ---------- Curral ---------- */
+function openPenModal() {
+  openModal(t('pen.title'), body => {
+    if (game.pen) {
+      const info = document.createElement('p');
+      info.style.cssText = 'text-align:center;color:#33691e;font-weight:bold;font-size:14px;padding:6px';
+      info.textContent = t('pen.current', { n: game.pen.x1 - game.pen.x0 + 1 });
+      body.appendChild(info);
+      const rm = document.createElement('button');
+      rm.className = 'shop-buy-btn';
+      rm.style.cssText = 'display:block;margin:8px auto;padding:9px 16px';
+      rm.textContent = t('pen.remove', { price: Math.floor((game.pen.paid || 0) / 2) });
+      rm.onclick = () => {
+        removePen();
+        showToast(t('toast.penRemoved'));
+        refreshHud();
+        closeModal();
+      };
+      body.appendChild(rm);
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    for (const n of PEN_SIZES) {
+      const price = penPrice(n);
+      const item = document.createElement('div');
+      item.className = 'shop-item';
+      item.innerHTML = `
+        <div class="shop-item-icon">🚧</div>
+        <div class="shop-item-name">${n}×${n}</div>
+        <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('pen.desc')}</div>
+        <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+      `;
+      const btn = document.createElement('button');
+      btn.className = 'shop-buy-btn';
+      btn.textContent = game.coins >= price ? t('build.pen') : t('shop.noCoins');
+      btn.disabled = game.coins < price;
+      btn.onclick = () => {
+        state.penSize = n;
+        setMode('pen');
+        showToast(t('toast.penHint'));
+        closeModal();
+      };
+      item.appendChild(btn);
       grid.appendChild(item);
     }
     body.appendChild(grid);
@@ -821,6 +911,8 @@ function bindUi(handlers) {
   $('btn-water').onclick = () => handlers.water();
   $('btn-harvestall').onclick = () => handlers.harvestAll();
   $('btn-collectall').onclick = () => handlers.collectAll();
+  $('btn-pen').onclick = () => handlers.pen();
+  $('btn-dog').onclick = () => handlers.dog();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();

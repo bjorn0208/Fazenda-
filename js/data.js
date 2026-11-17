@@ -168,8 +168,13 @@ const SHOP_CATEGORIES = [
 
 /* Ajudantes contrataveis (NPCs que trabalham sozinhos). */
 const HELPERS = {
-  farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 }
+  farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 },
+  dog: { id: 'dog', name: 'Cachorro', icon: '🐕', price: 3500, level: 5 }
 };
+
+/* Curral: tamanhos disponiveis e preco por segmento de cerca. */
+const PEN_SIZES = [8, 16, 36];
+const PEN_PRICE_PER_TILE = 15;
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */
 const MISSIONS = [

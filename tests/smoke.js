@@ -263,6 +263,28 @@ vm.runInContext(`
   if (!jobP) throw new Error('role plant sem trabalho de plantio/colheita');
   fRole.role = 'all';
 
+  // curral: montar, cachorro junta os animais, eles nao saem, remover com reembolso
+  game.coins = 999999;
+  let penPlaced = false;
+  for (let cy = 4; cy < 44 && !penPlaced; cy++) {
+    for (let cx = 4; cx < 44 && !penPlaced; cx++) {
+      if (penValid(penRect(cx, cy, 8)) && placePen(cx, cy, 8)) penPlaced = true;
+    }
+  }
+  if (!penPlaced) throw new Error('nenhum lugar livre para o curral');
+  if (!buyDog()) throw new Error('buyDog falhou');
+  game.dog.active = true;
+  for (let i = 0; i < 600; i++) updateDog(0.05);
+  if (!game.animals.some(a => a.scaredT > 0 || a.herdStage > 0 || inPen(a))) throw new Error('cachorro nao assustou ninguem');
+  for (const a of game.animals) if (!inPen(a)) herdAnimal(a);
+  for (let i = 0; i < 8000; i++) updateAnimals(0.05);
+  const outside = game.animals.filter(a => !inPen(a)).length;
+  if (outside > 0) throw new Error('animais fora do curral: ' + outside);
+  render(ctx, cam, 800, 600, state);
+  const refund = removePen();
+  if (game.pen !== null) throw new Error('curral nao removido');
+  if (refund <= 0) throw new Error('reembolso zerado');
+
   // fazendeiro coleta produtos e planta em fileiras adjacentes
   buyFarmer();
   const fm2 = game.farmers[game.farmers.length - 1];

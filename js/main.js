@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v16';
+const GAME_VERSION = 'v17';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -236,6 +236,16 @@ function handleClick(e) {
     } else {
       playSound('error');
       showToast(t('toast.invalid'));
+    }
+    return;
+  }
+
+  if (state.mode === 'pen') {
+    const n = state.penSize || 8;
+    if (placePen(g.gx, g.gy, n)) {
+      showToast(t('toast.penPlaced', { n }));
+      refreshHud();
+      setMode('idle');
     }
     return;
   }
@@ -425,10 +435,10 @@ function setMode(mode) {
   state.rotateId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -528,6 +538,18 @@ const uiHandlers = {
       showToast(t('toast.noneReady'));
     }
   },
+  pen() {
+    playSound('click');
+    openPenModal();
+  },
+  dog() {
+    playSound('click');
+    if (!game.dog) { showToast(t('toast.noDog')); return; }
+    if (!game.dog.active && !game.pen) { showToast(t('toast.needPen')); return; }
+    game.dog.active = !game.dog.active;
+    showToast(game.dog.active ? t('toast.dogOn') : t('toast.dogOff'));
+    refreshHud();
+  },
   collectAll() {
     playSound('click');
     const r = collectAllProducts();
@@ -602,6 +624,7 @@ function loop(ts) {
   try {
     updateAnimals(dt);
     updateFarmers(dt);
+    updateDog(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();
   } catch (err) {
