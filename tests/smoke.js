@@ -645,10 +645,19 @@ vm.runInContext(`
   for (const id of Object.keys(o1.items)) game.barn[id] = (game.barn[id] || 0) + o1.items[id] + 5;
   const coinsO = game.coins;
   if (!deliverOrder(o1.id)) throw new Error('pedido com estoque nao entregou');
-  if (game.coins !== coinsO + o1.coins) throw new Error('pedido pagou errado');
+  if (!game.couriers.length) throw new Error('entregador nao saiu de moto');
+  if (game.coins !== coinsO) throw new Error('pedido pagou antes do entregador chegar');
+  const o1Coins = o1.coins;
   const o2 = game.orders[0];
   for (const id of Object.keys(o2.items)) delete game.barn[id];
+  const couriersBefore = game.couriers.length;
   if (deliverOrder(o2.id)) throw new Error('pedido sem estoque foi entregue');
+  if (game.couriers.length !== couriersBefore) throw new Error('entregador saiu sem estoque');
+  let courierGuard = 0;
+  while (game.couriers.length && courierGuard < 4000) { updateCouriers(0.1); courierGuard++; }
+  if (courierGuard >= 4000) throw new Error('entregador nao terminou a corrida');
+  if (game.coins !== coinsO + o1Coins) throw new Error('entregador pagou errado');
+  if (!Array.isArray(game.couriers)) throw new Error('game.couriers invalido');
 
   // cozinha: exige cozinha construida; receita consome insumos e produz produto
   if (cookRecipe('bread')) throw new Error('cozinhou sem cozinha');

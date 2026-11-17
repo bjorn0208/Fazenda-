@@ -39,7 +39,8 @@ const game = {
   weatherT: 0,
   weatherTick: 0,
   ambT: 0,
-  particles: []           // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
+  particles: [],          // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
+  couriers: []            // entregador de moto (transiente, nao salva)
 };
 
 /* ---------- Grade de ocupação ---------- */
@@ -287,13 +288,123 @@ function deliverOrder(orderId) {
     game.barn[id] -= o.items[id];
     if (game.barn[id] <= 0) delete game.barn[id];
   }
-  addCoins(o.coins);
-  addXp(o.xp);
   game.orders = game.orders.filter(x => x.id !== orderId);
   ensureOrders();
-  showToast(t('toast.orderDone', { c: o.coins, x: o.xp }));
-  playSound('level');
+  spawnCourier(o);
+  showToast(t('toast.courierGoing'));
   return true;
+}
+
+/* ---------- Entregador de moto ---------- */
+function courierWalkable(x, y) {
+  return inBounds(x, y) && !occupancy[occIndex(x, y)];
+}
+
+function courierTargetTile() {
+  const barn = game.buildings.find(b => b.type === 'barn');
+  if (barn) {
+    const f = footprintOf('barn', barn.rot);
+    return { x: barn.gx + Math.floor(f.w / 2), y: Math.min(GRID_SIZE - 1, barn.gy + f.d) };
+  }
+  return { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
+}
+
+function courierEdgeTile(fx, fy) {
+  let best = null, bestD = Infinity;
+  const test = (x, y) => {
+    if (!courierWalkable(x, y)) return;
+    const d = Math.abs(x + 0.5 - fx) + Math.abs(y + 0.5 - fy);
+    if (d < bestD) { best = { x, y }; bestD = d; }
+  };
+  for (let x = 0; x < GRID_SIZE; x += 2) { test(x, 0); test(x, GRID_SIZE - 1); }
+  for (let y = 0; y < GRID_SIZE; y += 2) { test(0, y); test(GRID_SIZE - 1, y); }
+  return best;
+}
+
+function spawnCourier(order) {
+  const tgt = courierTargetTile();
+  const exit = courierEdgeTile(tgt.x, tgt.y);
+  if (!exit) return;
+  const path = gridPath(exit.x, exit.y, tgt.x, tgt.y, courierWalkable) || [];
+  const c = {
+    coins: order.coins, xp: order.xp,
+    gx: exit.x + 0.5, gy: exit.y + 0.5,
+    tx: exit.x + 0.5, ty: exit.y + 0.5,
+    path, stage: 'in', wait: 0, smokeT: 0,
+    face: 0, lastDir: 1, phase: Math.random() * 10, walking: true, done: false
+  };
+  if (c.path.length) { const w = c.path.shift(); c.tx = w.x + 0.5; c.ty = w.y + 0.5; }
+  game.couriers.push(c);
+}
+
+function courierBeginExit(c) {
+  const exit = courierEdgeTile(c.gx, c.gy);
+  if (!exit) { c.done = true; return; }
+  const path = gridPath(Math.floor(c.gx), Math.floor(c.gy), exit.x, exit.y, courierWalkable) || [];
+  c.path = path;
+  c.tx = exit.x + 0.5; c.ty = exit.y + 0.5;
+  if (c.path.length) { const w = c.path.shift(); c.tx = w.x + 0.5; c.ty = w.y + 0.5; }
+  c.walking = true;
+}
+
+function updateCourierOne(c, dt) {
+  c.phase += dt;
+  if (c.walking) {
+    const dx = c.tx - c.gx, dy = c.ty - c.gy;
+    const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+    if (sdx * sdx + sdy * sdy > 1e-6) {
+      const na = Math.atan2(sdy, sdx);
+      let diff = ((na - (c.face || 0) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      c.face = (c.face || 0) + diff * Math.min(1, dt * 8);
+      const fx = Math.cos(c.face);
+      if (Math.abs(fx) >= 0.15) c.lastDir = fx >= 0 ? 1 : -1;
+    }
+    c.smokeT += dt;
+    if (c.smokeT > 0.45) {
+      c.smokeT = 0;
+      spawnParticle(c.gx - c.lastDir * 0.25, c.gy, 0.35, -c.lastDir * 0.3, -0.05, 0.25, 0.8, 'rgba(150,150,150,0.4)', 2, -0.1);
+    }
+    const dist = Math.hypot(dx, dy);
+    const step = 4.2 * dt;
+    if (dist <= step) {
+      c.gx = c.tx; c.gy = c.ty;
+      if (c.path && c.path.length) {
+        const w = c.path.shift();
+        c.tx = w.x + 0.5; c.ty = w.y + 0.5;
+      } else {
+        c.walking = false;
+      }
+    } else {
+      c.gx += dx / dist * step;
+      c.gy += dy / dist * step;
+    }
+    return;
+  }
+  if (c.stage === 'in') {
+    addCoins(c.coins);
+    addXp(c.xp);
+    spawnFloater(c.gx, c.gy - 0.5, '+' + c.coins + ' \u{1FA99}', '#ffd54f');
+    showToast(t('toast.orderDone', { c: c.coins, x: c.xp }));
+    playSound('level');
+    c.stage = 'wait';
+    c.wait = 2 + Math.random() * 2;
+    return;
+  }
+  if (c.stage === 'wait') {
+    c.wait -= dt;
+    if (c.wait <= 0) {
+      c.stage = 'out';
+      courierBeginExit(c);
+    }
+    return;
+  }
+  c.done = true;
+}
+
+function updateCouriers(dt) {
+  if (!game.couriers.length) return;
+  for (const c of game.couriers) updateCourierOne(c, dt);
+  game.couriers = game.couriers.filter(c => !c.done);
 }
 
 function swapOrder(orderId) {
@@ -885,7 +996,8 @@ function applySaveData(data) {
       tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
-      particles: []
+      particles: [],
+      couriers: []
     });
     for (const a of game.animals) {
       if (a.age === undefined) a.age = 999;

@@ -484,6 +484,132 @@ function drawShadow(ctx, cam, cw, ch, gx, gy, w, d, strength) {
   ctx.fill();
 }
 
+/* ---------- Entregador de moto ---------- */
+function drawCourier(ctx, cam, cw, ch, c) {
+  const p = projectPoint(c.gx, c.gy, 0);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const fx = Math.cos(c.face || 0);
+  const flip = Math.abs(fx) < 0.15 ? (c.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const riding = c.stage !== 'wait';
+  const bob = riding ? Math.abs(Math.sin(c.phase * 14)) * 1.5 * z : Math.sin(c.phase * 3) * 0.5 * z;
+  const spin = c.walking ? c.phase * 22 : 0;
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.scale(z * flip, z);
+  ctx.lineJoin = 'round';
+
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.24 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
+  ctx.beginPath();
+  ctx.ellipse(0.5, 0, 11, 3.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.translate(0, -bob);
+
+  const wheel = wx => {
+    ctx.fillStyle = '#263238';
+    ctx.beginPath(); ctx.arc(wx, -4, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#90a4ae';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(wx + Math.cos(spin) * 2.6, -4 + Math.sin(spin) * 2.6);
+    ctx.lineTo(wx - Math.cos(spin) * 2.6, -4 - Math.sin(spin) * 2.6);
+    ctx.stroke();
+  };
+  wheel(-6);
+  wheel(7);
+
+  ctx.strokeStyle = '#455a64';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-6, -4); ctx.lineTo(-1, -8); ctx.lineTo(1, -11);
+  ctx.moveTo(1, -8.5); ctx.lineTo(7, -7.5); ctx.lineTo(7.5, -5);
+  ctx.stroke();
+
+  ctx.fillStyle = '#37474f';
+  ctx.beginPath();
+  ctx.roundRect(-2.5, -12.5, 6.5, 3.5, 1.5);
+  ctx.fill();
+
+  ctx.fillStyle = '#cfd8dc';
+  ctx.beginPath();
+  ctx.arc(8.6, -6.5, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,238,88,' + (0.5 * (1 - dayLight()) + 0.25).toFixed(2) + ')';
+  ctx.beginPath();
+  ctx.arc(10.2, -6.8, 2.4, -0.6, 0.6);
+  ctx.fill();
+
+  ctx.fillStyle = '#c62828';
+  ctx.beginPath();
+  ctx.roundRect(-11.5, -17.5, 8.5, 9, 2.5);
+  ctx.fill();
+  ctx.fillStyle = '#b71c1c';
+  ctx.fillRect(-11.5, -14.2, 8.5, 1.7);
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(-10.6, -16.4, 3.2, 1.4);
+  ctx.strokeStyle = '#8e0000';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-11.5, -15.8); ctx.lineTo(-3, -15.8);
+  ctx.stroke();
+
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.roundRect(-3.2, -17.8, 3.6, 4, 1.2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#263238';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-1.5, -4.5); ctx.lineTo(-1, -9);
+  ctx.moveTo(-1.2, -6.4); ctx.lineTo(2.2, -7.6);
+  ctx.stroke();
+  ctx.strokeStyle = '#455a64';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(5.2, -7.2); ctx.lineTo(4.6, -10.4);
+  ctx.stroke();
+
+  ctx.fillStyle = '#37474f';
+  ctx.beginPath();
+  ctx.roundRect(-3.4, -20.5, 5, 10, 2);
+  ctx.fill();
+  ctx.fillStyle = '#eceff1';
+  ctx.fillRect(-3.4, -15.5, 5, 1.4);
+
+  ctx.strokeStyle = '#37474f';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0.4, -19); ctx.lineTo(4.4, -13.2);
+  ctx.lineTo(5.8, -13.6);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#151b21';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(5.8, -13.6); ctx.lineTo(7.6, -14.4);
+  ctx.stroke();
+
+  ctx.fillStyle = '#e53935';
+  ctx.beginPath();
+  ctx.arc(0.2, -23.3, 3.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffcdd2';
+  ctx.beginPath();
+  ctx.arc(0.2, -23.3, 3.6, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#b71c1c';
+  ctx.fillRect(-3.4, -23.6, 7.2, 1);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.arc(-0.8, -23.9, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /* ---------- Desenho das construções ---------- */
 function drawBuildings(ctx, cam, cw, ch, state) {
   const items = [];
@@ -495,6 +621,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
+  for (const cr of game.couriers) items.push({ key: cr.gx + cr.gy + 1, kind: 'm', ref: cr });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -510,6 +637,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawFarmer(ctx, cam, cw, ch, b);
     } else if (it.kind === 'd') {
       drawDog(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'm') {
+      drawCourier(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }

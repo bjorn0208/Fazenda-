@@ -166,6 +166,7 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 
 - **Celeiro 🧺 e nova economia**: a colheita agora vai para o **Celeiro** (menu 🧺) — venda ali dentro (individual ou Vender Tudo) para receber moedas. Assim dá para estocar e vender na hora certa.
 - **Pedidos do mercado**: 3 pedidos sempre disponíveis, com recompensa maior que a venda direta (trocar pedido custa 🪙50).
+- **Entregador de moto**: ao tocar em Entregar, um motoboy de capacete e bolsa térmica vermelha entra pela borda da fazenda de moto, busca o pedido no celeiro e as moedas so caem no seu bolso quando ele chega na sua porta.
 - **Cozinha**: prédio novo (🪙3200) com 5 receitas — Pão, Salada, Torta, Suco e Ensopado — que valem mais que os ingredientes crus.
 - **Ferramentas melhoráveis**: aba Melhorias na loja — regador vira **3x3** e depois **5x5**, enxada vira **3x3**.
 - **Filhotes**: animais são comprados como filhotes (40% do preço) e **crescem em 3 minutos** — só adultos produzem leite/ovos/bacon.
