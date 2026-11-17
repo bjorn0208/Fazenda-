@@ -10,24 +10,31 @@ function farmerWalkable(x, y) {
 
 /* Escolhe o próximo trabalho: colher pronto > plantar do baú > passear. */
 function farmerFindJob(f) {
-  let best = null, bestD = Infinity;
-  for (const c of game.crops) {
-    if (cropProgress(c) < 1) continue;
-    const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
-    if (d < bestD) { bestD = d; best = c; }
+  const role = f.role || 'all';
+  if (role !== 'animal') {
+    let best = null, bestD = Infinity;
+    for (const c of game.crops) {
+      if (cropProgress(c) < 1) continue;
+      const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    if (best) return { kind: 'harvest', target: best };
   }
-  if (best) return { kind: 'harvest', target: best };
-  let an = null;
-  bestD = Infinity;
-  for (const a of game.animals) {
-    const ready = pigReady(a) || a.product > 0;
-    if (!ready) continue;
-    const d = Math.hypot(a.gx - f.gx, a.gy - f.gy);
-    if (d < bestD) { bestD = d; an = a; }
+  if (role !== 'plant') {
+    let an = null;
+    let bestD = Infinity;
+    for (const a of game.animals) {
+      const ready = pigReady(a) || a.product > 0;
+      if (!ready) continue;
+      const d = Math.hypot(a.gx - f.gx, a.gy - f.gy);
+      if (d < bestD) { bestD = d; an = a; }
+    }
+    if (an) return { kind: 'animal', target: an };
   }
-  if (an) return { kind: 'animal', target: an };
-  for (const type of Object.keys(f.chest)) {
-    if (f.chest[type] > 0) return { kind: 'plant', type };
+  if (role !== 'animal') {
+    for (const type of Object.keys(f.chest)) {
+      if (f.chest[type] > 0) return { kind: 'plant', type };
+    }
   }
   return null;
 }

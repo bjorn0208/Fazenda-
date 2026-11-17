@@ -249,6 +249,20 @@ vm.runInContext(`
   if (!walker) throw new Error('face do animal ausente');
   if (game.farmers.length && game.farmers[0].face === undefined) throw new Error('face do fazendeiro ausente');
 
+  // funcoes dos fazendeiros: role filtra os trabalhos
+  const fRole = game.farmers[0];
+  const henR = game.animals.find(a => a.kind === 'chicken');
+  if (henR) henR.product = 2;
+  fRole.role = 'animal';
+  const jobA = farmerFindJob(fRole);
+  if (!jobA || jobA.kind !== 'animal') throw new Error('role animal nao busca animais');
+  fRole.role = 'plant';
+  depositSeed(fRole, 'corn', 2);
+  const jobP = farmerFindJob(fRole);
+  if (jobP && jobP.kind === 'animal') throw new Error('role plant busca animais');
+  if (!jobP) throw new Error('role plant sem trabalho de plantio/colheita');
+  fRole.role = 'all';
+
   // fazendeiro coleta produtos e planta em fileiras adjacentes
   buyFarmer();
   const fm2 = game.farmers[game.farmers.length - 1];

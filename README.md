@@ -145,3 +145,9 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Orientação 360°**: animais e fazendeiro agora **viram na direção em que caminham** (qualquer ângulo do mapa), com virada suave — não andam mais sempre de lado.
 - **Botão Recolher 🥚**: recolhe e vende de uma vez todos os ovos e leites prontos (e abate porcos de 5 min).
 - **HUD reorganizado**: ações (Construir, Arar, Plantar, Regar, Colher Tudo, Recolher, Mover, Remover, Girar, Comprar) ficam na **coluna direita**; menus (Missões, Loja, Conquistas, Amigos) na **coluna esquerda**. Em telefone deitado a barra volta ao rodapé.
+
+## Revisão 8 — Gerenciador de fazendeiros e colunas minimizáveis
+
+- **Botão Fazendeiros 🧑‍🌾** (menu esquerdo): painel para gerenciar todos os fazendeiros — ver sementes do baú, abrir o baú, contratar mais.
+- **Funções por fazendeiro**: escolha entre **Tudo** (planta, colhe e cuida dos animais), **Plantio** (só planta e colhe plantações) ou **Animais** (só coleta ovos/leite e abate porcos). Ex.: um fazendeiro só para animais, outro só para plantio.
+- **Botões de minimizar ▼**: um em cada canto inferior. Esquerdo recolhe o menu (Missões/Loja/Conquistas/Amigos/Fazendeiros); direito recolhe as ferramentas (ações + zoom). A seta vira para cima quando recolhido — toque de novo e as ferramentas descem.

@@ -104,6 +104,16 @@ const I18N = {
     'toast.harvestAll': '🧺 {n} plantações colhidas (+{c} 🪙)',
     'toast.noneReady': 'Nada pronto para colher ainda.',
     'cat.ajudantes': 'Ajudantes',
+    'menu.farmers': 'Fazendeiros',
+    'farmers.title': 'Fazendeiros',
+    'farmers.name': 'Fazendeiro {n}',
+    'farmers.none': 'Nenhum fazendeiro ainda. Contrate o primeiro por 🪙 {price}!',
+    'farmers.roleAll': 'Tudo', 'farmers.roleAllDesc': 'Planta, colhe e cuida dos animais',
+    'farmers.rolePlant': 'Plantio', 'farmers.rolePlantDesc': 'Só planta e colhe plantações',
+    'farmers.roleAnimal': 'Animais', 'farmers.roleAnimalDesc': 'Só coleta ovos, leite e abate porcos',
+    'farmers.chest': 'Baú',
+    'farmers.hire': 'Contratar fazendeiro — 🪙 {price}',
+    'farmers.roleSet': '{name} agora trabalha com: {role}',
     'h_farmer': 'Fazendeiro', 'h_farmer_desc': 'Planta, rega, colhe e vende sozinho. Encha o baú dele com sementes!',
     'shop.hire': 'Contratar',
     'toast.farmerBought': '🧑‍🌾 Fazendeiro contratado! Toque nele para encher o baú.',
@@ -214,6 +224,16 @@ const I18N = {
     'toast.harvestAll': '🧺 {n} crops harvested (+{c} 🪙)',
     'toast.noneReady': 'Nothing ready to harvest yet.',
     'cat.ajudantes': 'Helpers',
+    'menu.farmers': 'Farmhands',
+    'farmers.title': 'Farmhands',
+    'farmers.name': 'Farmhand {n}',
+    'farmers.none': 'No farmhands yet. Hire the first one for 🪙 {price}!',
+    'farmers.roleAll': 'Everything', 'farmers.roleAllDesc': 'Plants, harvests and tends animals',
+    'farmers.rolePlant': 'Planting', 'farmers.rolePlantDesc': 'Only plants and harvests crops',
+    'farmers.roleAnimal': 'Animals', 'farmers.roleAnimalDesc': 'Only collects eggs, milk and slaughters pigs',
+    'farmers.chest': 'Chest',
+    'farmers.hire': 'Hire farmhand — 🪙 {price}',
+    'farmers.roleSet': '{name} now works as: {role}',
     'h_farmer': 'Farmhand', 'h_farmer_desc': 'Plants, waters, harvests and sells on his own. Fill his chest with seeds!',
     'shop.hire': 'Hire',
     'toast.farmerBought': '🧑‍🌾 Farmhand hired! Tap him to fill the chest.',
@@ -535,6 +555,69 @@ function openFarmerChest(farmer) {
   });
 }
 
+/* ---------- Gerenciador de fazendeiros ---------- */
+function openFarmersPanel() {
+  openModal(t('farmers.title'), body => {
+    if (!game.farmers.length) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'text-align:center;color:#6d4c41;font-size:13px;padding:12px';
+      empty.textContent = t('farmers.none', { price: farmerPrice() });
+      body.appendChild(empty);
+    }
+    const roles = [
+      { id: 'all', label: t('farmers.roleAll'), desc: t('farmers.roleAllDesc') },
+      { id: 'plant', label: t('farmers.rolePlant'), desc: t('farmers.rolePlantDesc') },
+      { id: 'animal', label: t('farmers.roleAnimal'), desc: t('farmers.roleAnimalDesc') }
+    ];
+    game.farmers.forEach((f, i) => {
+      const seeds = Object.values(f.chest).reduce((s, n) => s + n, 0);
+      const card = document.createElement('div');
+      card.className = 'farmer-card';
+      const head = document.createElement('div');
+      head.className = 'farmer-head';
+      head.innerHTML = `<span class="farmer-icon">🧑‍🌾</span>` +
+        `<span class="farmer-name">${t('farmers.name', { n: i + 1 })}</span>` +
+        `<span class="farmer-seeds">🧺 ${seeds}</span>`;
+      card.appendChild(head);
+      const roleRow = document.createElement('div');
+      roleRow.className = 'farmer-roles';
+      for (const r of roles) {
+        const btn = document.createElement('button');
+        btn.className = 'farmer-role-btn' + ((f.role || 'all') === r.id ? ' active' : '');
+        btn.textContent = r.label;
+        btn.title = r.desc;
+        btn.onclick = () => {
+          f.role = r.id;
+          playSound('click');
+          showToast(t('farmers.roleSet', { name: t('farmers.name', { n: i + 1 }), role: r.label }));
+          openFarmersPanel();
+        };
+        roleRow.appendChild(btn);
+      }
+      card.appendChild(roleRow);
+      const actions = document.createElement('div');
+      actions.className = 'farmer-actions';
+      const chestBtn = document.createElement('button');
+      chestBtn.className = 'shop-buy-btn';
+      chestBtn.textContent = '🧺 ' + t('farmers.chest');
+      chestBtn.onclick = () => openFarmerChest(f);
+      actions.appendChild(chestBtn);
+      card.appendChild(actions);
+      body.appendChild(card);
+    });
+    if (game.farmers.length) {
+      const hire = document.createElement('button');
+      hire.className = 'shop-buy-btn';
+      hire.style.cssText = 'display:block;margin:10px auto 0;padding:10px 18px;font-size:14px';
+      hire.textContent = t('farmers.hire', { price: farmerPrice() });
+      hire.onclick = () => {
+        if (buyFarmer()) { refreshHud(); openFarmersPanel(); }
+      };
+      body.appendChild(hire);
+    }
+  });
+}
+
 /* ---------- Missões ---------- */
 function openMissions() {
   openModal(t('modal.missions'), body => {
@@ -745,6 +828,14 @@ function bindUi(handlers) {
   $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
   $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
+  $('btn-collapse-left').onclick = () => {
+    document.body.classList.toggle('tools-left-hidden');
+    playSound('click');
+  };
+  $('btn-collapse-right').onclick = () => {
+    document.body.classList.toggle('tools-right-hidden');
+    playSound('click');
+  };
 
   for (const btn of document.querySelectorAll('.side-btn')) {
     btn.onclick = () => {
@@ -753,6 +844,7 @@ function bindUi(handlers) {
       else if (panel === 'shop') openShop();
       else if (panel === 'achievements') openAchievements();
       else if (panel === 'friends') openFriends();
+      else if (panel === 'farmers') openFarmersPanel();
     };
   }
 

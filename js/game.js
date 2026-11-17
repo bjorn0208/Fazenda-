@@ -264,7 +264,7 @@ function buyFarmer() {
     id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
     tx: spot.x + 0.5, ty: spot.y + 0.5,
     walking: false, wait: 1, phase: Math.random() * 10,
-    chest: {}
+    chest: {}, role: 'all'
   });
   playSound('level');
   return true;
