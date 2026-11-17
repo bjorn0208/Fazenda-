@@ -83,14 +83,6 @@ function mindFmt(pool, params) {
 
 const SHIRT_PALETTE = ['#c62828', '#d81b60', '#8e24aa', '#5e35b1', '#1e88e5', '#00897b', '#43a047', '#f4511e', '#6d4c41', '#ad1457', '#ef6c00', '#7cb342'];
 
-function shadeColor(hex, mul) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.round(((n >> 16) & 255) * mul);
-  const g = Math.round(((n >> 8) & 255) * mul);
-  const b = Math.round((n & 255) * mul);
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
-
 /* ---------- Reuniao matinal dos fazendeiros ---------- */
 function meetingPoint() {
   const door = houseDoorTile();
@@ -273,7 +265,7 @@ function farmerFindWaterTarget(f) {
 }
 
 function hasHorse() {
-  return game.animals.some(a => a.kind === 'horse');
+  return game.animals.some(a => a.kind === 'horse' && isAdult(a));
 }
 
 /* Escolhe o proximo trabalho respeitando a fase do dia e a funcao do fazendeiro. */
@@ -485,7 +477,12 @@ function updateFarmers(dt) {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
         const r = harvestCrop(c);
-        if (r) { spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f'); farmerWorkCost(f); }
+        if (r) {
+          const val = r.def.sell;
+          addCoins(val);
+          spawnFloater(c.gx, c.gy, '+' + val + ' 🪙', '#ffd54f');
+          farmerWorkCost(f);
+        }
         f.riding = false;
         f.wait = 0.4;
       } else {

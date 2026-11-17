@@ -105,6 +105,8 @@ const sandbox = {
     removeItem: k => { delete store[k]; }
   },
   devicePixelRatio: 1,
+  URLSearchParams: class { constructor() { this.p = {}; } get() { return null; } has() { return false; } },
+  location: { search: '', origin: 'https://fazenda.test', pathname: '/index.html', hostname: 'fazenda.test', protocol: 'https:' },
   navigator: { language: 'pt-BR' },
   document: {
     documentElement: makeEl(),
@@ -361,7 +363,13 @@ vm.runInContext(`
   game.level = 6;
   if (!buyAnimal('horse')) throw new Error('buyAnimal horse falhou');
   if (!game.animals.some(a => a.kind === 'horse')) throw new Error('cavalo nao criado');
-  if (!hasHorse()) throw new Error('hasHorse falso com cavalo comprado');
+  const horseA = game.animals.find(a => a.kind === 'horse');
+  if (isAdult(horseA)) throw new Error('cavalo recem-comprado deveria ser filhote');
+  horseA.age = 999;
+  if (!hasHorse()) throw new Error('hasHorse falso com cavalo adulto');
+  horseA.age = 0;
+  if (hasHorse()) throw new Error('hasHorse verdadeiro com filhote');
+  horseA.age = 999;
   updateAnimals(0.016);
   render(ctx, cam, 800, 600, state);
 
@@ -616,6 +624,117 @@ vm.runInContext(`
     if (game.coins !== coinsBeforeGift) throw new Error('presente de sementes cobrou moedas');
   }
 
+  // celeiro: colheita vai para o estoque e vende por moedas
+  game.barn = {};
+  game.coins = 500;
+  game.tilled['36,36'] = 1;
+  const w5 = plantCrop('wheat', 36, 36);
+  if (!w5) throw new Error('plantio para celeiro falhou');
+  w5.plantedAt -= CROPS.wheat.growTime * 1000;
+  if (!harvestCrop(w5)) throw new Error('colheita para celeiro falhou');
+  if ((game.barn.wheat || 0) < 1) throw new Error('colheita nao foi para o celeiro');
+  const coinsBarn = game.coins;
+  if (!sellBarnItem('wheat', 99)) throw new Error('venda do celeiro falhou');
+  if (game.coins !== coinsBarn + CROPS.wheat.sell) throw new Error('venda do celeiro pagou errado');
+  if (game.coins === coinsBarn) throw new Error('celeiro nao rendeu moedas');
+
+  // pedidos: entregar com estoque e falhar sem
+  ensureOrders();
+  if (game.orders.length !== 3) throw new Error('pedidos nao foram gerados');
+  const o1 = game.orders[0];
+  for (const id of Object.keys(o1.items)) game.barn[id] = (game.barn[id] || 0) + o1.items[id] + 5;
+  const coinsO = game.coins;
+  if (!deliverOrder(o1.id)) throw new Error('pedido com estoque nao entregou');
+  if (game.coins !== coinsO + o1.coins) throw new Error('pedido pagou errado');
+  const o2 = game.orders[0];
+  for (const id of Object.keys(o2.items)) delete game.barn[id];
+  if (deliverOrder(o2.id)) throw new Error('pedido sem estoque foi entregue');
+
+  // cozinha: exige cozinha construida; receita consome insumos e produz produto
+  if (cookRecipe('bread')) throw new Error('cozinhou sem cozinha');
+  if (!placeBuilding('kitchen', 40, 40, 0, true)) throw new Error('cozinha nao foi construida');
+  game.barn.wheat = 9;
+  if (!cookRecipe('bread')) throw new Error('receita valida nao cozinhou');
+  if ((game.barn.bread || 0) !== 1 || (game.barn.wheat || 0) !== 6) throw new Error('receita consumiu/produziu errado');
+  if (barnItemValue('bread') !== PRODUCTS.bread.sell) throw new Error('valor do produto errado');
+
+  // melhorias: regador 3x3 e enxada 3x3
+  game.coins = 999999;
+  if (upgradeLevel('water') !== 1) throw new Error('nivel inicial do regador errado');
+  if (!buyUpgrade('water')) throw new Error('compra de melhoria falhou');
+  if (waterRadius() !== 1) throw new Error('raio do regador lvl2 errado');
+  if (!buyUpgrade('water')) throw new Error('compra do regador lvl3 falhou');
+  if (waterRadius() !== 2) throw new Error('raio do regador lvl3 errado');
+  if (!buyUpgrade('till')) throw new Error('compra da enxada falhou');
+  if (tillRadius() !== 1) throw new Error('raio da enxada lvl2 errado');
+
+  // filhote: nasce pequeno, cresce com o tempo e so produz adulto
+  game.coins = 999999;
+  if (!buyAnimal('cow')) throw new Error('compra de filhote falhou');
+  const calf = game.animals[game.animals.length - 1];
+  if (calf.age >= ANIMAL_GROW_S) throw new Error('recem-comprado deveria ser filhote');
+  if (animalBuyPrice('cow') !== Math.round(ANIMALS.cow.price * 0.4)) throw new Error('preco de filhote errado');
+  for (let i = 0; i < 200; i++) updateAnimals(1);
+  if (!isAdult(calf)) throw new Error('filhote nao cresceu');
+
+  // clima: chuva rega plantacoes sozinha
+  game.weather = 'rain';
+  game.weatherT = 30;
+  game.tilled['37,36'] = 1;
+  const w6 = plantCrop('wheat', 37, 36);
+  for (let i = 0; i < 40; i++) updateWeather(0.2);
+  if (!w6.watered) throw new Error('chuva nao regou as plantacoes');
+
+  // particulas: poeira nasce, vida cai e some
+  spawnDust(30, 30);
+  if (!game.particles.length) throw new Error('poeira nao criou particulas');
+  for (let i = 0; i < 100; i++) updateParticles(0.05);
+  if (game.particles.length) throw new Error('particulas nao morreram');
+  updateAmbient(0.6);
+
+  // estacoes: dia avanca e estacao gira
+  const dayBefore = game.day;
+  game.time = 0.99;
+  advanceClock(0.2 * DAY_LENGTH);
+  if (game.day !== dayBefore + 1) throw new Error('dia nao avancou');
+  if (!['spring', 'summer', 'autumn', 'winter'].includes(seasonName())) throw new Error('estacao invalida');
+
+  // tutorial: avanca por acoes e terminal por skip
+  tutAdvance('till');
+  if (!tutorialActive()) throw new Error('tutorial deveria estar ativo apos 1 passo');
+  tutSkip();
+  if (!game.tutorialDone) throw new Error('tutorial nao marcou como concluido');
+
+  // backup rotativo: save corrompido cai para o _bak
+  saveGame(false);
+  const coinsBak = game.coins;
+  game.coins = coinsBak + 777;
+  saveGame(false);
+  localStorage.setItem(SAVE_KEY, '{quebrado');
+  if (!loadGame()) throw new Error('loadGame falhou com save principal corrompido');
+  if (game.coins !== coinsBak) throw new Error('backup rotativo nao restaurou o save anterior');
+
+  // chat de visita: lista de frases existe; sendChat sem conexao retorna false
+  if (!Array.isArray(t('chat.list')) || t('chat.list').length < 4) throw new Error('chat.list invalida');
+  if (sendChat(0)) throw new Error('sendChat deveria falhar sem conexao');
+
+  // teste de carga: 300 animais atualizados e renderizados
+  game.coins = 999999;
+  const beforeLoad = game.animals.length;
+  for (let i = game.animals.length; i < 300; i++) {
+    const kindsA = ['chicken', 'pig', 'cow', 'horse'];
+    game.animals.push(makeAnimal(kindsA[i % 4], { x: 30 + (i % 12), y: 20 + (i % 12) }));
+    game.animals[game.animals.length - 1].age = 999;
+  }
+  const t0Load = Date.now();
+  for (let i = 0; i < 120; i++) { updateAnimals(0.016); updateDogs(0.016); updateFarmers(0.016); }
+  render(ctx, cam, 800, 600, state);
+  const loadMs = Date.now() - t0Load;
+  console.log('carga: ' + game.animals.length + ' animais x 120 iters = ' + loadMs + 'ms');
+  game.animals.length = beforeLoad;
+  if (loadMs > 10000) throw new Error('teste de carga lento demais: ' + loadMs + 'ms');
+
+  console.log('celeiro/pedidos/cozinha/melhorias/filhotes/clima/particulas/estacoes/tutorial/backup/carga OK');
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');

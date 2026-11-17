@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v31';
+const GAME_VERSION = 'v32';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -269,8 +269,9 @@ function handleClick(e) {
   if (state.mode === 'till') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
-    if (tillSoil(g.gx, g.gy)) {
+    if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
+      tutAdvance('till');
     }
     return;
   }
@@ -284,6 +285,7 @@ function handleClick(e) {
       spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
+      tutAdvance('plant');
       autoClaimReady();
     }
     return;
@@ -293,9 +295,10 @@ function handleClick(e) {
     const occ = buildingAt(g.gx, g.gy);
     if (occ && occ.isCrop) {
       if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
-      if (waterCrop(occ)) {
+      if (waterAreaAt(occ.gx, occ.gy) > 0) {
         spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
         showToast(t('toast.watered'));
+        tutAdvance('water');
       } else {
         showToast(t('toast.alreadyWatered'));
       }
@@ -559,8 +562,9 @@ const uiHandlers = {
     playSound('click');
     const r = harvestAllCrops();
     if (r.n > 0) {
-      showToast(t('toast.harvestAll', { n: r.n, c: r.coins }));
+      showToast(t('toast.harvestAllBarn', { n: r.n, x: r.xp }));
       refreshHud();
+      tutAdvance('harvest');
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
@@ -609,10 +613,11 @@ const zoomHandlers = {
 function doHarvest(crop) {
   const r = harvestCrop(crop);
   if (r) {
-    spawnFloater(crop.gx, crop.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+    spawnFloater(crop.gx, crop.gy, '+1 ' + r.def.icon, '#c5e1a5');
     spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
-    showToast(t('toast.harvested', { icon: r.def.icon, c: r.sell, x: r.xp }));
+    showToast(t('toast.harvestedBarn', { icon: r.def.icon, name: t('c_' + r.def.id) }));
     refreshHud();
+    tutAdvance('harvest');
     autoClaimReady();
   }
 }
@@ -663,9 +668,12 @@ function loop(ts) {
   try {
     if (!game.visiting) {
       advanceClock(dt);
+      updateWeather(dt);
       updateAnimals(dt);
       updateFarmers(dt);
       updateDogs(dt);
+      updateParticles(dt);
+      updateAmbient(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
@@ -701,8 +709,18 @@ function init() {
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
+  setupTutorial();
   requestAnimationFrame(loop);
   if (!loaded) showToast(t('toast.welcome'));
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
+  }
+  const farmParam = new URLSearchParams(location.search).get('farm');
+  if (farmParam && /^[0-9]{6}$/.test(farmParam)) {
+    visitFarm(farmParam, err => {
+      if (err) showToast(t('toast.mpError', { err: err.message || err.type || 'erro' }));
+    });
+  }
 }
 
 init();

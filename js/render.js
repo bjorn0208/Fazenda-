@@ -56,8 +56,46 @@ function render(ctx, cam, cw, ch, state) {
     ctx.fillRect(0, 0, cw, ch);
   }
   if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
+  drawParticles(ctx, cam, cw, ch);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
+  if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
+}
+
+/* ---------- Chuva ---------- */
+function drawRain(ctx, cam, cw, ch) {
+  const t = performance.now() / 1000;
+  ctx.save();
+  ctx.fillStyle = 'rgba(40,60,90,0.10)';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.strokeStyle = 'rgba(200,225,255,0.42)';
+  ctx.lineWidth = 1;
+  const count = 70;
+  ctx.beginPath();
+  for (let i = 0; i < count; i++) {
+    const sx = ((i * 97.3) % 1) * cw + ((t * 60 + i * 37) % 40) - 20;
+    const sy = ((i * 57.7 + t * (520 + (i % 5) * 60)) % (ch + 60)) - 30;
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - 4, sy + 14);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- Particulas (poeira, respingos, fumaca, folhas) ---------- */
+function drawParticles(ctx, cam, cw, ch) {
+  if (!game.particles || !game.particles.length) return;
+  for (const p of game.particles) {
+    const pp = projectPoint(p.x, p.y, p.z);
+    const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const k = Math.max(0, Math.min(1, p.life / p.ttl));
+    ctx.globalAlpha = k;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, Math.max(0.6, p.size * cam.zoom * (0.5 + 0.5 * k)), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -126,6 +164,12 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       const n1 = 0.65 * smoothNoise(x / 7, y / 7) + 0.35 * smoothNoise(x / 2.6 + 31, y / 2.6 + 17);
       const ramp = owned ? GRASS_OWNED_RAMP : GRASS_LOCKED_RAMP;
       let [r, g, b] = ramp[Math.min(3, Math.floor(n1 * 4))];
+
+      // estacao: outono puxa para o dourado, inverno para o pálido, verao esquenta
+      const st = seasonIndex();
+      if (st === 2) { b *= 0.72; r = Math.min(255, r * 1.12); }
+      else if (st === 3) { g = g * 0.82 + 40; b = b * 0.9 + 18; r = r * 0.92 + 20; }
+      else if (st === 1) { r = Math.min(255, r * 1.05); b *= 0.94; }
 
       // manchas de sol e de sombra sobrepostas ao ruído
       const n2 = smoothNoise(x / 4.5 + 97, y / 4.5 + 53);

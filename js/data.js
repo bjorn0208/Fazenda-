@@ -88,6 +88,12 @@ const BUILDINGS = {
     desc: 'Quando você desliga o cachorro, ele volta para cá dormir.',
     refund: 0.5
   },
+  kitchen: {
+    id: 'kitchen', name: 'Cozinha', icon: '🍳',
+    price: 3200, w: 2, d: 2, level: 5, category: 'construcoes',
+    desc: 'Transforma colheitas em pratos que valem muito mais.',
+    refund: 0.5
+  },
   bar: {
     id: 'bar', name: 'Bar da Fazenda', icon: '🍺',
     price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
@@ -179,7 +185,8 @@ const SHOP_CATEGORIES = [
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
   { id: 'arvores', name: 'Árvores' },
-  { id: 'ajudantes', name: 'Ajudantes' }
+  { id: 'ajudantes', name: 'Ajudantes' },
+  { id: 'upgrades', name: 'Melhorias' }
 ];
 
 /* Ajudantes contrataveis (NPCs que trabalham sozinhos). */
@@ -187,6 +194,33 @@ const HELPERS = {
   farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 },
   dog: { id: 'dog', name: 'Cachorro', icon: '🐕', price: 3500, level: 5 }
 };
+
+/* Produtos da cozinha — feitos a partir de colheitas, valem mais. */
+const PRODUCTS = {
+  bread: { id: 'bread', name: 'Pão', icon: '🍞', sell: 90, xp: 12 },
+  salad: { id: 'salad', name: 'Salada', icon: '🥗', sell: 210, xp: 26 },
+  pie: { id: 'pie', name: 'Torta', icon: '🥧', sell: 480, xp: 60 },
+  juice: { id: 'juice', name: 'Suco', icon: '🧃', sell: 380, xp: 45 },
+  stew: { id: 'stew', name: 'Ensopado', icon: '🍲', sell: 640, xp: 80 }
+};
+
+const RECIPES = [
+  { id: 'bread', inputs: { wheat: 3 } },
+  { id: 'salad', inputs: { lettuce: 2, tomato: 1 } },
+  { id: 'pie', inputs: { wheat: 2, strawberry: 2 } },
+  { id: 'juice', inputs: { grape: 1, sugarcane: 1 } },
+  { id: 'stew', inputs: { potato: 2, carrot: 2, pumpkin: 1 } }
+];
+
+/* Melhorias de ferramentas — radius em tiles (1 = so o tile). */
+const UPGRADES = [
+  { id: 'water', icon: '🎠', max: 3,
+    prices: [0, 2500, 6000],
+    names: ['Regador simples', 'Regador Grande (3x3)', 'Irrigação Total (5x5)'] },
+  { id: 'till', icon: '⛏', max: 2,
+    prices: [0, 1800],
+    names: ['Enxada simples', 'Enxada de Aço (3x3)'] }
+];
 
 /* Curral: tamanhos disponiveis e preco por segmento de cerca. */
 const PEN_SIZES = [8, 16, 36];

@@ -9,12 +9,12 @@ const $ = id => document.getElementById(id);
 const I18N = {
   'pt-BR': {
     'menu.missions': 'Missões', 'menu.shop': 'Loja',
-    'menu.achievements': 'Conquistas', 'menu.friends': 'Amigos',
+    'menu.achievements': 'Conquistas',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
     'build.rotate': 'Girar', 'build.buy': 'Comprar',
     'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
-    'modal.achievements': '🏆 Conquistas', 'modal.friends': '👥 Amigos',
+    'modal.achievements': '🏆 Conquistas',
     'modal.settings': '⚙️ Configurações', 'modal.buy': '🛒 Comprar',
     'modal.coins': '🪙 Loja de Moedas', 'modal.gems': '💎 Loja de Diamantes',
     'settings.sound': '🔊 Som', 'settings.music': '🎵 Música',
@@ -39,7 +39,6 @@ const I18N = {
     'coinshop.body': 'A loja de moedas com compras reais será integrada na fase de monetização. Por enquanto, ganhe moedas vendendo produtos e concluindo missões!',
     'coinshop.daily': '🎁 Receber 100 moedas de boas-vindas (1x por dia)',
     'gemshop.body': 'Diamantes são a moeda premium: aceleram construções e produções e desbloqueiam itens especiais. A loja de compra será integrada na fase de monetização.',
-    'friends.placeholder': '👥 O sistema de amigos (visitar fazendas, trocar presentes e produtos) será ativado na fase multiplayer. Sua fazenda está pronta para recebê-los!',
     'toast.welcome': '🌾 Bem-vindo! Use 🌱 Plantar para semear sua primeira colheita.',
     'toast.plantHint': '🌱 Escolha uma semente e toque no terreno para plantar.',
     'toast.waterHint': '💧 Toque em uma plantação para regar (cresce mais rápido).',
@@ -105,6 +104,48 @@ const I18N = {
     'mp.visitTitle': 'Visitar a fazenda de um amigo',
     'mp.hint2': 'Peça o código de 6 números ao seu amigo.',
     'mp.myCodeHint': 'Toque para copiar',
+    'menu.barn': 'Celeiro',
+    'modal.barn': '🧺 Celeiro & Mercado',
+    'barn.stock': 'Estoque',
+    'barn.sell': 'Vender',
+    'barn.sellAll': 'Vender Tudo',
+    'barn.empty': 'Celeiro vazio. Colha plantações para encher o estoque.',
+    'barn.recipes': 'Receitas da Cozinha',
+    'barn.kitchenNeed': '🍳 Construa a Cozinha (loja → Construções) para cozinhar.',
+    'barn.cook': 'Cozinhar',
+    'barn.share': '🔗 Copiar link da fazenda',
+    'orders.title': 'Pedidos do Mercado',
+    'orders.deliver': 'Entregar',
+    'orders.swap': 'Trocar (🪙 50)',
+    'upg.next': 'Evoluir para {name}',
+    'shop.baby': 'Filhote — cresce em 3 min',
+    'hud.level': 'Nível {n}',
+    'toast.harvestedBarn': '{icon} {name} foi para o Celeiro!',
+    'toast.harvestAllBarn': '🧺 {n} colheitas no Celeiro (+{x} XP)',
+    'toast.barnSold': '💰 +{c} 🪙',
+    'toast.orderDone': '📦 Pedido entregue! +{c} 🪙 +{x} XP',
+    'toast.orderFail': '❌ Estoque insuficiente no celeiro.',
+    'toast.cooked': '🍳 {icon} pronto, foi para o Celeiro!',
+    'toast.cookFail': '❌ Ingredientes insuficientes.',
+    'toast.kitchenNeed': '🍳 Construa a Cozinha primeiro.',
+    'toast.upgraded': '⭐ Ferramenta melhorada!',
+    'toast.rain': '🌧Começou a chover — as plantas se regam sozinhas!',
+    'toast.linkCopied': '🔗 Link copiado! Envie a um amigo.',
+    'toast.mpLost': '📡 Conexão perdida. Você voltou para sua fazenda.',
+    'toast.chatSent': '💬 Enviado!',
+    'toast.visitorSaid': '💬 Visitante: {msg}',
+    'mp.chat': 'Conversar',
+    'tut.title': 'Como jogar',
+    'tut.next': 'Entendi',
+    'tut.skip': 'Pular',
+    'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
+    'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
+    'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
+    'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
+    'tut.harvest': 'Quando a planta dourar, toque em 🧺 Colher Tudo. A colheita vai para o Celeiro.',
+    'tut.sell': 'Abra o 🧺 Celeiro no menu à esquerda: vender, cozinhar e entregar pedidos.',
+    'tut.done': 'Pronto! Compre animais na 🏪 Loja e contrate fazendeiros. Boa colheita!',
+    'chat.list': ['👋 Oi!', '🌾 Que fazenda linda!', '🎁 Presente para você!', '😄 Divirta-se!'],
     'mp.host': 'Abrir minha fazenda para visitas',
     'mp.stop': 'Fechar minha fazenda',
     'mp.hosting': '✅ Fazenda aberta! Amigos entram com o código.',
@@ -193,12 +234,12 @@ const I18N = {
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
-    'menu.achievements': 'Achievements', 'menu.friends': 'Friends',
+    'menu.achievements': 'Achievements',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
     'build.rotate': 'Rotate', 'build.buy': 'Buy',
     'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
-    'modal.achievements': '🏆 Achievements', 'modal.friends': '👥 Friends',
+    'modal.achievements': '🏆 Achievements',
     'modal.settings': '⚙️ Settings', 'modal.buy': '🛒 Buy',
     'modal.coins': '🪙 Coin Shop', 'modal.gems': '💎 Diamond Shop',
     'settings.sound': '🔊 Sound', 'settings.music': '🎵 Music',
@@ -223,7 +264,6 @@ const I18N = {
     'coinshop.body': 'The real-money coin shop will be integrated in the monetization phase. For now, earn coins by selling products and completing missions!',
     'coinshop.daily': '🎁 Claim 100 welcome coins (once a day)',
     'gemshop.body': 'Diamonds are the premium currency: they speed up construction and production and unlock special items. The purchase shop will be integrated in the monetization phase.',
-    'friends.placeholder': '👥 The friends system (visit farms, trade gifts and products) will be enabled in the multiplayer phase. Your farm is ready to receive them!',
     'toast.welcome': '🌾 Welcome! Use 🌱 Plant to sow your first harvest.',
     'toast.plantHint': '🌱 Pick a seed and tap the ground to plant.',
     'toast.waterHint': '💧 Tap a crop to water it (grows faster).',
@@ -289,6 +329,48 @@ const I18N = {
     'mp.visitTitle': 'Visit the farm of a friend',
     'mp.hint2': 'Ask your friend for the 6-number code.',
     'mp.myCodeHint': 'Tap to copy',
+    'menu.barn': 'Barn',
+    'modal.barn': '🧺 Barn & Market',
+    'barn.stock': 'Stock',
+    'barn.sell': 'Sell',
+    'barn.sellAll': 'Sell All',
+    'barn.empty': 'Barn is empty. Harvest crops to fill your stock.',
+    'barn.recipes': 'Kitchen Recipes',
+    'barn.kitchenNeed': '🍳 Build the Kitchen (shop → Buildings) to cook.',
+    'barn.cook': 'Cook',
+    'barn.share': '🔗 Copy farm link',
+    'orders.title': 'Market Orders',
+    'orders.deliver': 'Deliver',
+    'orders.swap': 'Swap (🪙50)',
+    'upg.next': 'Upgrade to {name}',
+    'shop.baby': 'Baby — grows in 3 min',
+    'hud.level': 'Level {n}',
+    'toast.harvestedBarn': '{icon} {name} went to the Barn!',
+    'toast.harvestAllBarn': '🧺 {n} crops in the Barn (+{x} XP)',
+    'toast.barnSold': '💰 +{c} 🪙',
+    'toast.orderDone': '📦 Order delivered! +{c} 🪙 +{x} XP',
+    'toast.orderFail': '❌ Not enough stock in the barn.',
+    'toast.cooked': '🍳 {icon} is ready, sent to the Barn!',
+    'toast.cookFail': '❌ Not enough ingredients.',
+    'toast.kitchenNeed': '🍳 Build the Kitchen first.',
+    'toast.upgraded': '⭐ Tool upgraded!',
+    'toast.rain': '🌧It started raining — crops water themselves!',
+    'toast.linkCopied': '🔗 Link copied! Send it to a friend.',
+    'toast.mpLost': '📡 Connection lost. You are back at your farm.',
+    'toast.chatSent': '💬 Sent!',
+    'toast.visitorSaid': '💬 Visitor: {msg}',
+    'mp.chat': 'Chat',
+    'tut.title': 'How to play',
+    'tut.next': 'Got it',
+    'tut.skip': 'Skip',
+    'tut.move': 'Drag your finger to move around and use Zoom on the left.',
+    'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
+    'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
+    'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
+    'tut.harvest': 'When golden, tap 🧺 Harvest All. Crops go to the Barn.',
+    'tut.sell': 'Open the 🧺 Barn on the left menu: sell, cook and deliver orders.',
+    'tut.done': 'Done! Buy animals at the 🏪 Shop and hire farmers. Happy farming!',
+    'chat.list': ['👋 Hi!', '🌾 Nice farm!', '🎁 A gift for you!', '😄 Have fun!'],
     'mp.host': 'Open my farm for visits',
     'mp.stop': 'Close my farm',
     'mp.hosting': '✅ Farm open! Friends join with the code.',
@@ -500,7 +582,7 @@ function refreshHud() {
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
-    $('level-text').textContent = 'Nível ' + game.level;
+    $('level-text').textContent = t('hud.level', { n: game.level });
     $('farm-name').textContent = game.farmName;
     const need = xpForLevel(game.level);
     $('xp-fill').style.width = Math.min(100, (game.xp / need) * 100) + '%';
@@ -582,7 +664,8 @@ function openShop() {
     if (currentShopTab === 'animais') {
       for (const def of Object.values(ANIMALS)) {
         const locked = game.level < def.level;
-        const afford = game.coins >= def.price;
+        const price = animalBuyPrice(def.id);
+        const afford = game.coins >= price;
         const full = game.animals.filter(a => a.kind === def.id).length >= MAX_PER_KIND;
         const item = document.createElement('div');
         item.className = 'shop-item';
@@ -590,7 +673,8 @@ function openShop() {
           <div class="shop-item-icon">${def.icon}</div>
           <div class="shop-item-name">${t('an_' + def.id)}</div>
           <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('an_' + def.id + '_desc')}</div>
-          <div class="shop-item-price">🪙 ${def.price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-desc" style="font-size:10px;color:#8d6e63;text-align:center">${t('shop.baby')}</div>
           ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
         `;
         const buyBtn = document.createElement('button');
@@ -605,6 +689,33 @@ function openShop() {
           }
         };
         item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'upgrades') {
+      for (const def of UPGRADES) {
+        const lvl = upgradeLevel(def.id);
+        const maxed = lvl >= def.max;
+        const price = maxed ? 0 : def.prices[lvl];
+        const name = def.names[Math.min(lvl, def.names.length - 1)];
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${name}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : t('upg.next', { name: def.names[lvl] })}</div>
+          <div class="shop-item-price">${maxed ? '⭐' : '🪙 ' + price.toLocaleString('pt-BR')}</div>
+        `;
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.disabled = maxed || game.coins < price;
+        btn.textContent = maxed ? t('shop.maxed') : t('shop.buyUpgrade');
+        btn.onclick = () => {
+          if (buyUpgrade(def.id)) { showToast(t('toast.upgraded')); refreshHud(); openShop(); }
+        };
+        item.appendChild(btn);
         grid.appendChild(item);
       }
       body.appendChild(grid);
@@ -1137,6 +1248,16 @@ function openMultiplayer() {
     };
     body.appendChild(codeBtn);
 
+    const linkBtn = document.createElement('button');
+    linkBtn.className = 'mp-big-btn';
+    linkBtn.textContent = t('barn.share');
+    linkBtn.onclick = () => {
+      const url = location.origin + location.pathname + '?farm=' + code;
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      showToast(t('toast.linkCopied'));
+    };
+    body.appendChild(linkBtn);
+
     const hostBtn = document.createElement('button');
     hostBtn.className = 'mp-big-btn';
     hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
@@ -1159,7 +1280,214 @@ function openMultiplayer() {
   });
 }
 
+/* ---------- Tutorial da primeira vez ---------- */
+const TUT_STEPS = ['tut.move', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
+let tutStep = 0;
+
+function tutorialActive() {
+  return !game.tutorialDone && tutStep < TUT_STEPS.length;
+}
+
+function tutShow() {
+  const bar = document.getElementById('tut-bar');
+  if (!bar) return;
+  if (!tutorialActive()) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  const txt = bar.querySelector('.tut-text');
+  if (txt) txt.textContent = t(TUT_STEPS[tutStep]);
+  const num = bar.querySelector('.tut-num');
+  if (num) num.textContent = (tutStep + 1) + '/' + TUT_STEPS.length;
+}
+
+function tutNext() {
+  tutStep++;
+  if (tutStep >= TUT_STEPS.length) {
+    game.tutorialDone = true;
+    saveGame(false);
+  }
+  tutShow();
+}
+
+function tutSkip() {
+  tutStep = TUT_STEPS.length;
+  game.tutorialDone = true;
+  saveGame(false);
+  tutShow();
+}
+
+function tutAdvance(action) {
+  if (!tutorialActive()) return;
+  const map = { till: 1, plant: 2, water: 3, harvest: 4, sell: 5 };
+  if (map[action] === tutStep) tutNext();
+}
+
+function setupTutorial() {
+  const bar = document.getElementById('tut-bar');
+  if (!bar) return;
+  const ok = bar.querySelector('.tut-ok');
+  const skip = bar.querySelector('.tut-skip');
+  if (ok) ok.textContent = t('tut.next');
+  if (skip) skip.textContent = t('tut.skip');
+  if (ok) ok.onclick = () => { playSound('click'); tutNext(); };
+  if (skip) skip.onclick = () => { playSound('click'); tutSkip(); };
+  tutShow();
+}
+
+/* ---------- Celeiro & Mercado ---------- */
+function barnItemName(id) {
+  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
+}
+
+function openBarn() {
+  tutAdvance('sell');
+  openModal(t('modal.barn'), body => {
+    ensureOrders();
+
+    const stockLbl = document.createElement('div');
+    stockLbl.className = 'mp-label';
+    stockLbl.textContent = t('barn.stock');
+    body.appendChild(stockLbl);
+
+    const ids = Object.keys(game.barn).filter(id => game.barn[id] > 0);
+    if (!ids.length) {
+      const empty = document.createElement('div');
+      empty.className = 'mp-status';
+      empty.textContent = t('barn.empty');
+      body.appendChild(empty);
+    } else {
+      for (const id of ids) {
+        const row = document.createElement('div');
+        row.className = 'barn-row';
+        const left = document.createElement('span');
+        left.textContent = barnItemIcon(id) + ' ' + barnItemName(id) + ' ×' + game.barn[id];
+        const right = document.createElement('b');
+        right.textContent = '🪙 ' + (barnItemValue(id) * game.barn[id]).toLocaleString('pt-BR');
+        const sell = document.createElement('button');
+        sell.className = 'barn-sell-btn';
+        sell.textContent = t('barn.sell');
+        sell.onclick = () => {
+          const total = barnItemValue(id) * game.barn[id];
+          if (sellBarnItem(id, game.barn[id])) {
+            showToast(t('toast.barnSold', { c: total }));
+            openBarn();
+            refreshHud();
+          }
+        };
+        row.appendChild(left);
+        row.appendChild(right);
+        row.appendChild(sell);
+        body.appendChild(row);
+      }
+      const sellAll = document.createElement('button');
+      sellAll.className = 'mp-big-btn';
+      sellAll.textContent = t('barn.sellAll');
+      sellAll.onclick = () => {
+        const c = sellAllBarn();
+        if (c > 0) showToast(t('toast.barnSold', { c: c }));
+        openBarn();
+        refreshHud();
+      };
+      body.appendChild(sellAll);
+    }
+
+    const hr1 = document.createElement('hr');
+    hr1.className = 'mp-hr';
+    body.appendChild(hr1);
+
+    const recLbl = document.createElement('div');
+    recLbl.className = 'mp-label';
+    recLbl.textContent = t('barn.recipes');
+    body.appendChild(recLbl);
+
+    if (!kitchenBuilt()) {
+      const need = document.createElement('div');
+      need.className = 'mp-status';
+      need.textContent = t('barn.kitchenNeed');
+      body.appendChild(need);
+    } else {
+      for (const r of RECIPES) {
+        const prod = PRODUCTS[r.id];
+        const row = document.createElement('div');
+        row.className = 'barn-row';
+        const inputs = Object.keys(r.inputs).map(k => barnItemIcon(k) + '×' + r.inputs[k]).join(' ');
+        const left = document.createElement('span');
+        left.textContent = inputs + ' → ' + prod.icon + ' 🪙' + prod.sell;
+        const cook = document.createElement('button');
+        cook.className = 'barn-sell-btn';
+        cook.textContent = t('barn.cook');
+        cook.disabled = !canCook(r);
+        cook.onclick = () => { if (cookRecipe(r.id)) { openBarn(); refreshHud(); } };
+        row.appendChild(left);
+        row.appendChild(cook);
+        body.appendChild(row);
+      }
+    }
+
+    const hr2 = document.createElement('hr');
+    hr2.className = 'mp-hr';
+    body.appendChild(hr2);
+
+    const ordLbl = document.createElement('div');
+    ordLbl.className = 'mp-label';
+    ordLbl.textContent = t('orders.title');
+    body.appendChild(ordLbl);
+
+    for (const o of game.orders) {
+      const card = document.createElement('div');
+      card.className = 'barn-order';
+      const items = Object.keys(o.items).map(k => barnItemIcon(k) + '×' + o.items[k]).join('  ');
+      const line = document.createElement('div');
+      line.textContent = items + '   🪙 ' + o.coins + '  +' + o.xp + ' XP';
+      const row = document.createElement('div');
+      row.className = 'barn-row';
+      const deliver = document.createElement('button');
+      deliver.className = 'barn-sell-btn';
+      deliver.textContent = t('orders.deliver');
+      deliver.onclick = () => { if (deliverOrder(o.id)) { openBarn(); refreshHud(); } };
+      const swap = document.createElement('button');
+      swap.className = 'barn-sell-btn muted';
+      swap.textContent = t('orders.swap');
+      swap.onclick = () => { if (swapOrder(o.id)) { openBarn(); refreshHud(); } };
+      row.appendChild(deliver);
+      row.appendChild(swap);
+      card.appendChild(line);
+      card.appendChild(row);
+      body.appendChild(card);
+    }
+
+    const hr3 = document.createElement('hr');
+    hr3.className = 'mp-hr';
+    body.appendChild(hr3);
+
+    const share = document.createElement('button');
+    share.className = 'mp-big-btn';
+    share.textContent = t('barn.share');
+    share.onclick = () => {
+      const url = location.origin + location.pathname + '?farm=' + ensureFarmCode();
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      showToast(t('toast.linkCopied'));
+    };
+    body.appendChild(share);
+  });
+}
+
 function buildGiftUi(body) {
+  const chatLbl = document.createElement('div');
+  chatLbl.className = 'mp-label';
+  chatLbl.textContent = t('mp.chat');
+  body.appendChild(chatLbl);
+  const chatRow = document.createElement('div');
+  chatRow.className = 'farmer-roles';
+  const phrases = t('chat.list') || [];
+  for (let i = 0; i < phrases.length && i < 4; i++) {
+    const b = document.createElement('button');
+    b.className = 'farmer-role-btn';
+    b.textContent = phrases[i];
+    b.onclick = () => { if (sendChat(i)) showToast(t('toast.chatSent')); };
+    chatRow.appendChild(b);
+  }
+  body.appendChild(chatRow);
+
   const kindRow = document.createElement('div');
   kindRow.className = 'farmer-roles';
   let kind = 'coins';
@@ -1267,6 +1595,7 @@ function bindUi(handlers) {
       else if (panel === 'shop') openShop();
       else if (panel === 'achievements') openAchievements();
       else if (panel === 'farmers') openFarmersPanel();
+      else if (panel === 'barn') openBarn();
       else if (panel === 'multiplayer') openMultiplayer();
     };
   }

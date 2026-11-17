@@ -60,6 +60,14 @@ function hostFarm(onReady) {
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'hello') {
           try { conn.send({ type: 'state', data: mpSnapshot() }); } catch (e) {}
+        } else if (msg.type === 'chat') {
+          const phrases = t('chat.list');
+          const txt = phrases[msg.idx % phrases.length];
+          if (txt) {
+            showToast(t('toast.visitorSaid', { msg: txt }));
+            const f = game.farmers[Math.floor(Math.random() * Math.max(1, game.farmers.length))];
+            if (f && farmerSay) farmerSay(f, phrases[(msg.idx + 1 + Math.floor(Math.random() * 3)) % phrases.length], 6000);
+          }
         } else if (msg.type === 'gift') {
           const res = receiveGift(msg.gift);
           try { conn.send({ type: 'gift-ack', ok: !!res, msg: res ? res.msg : null }); } catch (e) {}
@@ -107,12 +115,20 @@ function visitFarm(code, onReady) {
           showToast(msg.ok ? (t('toast.giftSent') + (msg.msg ? ': ' + msg.msg : '')) : t('toast.giftFailed'));
         }
       });
-      conn.on('close', () => { if (mpStatus === 'visiting') leaveVisitMode(); });
+      conn.on('close', () => { if (mpStatus === 'visiting') leaveVisitLost(); });
+      conn.on('error', () => { if (mpStatus === 'visiting') leaveVisitLost(); });
     });
     mpPeer.on('error', e => {
       if (mpStatus === 'connecting') { mpStatus = 'off'; onReady(e); }
+      else if (mpStatus === 'visiting') leaveVisitLost();
     });
   });
+}
+
+function leaveVisitLost() {
+  if (mpStatus !== 'visiting') return;
+  leaveVisitMode(true);
+  showToast(t('toast.mpLost'));
 }
 
 function enterVisitMode(data) {
@@ -128,7 +144,7 @@ function enterVisitMode(data) {
   showToast(t('toast.visiting'));
 }
 
-function leaveVisitMode() {
+function leaveVisitMode(silent) {
   if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
   game.visiting = false;
   mpStatus = 'off';
@@ -142,12 +158,17 @@ function leaveVisitMode() {
   } catch (e) {}
   if (!restored) loadGame();
   updateVisitBanner();
-  showToast(t('toast.backHome'));
+  if (!silent) showToast(t('toast.backHome'));
 }
 
 function sendGift(gift) {
   if (mpStatus !== 'visiting' || !mpVisitConn) return false;
   try { mpVisitConn.send({ type: 'gift', gift }); return true; } catch (e) { return false; }
+}
+
+function sendChat(idx) {
+  if (mpStatus !== 'visiting' || !mpVisitConn) return false;
+  try { mpVisitConn.send({ type: 'chat', idx }); return true; } catch (e) { return false; }
 }
 
 function updateMultiplayer(dt) {

@@ -181,6 +181,7 @@ function makeAnimal(kind, spot) {
     herdStage: 0,
     scaredT: 0,
     bornAt: Date.now(),
+    age: 0,
     product: 0,
     prodT: 0
   };
@@ -188,7 +189,8 @@ function makeAnimal(kind, spot) {
 
 function animalUpdateOne(a, dt) {
   a.phase += dt;
-  if (a.kind !== 'pig' && ANIMAL_KINDS[a.kind].cycle) {
+  a.age += dt;
+  if (isAdult(a) && a.kind !== 'pig' && ANIMAL_KINDS[a.kind].cycle) {
     a.prodT += dt;
     if (a.prodT >= ANIMAL_KINDS[a.kind].cycle) {
       a.prodT = 0;
@@ -270,6 +272,7 @@ function updateAnimals(dt) {
     if (a.scaredT === undefined) a.scaredT = 0;
     if (a.herdOut === undefined) a.herdOut = false;
     if (a.bornAt === undefined) a.bornAt = Date.now();
+    if (a.age === undefined) a.age = 999;
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
@@ -286,6 +289,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
             : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
             : Math.sin(a.phase * 2) * 0.8 * z;
   const lightK = 0.35 + 0.65 * dayLight();
+  const babyK = isAdult(a) ? 1 : 0.55 + 0.45 * Math.min(1, a.age / ANIMAL_GROW_S);
   const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
   const fx = Math.cos(face);
   const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
@@ -293,7 +297,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z * k.scale * squash, z * k.scale);
+  ctx.scale(z * k.scale * squash * babyK, z * k.scale * babyK);
   if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * lightK).toFixed(3) + ')';

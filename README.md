@@ -162,6 +162,25 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 25 — Nova economia, vida na fazenda e PWA
+
+- **Celeiro 🧺 e nova economia**: a colheita agora vai para o **Celeiro** (menu 🧺) — venda ali dentro (individual ou Vender Tudo) para receber moedas. Assim dá para estocar e vender na hora certa.
+- **Pedidos do mercado**: 3 pedidos sempre disponíveis, com recompensa maior que a venda direta (trocar pedido custa 🪙50).
+- **Cozinha**: prédio novo (🪙3200) com 5 receitas — Pão, Salada, Torta, Suco e Ensopado — que valem mais que os ingredientes crus.
+- **Ferramentas melhoráveis**: aba Melhorias na loja — regador vira **3x3** e depois **5x5**, enxada vira **3x3**.
+- **Filhotes**: animais são comprados como filhotes (40% do preço) e **crescem em 3 minutos** — só adultos produzem leite/ovos/bacon.
+- **Clima**: chuva ocasional que **rega as plantações de graça**, com escuridão e respingos.
+- **Estações**: primavera, verão, outono (folhas laranjas caindo) e inverno (grama esmaecida) giram a cada 3 dias.
+- **Partículas**: pó ao arar, respingos ao regar, fumaça da chaminé, folhas caindo das árvores.
+- **Tutorial**: guia de 7 passos na primeira vez (jogadores antigos não veem).
+- **Backup do save em 2 slots**: se o save principal corromper, o jogo restaura automaticamente o anterior.
+- **Chat de visita**: frases prontas para conversar na fazenda do amigo.
+- **Conexão avisada**: se o multiplayer cair durante a visita, um aviso aparece e você volta para casa.
+- **Link de convite**: botão no multiplayer copia um link `?farm=CODE` que abre direto a visita.
+- **PWA**: o jogo pode ser **instalado como aplicativo** e funciona offline (service worker + ícones próprios).
+- **Teste de carga**: verificação automática com 300 animais atualizados e renderizados — a fazenda continua fluida mesmo lotada.
+- **Limpeza técnica**: textos de nível internacionalizados, código morto removido e funções duplicadas unificadas.
+
 ## Revisão 24 — Visita corrigida: volta para casa de verdade
 
 - **Fazenda do visitante nunca mais é perdida**: ao visitar, o jogo faz um backup dedicado da fazenda de quem visita. Antes, o autosave gravava a fazenda do anfitrião por cima do save do visitante — e, na hora de voltar, o jogo carregava a fazenda errada (a visita "não voltava"). Agora o botão Voltar restaura a sua fazenda exatamente como estava.

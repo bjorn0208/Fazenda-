@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fazenda 3D — Simulador Isométrico</title>
-<link rel="stylesheet" href="css/style.css?v=31">
+<meta name="theme-color" content="#5da03f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css?v=32">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -43,6 +49,7 @@
 <div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
+  <button class="side-btn" data-panel="barn"><span class="side-icon">🧺</span><span class="side-label" data-i18n="menu.barn">Celeiro</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
   <button class="side-btn" data-panel="achievements"><span class="side-icon">🏆</span><span class="side-label" data-i18n="menu.achievements">Conquistas</span></button>
   <button class="side-btn" data-panel="farmers"><span class="side-icon">🧑‍🌾</span><span class="side-label" data-i18n="menu.farmers">Fazendeiros</span></button>
@@ -78,7 +85,7 @@
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v31</div>
+<div id="debug-badge">v32</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -88,6 +95,14 @@
   <span id="confirm-info"></span>
   <button id="confirm-ok" class="btn-ok">✓ Confirmar</button>
   <button id="confirm-cancel" class="btn-cancel">✕ Cancelar</button>
+</div>
+
+<!-- Barra do tutorial (primeira vez) -->
+<div id="tut-bar" class="hidden">
+  <span class="tut-num">1/7</span>
+  <span class="tut-text"></span>
+  <button class="tut-ok">Entendi</button>
+  <button class="tut-skip">Pular</button>
 </div>
 
 <!-- Toast de avisos -->
@@ -115,14 +130,14 @@
   </div>
 </div>
 
-<script src="js/data.js?v=31"></script>
-<script src="js/iso.js?v=31"></script>
-<script src="js/game.js?v=31"></script>
-<script src="js/render.js?v=31"></script>
-<script src="js/animals.js?v=31"></script>
-<script src="js/farmers.js?v=31"></script>
-<script src="js/ui.js?v=31"></script>
-<script src="js/multiplayer.js?v=31"></script>
-<script src="js/main.js?v=31"></script>
+<script src="js/data.js?v=32"></script>
+<script src="js/iso.js?v=32"></script>
+<script src="js/game.js?v=32"></script>
+<script src="js/render.js?v=32"></script>
+<script src="js/animals.js?v=32"></script>
+<script src="js/farmers.js?v=32"></script>
+<script src="js/ui.js?v=32"></script>
+<script src="js/multiplayer.js?v=32"></script>
+<script src="js/main.js?v=32"></script>
 </body>
 </html>

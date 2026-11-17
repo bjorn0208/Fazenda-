@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fazenda 3D — Simulador Isométrico</title>
+<meta name="theme-color" content="#5da03f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
 <style>
 /* ================= FAZENDA 3D — ESTILOS ================= */
 :root {
@@ -548,6 +554,91 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 }
 .mp-status { font-size: 12px; color: #5d4037; margin-top: 8px; text-align: center; }
 
+/* Tutorial da primeira vez */
+#tut-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(92vw, 420px);
+  background: rgba(255, 253, 245, 0.97);
+  border: 2px solid #8bc34a;
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  font-size: 12.5px;
+  color: #3e2723;
+}
+#tut-bar.hidden { display: none; }
+#tut-bar .tut-num {
+  font-weight: 800;
+  font-size: 11px;
+  background: #8bc34a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+#tut-bar .tut-text { flex: 1; line-height: 1.35; }
+#tut-bar .tut-ok {
+  border: none;
+  background: #43a047;
+  color: #fff;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 6px 12px;
+  flex-shrink: 0;
+}
+#tut-bar .tut-skip {
+  border: none;
+  background: transparent;
+  color: #8d6e63;
+  font-weight: 700;
+  padding: 6px 4px;
+  flex-shrink: 0;
+}
+
+/* Celeiro & Mercado */
+.barn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8e1;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #4e342e;
+}
+.barn-row span { flex: 1; min-width: 0; }
+.barn-row b { color: #33691e; font-size: 12px; white-space: nowrap; }
+.barn-sell-btn {
+  border: none;
+  background: #43a047;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 7px 12px;
+  flex-shrink: 0;
+}
+.barn-sell-btn:disabled { opacity: 0.5; }
+.barn-sell-btn.muted { background: #8d6e63; }
+.barn-order {
+  background: #f1f8e9;
+  border: 1.5px solid #aed581;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #33691e;
+}
+.barn-order .barn-row { background: transparent; padding: 6px 0 0; margin-bottom: 0; }
+
 /* Mente dos fazendeiros */
 .farmer-mind {
   font-size: 11px;
@@ -598,6 +689,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
+  <button class="side-btn" data-panel="barn"><span class="side-icon">🧺</span><span class="side-label" data-i18n="menu.barn">Celeiro</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
   <button class="side-btn" data-panel="achievements"><span class="side-icon">🏆</span><span class="side-label" data-i18n="menu.achievements">Conquistas</span></button>
   <button class="side-btn" data-panel="farmers"><span class="side-icon">🧑‍🌾</span><span class="side-label" data-i18n="menu.farmers">Fazendeiros</span></button>
@@ -633,7 +725,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v31</div>
+<div id="debug-badge">v32</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -643,6 +735,14 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   <span id="confirm-info"></span>
   <button id="confirm-ok" class="btn-ok">✓ Confirmar</button>
   <button id="confirm-cancel" class="btn-cancel">✕ Cancelar</button>
+</div>
+
+<!-- Barra do tutorial (primeira vez) -->
+<div id="tut-bar" class="hidden">
+  <span class="tut-num">1/7</span>
+  <span class="tut-text"></span>
+  <button class="tut-ok">Entendi</button>
+  <button class="tut-skip">Pular</button>
 </div>
 
 <!-- Toast de avisos -->
@@ -761,6 +861,12 @@ const BUILDINGS = {
     desc: 'Quando você desliga o cachorro, ele volta para cá dormir.',
     refund: 0.5
   },
+  kitchen: {
+    id: 'kitchen', name: 'Cozinha', icon: '🍳',
+    price: 3200, w: 2, d: 2, level: 5, category: 'construcoes',
+    desc: 'Transforma colheitas em pratos que valem muito mais.',
+    refund: 0.5
+  },
   bar: {
     id: 'bar', name: 'Bar da Fazenda', icon: '🍺',
     price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
@@ -852,7 +958,8 @@ const SHOP_CATEGORIES = [
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
   { id: 'arvores', name: 'Árvores' },
-  { id: 'ajudantes', name: 'Ajudantes' }
+  { id: 'ajudantes', name: 'Ajudantes' },
+  { id: 'upgrades', name: 'Melhorias' }
 ];
 
 /* Ajudantes contrataveis (NPCs que trabalham sozinhos). */
@@ -860,6 +967,33 @@ const HELPERS = {
   farmer: { id: 'farmer', name: 'Fazendeiro', icon: '🧑‍🌾', price: 2000, level: 4 },
   dog: { id: 'dog', name: 'Cachorro', icon: '🐕', price: 3500, level: 5 }
 };
+
+/* Produtos da cozinha — feitos a partir de colheitas, valem mais. */
+const PRODUCTS = {
+  bread: { id: 'bread', name: 'Pão', icon: '🍞', sell: 90, xp: 12 },
+  salad: { id: 'salad', name: 'Salada', icon: '🥗', sell: 210, xp: 26 },
+  pie: { id: 'pie', name: 'Torta', icon: '🥧', sell: 480, xp: 60 },
+  juice: { id: 'juice', name: 'Suco', icon: '🧃', sell: 380, xp: 45 },
+  stew: { id: 'stew', name: 'Ensopado', icon: '🍲', sell: 640, xp: 80 }
+};
+
+const RECIPES = [
+  { id: 'bread', inputs: { wheat: 3 } },
+  { id: 'salad', inputs: { lettuce: 2, tomato: 1 } },
+  { id: 'pie', inputs: { wheat: 2, strawberry: 2 } },
+  { id: 'juice', inputs: { grape: 1, sugarcane: 1 } },
+  { id: 'stew', inputs: { potato: 2, carrot: 2, pumpkin: 1 } }
+];
+
+/* Melhorias de ferramentas — radius em tiles (1 = so o tile). */
+const UPGRADES = [
+  { id: 'water', icon: '🎠', max: 3,
+    prices: [0, 2500, 6000],
+    names: ['Regador simples', 'Regador Grande (3x3)', 'Irrigação Total (5x5)'] },
+  { id: 'till', icon: '⛏', max: 2,
+    prices: [0, 1800],
+    names: ['Enxada simples', 'Enxada de Aço (3x3)'] }
+];
 
 /* Curral: tamanhos disponiveis e preco por segmento de cerca. */
 const PEN_SIZES = [8, 16, 36];
@@ -1137,7 +1271,17 @@ const game = {
   landExpansions: 0,
   meetingDone: false,     // reuniao matinal dos fazendeiro ja aconteceu hoje
   farmCode: null,         // codigo da sala multiplayer (6 numeros, ex.: 482913)
-  visiting: false         // modo visita: somente leitura
+  visiting: false,        // modo visita: somente leitura
+  tutorialDone: false,    // tutorial da primeira vez ja visto
+  barn: {},               // celeiro: id de colheita/produto -> quantidade
+  orders: [],             // pedidos do mercado: {id, items, coins, xp}
+  upgrades: { water: 1, till: 1 },
+  day: 0,                 // dias completos (define a estacao)
+  weather: 'clear',       // clear | rain
+  weatherT: 0,
+  weatherTick: 0,
+  ambT: 0,
+  particles: []           // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
 };
 
 /* ---------- Grade de ocupação ---------- */
@@ -1305,6 +1449,7 @@ function tillSoil(gx, gy) {
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) return false;
   if (occupancy[occIndex(gx, gy)]) return false;
   game.tilled[gx + ',' + gy] = 1;
+  spawnDust(gx, gy);
   playSound('dig');
   return true;
 }
@@ -1315,12 +1460,166 @@ function isTilled(gx, gy) {
 
 /* ---------- Colher tudo ---------- */
 function harvestAllCrops() {
-  let n = 0, coins = 0, xp = 0;
+  let n = 0, xp = 0;
   for (let i = game.crops.length - 1; i >= 0; i--) {
     const r = harvestCrop(game.crops[i]);
-    if (r) { n++; coins += r.sell; xp += r.xp; }
+    if (r) { n++; xp += r.xp; }
   }
-  return { n, coins, xp };
+  return { n, xp };
+}
+
+/* ---------- Celeiro: vender estoque ---------- */
+function barnItemValue(id) {
+  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || 0;
+}
+
+function barnItemIcon(id) {
+  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || '📦';
+}
+
+function sellBarnItem(id, n) {
+  const have = game.barn[id] || 0;
+  n = Math.min(n, have);
+  if (n <= 0) return false;
+  const value = barnItemValue(id) * n;
+  game.barn[id] -= n;
+  if (game.barn[id] <= 0) delete game.barn[id];
+  addCoins(value);
+  playSound('harvest');
+  return true;
+}
+
+function sellAllBarn() {
+  let coins = 0;
+  for (const id of Object.keys(game.barn)) {
+    const value = barnItemValue(id) * game.barn[id];
+    coins += value;
+    delete game.barn[id];
+  }
+  if (coins > 0) { addCoins(coins); playSound('level'); }
+  return coins;
+}
+
+/* ---------- Pedidos do mercado ---------- */
+function genOrder() {
+  const pool = Object.values(CROPS).filter(c => c.level <= game.level + 1);
+  const items = {};
+  const kinds = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < kinds; i++) {
+    const c = pool[Math.floor(Math.random() * pool.length)];
+    items[c.id] = 2 + Math.floor(Math.random() * 6);
+  }
+  let coins = 0;
+  for (const id of Object.keys(items)) coins += barnItemValue(id) * items[id];
+  coins = Math.round(coins * 1.5) + 20;
+  return { id: 'o' + game.nextId++, items, coins, xp: Math.round(coins / 8) };
+}
+
+function ensureOrders() {
+  while (game.orders.length < 3) game.orders.push(genOrder());
+}
+
+function deliverOrder(orderId) {
+  const o = game.orders.find(x => x.id === orderId);
+  if (!o) return false;
+  for (const id of Object.keys(o.items)) {
+    if ((game.barn[id] || 0) < o.items[id]) { showToast(t('toast.orderFail')); return false; }
+  }
+  for (const id of Object.keys(o.items)) {
+    game.barn[id] -= o.items[id];
+    if (game.barn[id] <= 0) delete game.barn[id];
+  }
+  addCoins(o.coins);
+  addXp(o.xp);
+  game.orders = game.orders.filter(x => x.id !== orderId);
+  ensureOrders();
+  showToast(t('toast.orderDone', { c: o.coins, x: o.xp }));
+  playSound('level');
+  return true;
+}
+
+function swapOrder(orderId) {
+  if (game.coins < 50) { showToast(t('toast.noCoins')); return false; }
+  const i = game.orders.findIndex(o => o.id === orderId);
+  if (i === -1) return false;
+  addCoins(-50);
+  game.orders[i] = genOrder();
+  return true;
+}
+
+/* ---------- Cozinha: receitas ---------- */
+function kitchenBuilt() {
+  return game.buildings.some(b => b.type === 'kitchen');
+}
+
+function canCook(r) {
+  for (const id of Object.keys(r.inputs)) {
+    if ((game.barn[id] || 0) < r.inputs[id]) return false;
+  }
+  return true;
+}
+
+function cookRecipe(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return false;
+  if (!kitchenBuilt()) { showToast(t('toast.kitchenNeed')); return false; }
+  if (!canCook(r)) { showToast(t('toast.cookFail')); return false; }
+  for (const k of Object.keys(r.inputs)) {
+    game.barn[k] -= r.inputs[k];
+    if (game.barn[k] <= 0) delete game.barn[k];
+  }
+  const prod = PRODUCTS[id];
+  game.barn[id] = (game.barn[id] || 0) + 1;
+  addXp(prod.xp);
+  showToast(t('toast.cooked', { icon: prod.icon }));
+  playSound('harvest');
+  return true;
+}
+
+/* ---------- Melhorias de ferramentas ---------- */
+function upgradeLevel(id) {
+  return (game.upgrades && game.upgrades[id]) || 1;
+}
+
+function buyUpgrade(id) {
+  const def = UPGRADES.find(u => u.id === id);
+  if (!def) return false;
+  const lvl = upgradeLevel(id);
+  if (lvl >= def.max) return false;
+  const price = def.prices[lvl];
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
+  game.upgrades[id] = lvl + 1;
+  showToast(t('toast.upgraded'));
+  playSound('level');
+  return true;
+}
+
+function waterRadius() { return upgradeLevel('water') >= 3 ? 2 : (upgradeLevel('water') === 2 ? 1 : 0); }
+function tillRadius() { return upgradeLevel('till') >= 2 ? 1 : 0; }
+
+function waterAreaAt(gx, gy) {
+  const r = waterRadius();
+  let n = 0;
+  for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -r; dy <= r; dy++) {
+      const c = cropAt(gx + dx, gy + dy);
+      if (c && waterCrop(c, true)) n++;
+    }
+  }
+  if (n > 0) playSound('water');
+  return n;
+}
+
+function tillAreaAt(gx, gy) {
+  const r = tillRadius();
+  let n = 0;
+  for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -r; dy <= r; dy++) {
+      if (tillSoil(gx + dx, gy + dy)) n++;
+    }
+  }
+  return n;
 }
 
 /* ---------- Ciclo dia/noite ---------- */
@@ -1337,7 +1636,89 @@ function dayPhase() {
 function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
-  if (game.time < prev) game.meetingDone = false;
+  if (game.time < prev) { game.meetingDone = false; game.day++; }
+}
+
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+function seasonIndex() { return Math.floor(game.day / 3) % 4; }
+function seasonName() { return SEASONS[seasonIndex()]; }
+
+/* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
+function updateWeather(dt) {
+  if (game.visiting) return;
+  if (game.weather === 'rain') {
+    game.weatherT -= dt;
+    game.weatherTick -= dt;
+    if (game.weatherTick <= 0) {
+      game.weatherTick = 1.2;
+      const dry = game.crops.filter(c => !c.watered && cropProgress(c) < 1);
+      if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
+    }
+    if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
+  } else {
+    game.weatherT -= dt;
+    if (game.weatherT <= 0 && game.time > 0.05 && game.time < 0.6 && Math.random() < 0.008) {
+      game.weather = 'rain';
+      game.weatherT = 40 + Math.random() * 70;
+      game.weatherTick = 0;
+      showToast(t('toast.rain'));
+    }
+  }
+}
+
+/* ---------- Particulas ---------- */
+function spawnParticle(x, y, z, vx, vy, vz, ttl, color, size, g) {
+  if (game.visiting) return;
+  if (game.particles.length > 220) game.particles.shift();
+  game.particles.push({ x, y, z, vx, vy, vz, life: ttl, ttl, color, size: size || 3, g: g === undefined ? 2.2 : g });
+}
+
+function spawnDust(gx, gy) {
+  for (let i = 0; i < 6; i++) {
+    spawnParticle(gx + 0.5 + (Math.random() - 0.5) * 0.6, gy + 0.5 + (Math.random() - 0.5) * 0.6, 0.1,
+      (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, 0.8 + Math.random(), 0.7, '#a1887f', 2 + Math.random() * 2);
+  }
+}
+
+function spawnSplash(gx, gy) {
+  for (let i = 0; i < 7; i++) {
+    spawnParticle(gx + 0.5 + (Math.random() - 0.5) * 0.5, gy + 0.5 + (Math.random() - 0.5) * 0.5, 0.15,
+      (Math.random() - 0.5) * 1.1, (Math.random() - 0.5) * 1.1, 1.2 + Math.random(), 0.5, '#4fc3f7', 1.5 + Math.random() * 1.5);
+  }
+}
+
+function updateParticles(dt) {
+  const ps = game.particles;
+  for (let i = ps.length - 1; i >= 0; i--) {
+    const p = ps[i];
+    p.life -= dt;
+    if (p.life <= 0) { ps.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    p.vz -= (p.g || 2.2) * dt;
+    if (p.z < 0) { p.z = 0; p.vz = 0; p.vx *= 0.6; p.vy *= 0.6; }
+  }
+}
+
+function updateAmbient(dt) {
+  if (game.visiting) return;
+  game.ambT -= dt;
+  if (game.ambT > 0) return;
+  game.ambT = 0.5;
+  const house = game.buildings.find(b => b.type === 'house');
+  if (house && Math.random() < 0.7) {
+    spawnParticle(house.gx + 1.5, house.gy + 0.9, 2.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2,
+      0.5 + Math.random() * 0.3, 2.5, 'rgba(235,235,235,0.55)', 4 + Math.random() * 3, -0.12);
+  }
+  const si = seasonIndex();
+  const trees = game.buildings.filter(b => b.type === 'tree' || b.type === 'tree_pine' || b.type === 'tree_cherry');
+  if (trees.length && Math.random() < 0.6) {
+    const tr = trees[Math.floor(Math.random() * trees.length)];
+    const col = si === 2 ? '#e6902f' : (si === 0 && tr.type === 'tree_cherry' ? '#f8bbd0' : '#7cb342');
+    spawnParticle(tr.gx + 0.5 + (Math.random() - 0.5), tr.gy + 0.5 + (Math.random() - 0.5), 1.6,
+      (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, -0.15, 3, col, 2.5, 0.05);
+  }
 }
 
 function clockString(t) {
@@ -1543,13 +1924,13 @@ function depositSeed(farmer, type, n) {
   return true;
 }
 
-function waterCrop(crop) {
+function waterCrop(crop, silent) {
   if (!crop || crop.watered || cropProgress(crop) >= 1) return false;
   const def = CROPS[crop.type];
   const remaining = def.growTime * 1000 - (Date.now() - crop.plantedAt);
   crop.plantedAt -= remaining * 0.4;
   crop.watered = true;
-  playSound('water');
+  if (!silent) { spawnSplash(crop.gx, crop.gy); playSound('water'); }
   return true;
 }
 
@@ -1560,11 +1941,11 @@ function harvestCrop(crop) {
   if (idx === -1) return null;
   game.crops.splice(idx, 1);
   occupancy[occIndex(crop.gx, crop.gy)] = null;
-  addCoins(def.sell);
+  game.barn[def.id] = (game.barn[def.id] || 0) + 1;
   addXp(def.xp);
   game.stats.harvested = (game.stats.harvested || 0) + 1;
   playSound('harvest');
-  return { def, sell: def.sell, xp: def.xp };
+  return { def, sell: 0, xp: def.xp, toBarn: true };
 }
 
 function removeCrop(crop) {
@@ -1581,6 +1962,16 @@ function removeCrop(crop) {
 
 /* ---------- Animais compráveis ---------- */
 const MAX_PER_KIND = 100;
+const ANIMAL_GROW_S = 180;
+
+function animalBuyPrice(kind) {
+  const def = ANIMALS[kind];
+  return def ? Math.round(def.price * 0.4) : 0;
+}
+
+function isAdult(a) {
+  return (a.age === undefined ? 999 : a.age) >= ANIMAL_GROW_S;
+}
 
 function buyAnimal(kind) {
   const def = ANIMALS[kind];
@@ -1591,7 +1982,9 @@ function buyAnimal(kind) {
   if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
-  addCoins(-def.price);
+  const price = animalBuyPrice(kind);
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
   game.animals.push(makeAnimal(kind, spot));
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
   playSound('place');
@@ -1676,6 +2069,9 @@ function snapshotData() {
     buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
     tilled: game.tilled, farmers: game.farmers,
     pen: game.pen, dogs: game.dogs, time: game.time,
+    barn: game.barn, orders: game.orders, upgrades: game.upgrades,
+    day: game.day, weather: game.weather, weatherT: game.weatherT,
+    tutorialDone: game.tutorialDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
@@ -1686,6 +2082,8 @@ function snapshotData() {
 function saveGame(showToastMsg) {
   if (game.visiting) return false;
   try {
+    const prev = localStorage.getItem(SAVE_KEY);
+    if (prev) localStorage.setItem(SAVE_KEY + '_bak', prev);
     localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));
     return true;
@@ -1696,15 +2094,17 @@ function saveGame(showToastMsg) {
 }
 
 function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    return applySaveData(data);
-  } catch (e) {
-    console.error('Falha ao carregar', e);
-    return false;
+  let data = null;
+  for (const key of [SAVE_KEY, SAVE_KEY + '_bak']) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      data = JSON.parse(raw);
+      break;
+    } catch (e) { data = null; }
   }
+  if (!data) return false;
+  return applySaveData(data);
 }
 
 function applySaveData(data) {
@@ -1721,8 +2121,19 @@ function applySaveData(data) {
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
       landExpansions: data.landExpansions ?? 0,
-      farmCode: data.farmCode ?? null
+      farmCode: data.farmCode ?? null,
+      barn: data.barn ?? {}, orders: data.orders ?? [],
+      upgrades: { water: 1, till: 1, ...(data.upgrades ?? {}) },
+      tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
+      day: data.day ?? 0,
+      weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
+      particles: []
     });
+    for (const a of game.animals) {
+      if (a.age === undefined) a.age = 999;
+      if (a.bornAt === undefined) a.bornAt = Date.now();
+    }
+    if (!data.orders) ensureOrders();
     game.stats.level = game.level;
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
     occupancy.fill(null);
@@ -1877,8 +2288,46 @@ function render(ctx, cam, cw, ch, state) {
     ctx.fillRect(0, 0, cw, ch);
   }
   if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
+  drawParticles(ctx, cam, cw, ch);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
+  if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
+}
+
+/* ---------- Chuva ---------- */
+function drawRain(ctx, cam, cw, ch) {
+  const t = performance.now() / 1000;
+  ctx.save();
+  ctx.fillStyle = 'rgba(40,60,90,0.10)';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.strokeStyle = 'rgba(200,225,255,0.42)';
+  ctx.lineWidth = 1;
+  const count = 70;
+  ctx.beginPath();
+  for (let i = 0; i < count; i++) {
+    const sx = ((i * 97.3) % 1) * cw + ((t * 60 + i * 37) % 40) - 20;
+    const sy = ((i * 57.7 + t * (520 + (i % 5) * 60)) % (ch + 60)) - 30;
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - 4, sy + 14);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- Particulas (poeira, respingos, fumaca, folhas) ---------- */
+function drawParticles(ctx, cam, cw, ch) {
+  if (!game.particles || !game.particles.length) return;
+  for (const p of game.particles) {
+    const pp = projectPoint(p.x, p.y, p.z);
+    const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const k = Math.max(0, Math.min(1, p.life / p.ttl));
+    ctx.globalAlpha = k;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, Math.max(0.6, p.size * cam.zoom * (0.5 + 0.5 * k)), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -1947,6 +2396,12 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       const n1 = 0.65 * smoothNoise(x / 7, y / 7) + 0.35 * smoothNoise(x / 2.6 + 31, y / 2.6 + 17);
       const ramp = owned ? GRASS_OWNED_RAMP : GRASS_LOCKED_RAMP;
       let [r, g, b] = ramp[Math.min(3, Math.floor(n1 * 4))];
+
+      // estacao: outono puxa para o dourado, inverno para o pálido, verao esquenta
+      const st = seasonIndex();
+      if (st === 2) { b *= 0.72; r = Math.min(255, r * 1.12); }
+      else if (st === 3) { g = g * 0.82 + 40; b = b * 0.9 + 18; r = r * 0.92 + 20; }
+      else if (st === 1) { r = Math.min(255, r * 1.05); b *= 0.94; }
 
       // manchas de sol e de sombra sobrepostas ao ruído
       const n2 = smoothNoise(x / 4.5 + 97, y / 4.5 + 53);
@@ -3455,6 +3910,7 @@ function makeAnimal(kind, spot) {
     herdStage: 0,
     scaredT: 0,
     bornAt: Date.now(),
+    age: 0,
     product: 0,
     prodT: 0
   };
@@ -3462,7 +3918,8 @@ function makeAnimal(kind, spot) {
 
 function animalUpdateOne(a, dt) {
   a.phase += dt;
-  if (a.kind !== 'pig' && ANIMAL_KINDS[a.kind].cycle) {
+  a.age += dt;
+  if (isAdult(a) && a.kind !== 'pig' && ANIMAL_KINDS[a.kind].cycle) {
     a.prodT += dt;
     if (a.prodT >= ANIMAL_KINDS[a.kind].cycle) {
       a.prodT = 0;
@@ -3544,6 +4001,7 @@ function updateAnimals(dt) {
     if (a.scaredT === undefined) a.scaredT = 0;
     if (a.herdOut === undefined) a.herdOut = false;
     if (a.bornAt === undefined) a.bornAt = Date.now();
+    if (a.age === undefined) a.age = 999;
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
@@ -3560,6 +4018,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
             : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
             : Math.sin(a.phase * 2) * 0.8 * z;
   const lightK = 0.35 + 0.65 * dayLight();
+  const babyK = isAdult(a) ? 1 : 0.55 + 0.45 * Math.min(1, a.age / ANIMAL_GROW_S);
   const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
   const fx = Math.cos(face);
   const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
@@ -3567,7 +4026,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z * k.scale * squash, z * k.scale);
+  ctx.scale(z * k.scale * squash * babyK, z * k.scale * babyK);
   if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * lightK).toFixed(3) + ')';
@@ -4339,14 +4798,6 @@ function mindFmt(pool, params) {
 
 const SHIRT_PALETTE = ['#c62828', '#d81b60', '#8e24aa', '#5e35b1', '#1e88e5', '#00897b', '#43a047', '#f4511e', '#6d4c41', '#ad1457', '#ef6c00', '#7cb342'];
 
-function shadeColor(hex, mul) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.round(((n >> 16) & 255) * mul);
-  const g = Math.round(((n >> 8) & 255) * mul);
-  const b = Math.round((n & 255) * mul);
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
-
 /* ---------- Reuniao matinal dos fazendeiros ---------- */
 function meetingPoint() {
   const door = houseDoorTile();
@@ -4529,7 +4980,7 @@ function farmerFindWaterTarget(f) {
 }
 
 function hasHorse() {
-  return game.animals.some(a => a.kind === 'horse');
+  return game.animals.some(a => a.kind === 'horse' && isAdult(a));
 }
 
 /* Escolhe o proximo trabalho respeitando a fase do dia e a funcao do fazendeiro. */
@@ -4741,7 +5192,12 @@ function updateFarmers(dt) {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
         const r = harvestCrop(c);
-        if (r) { spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f'); farmerWorkCost(f); }
+        if (r) {
+          const val = r.def.sell;
+          addCoins(val);
+          spawnFloater(c.gx, c.gy, '+' + val + ' 🪙', '#ffd54f');
+          farmerWorkCost(f);
+        }
         f.riding = false;
         f.wait = 0.4;
       } else {
@@ -4909,12 +5365,12 @@ const $ = id => document.getElementById(id);
 const I18N = {
   'pt-BR': {
     'menu.missions': 'Missões', 'menu.shop': 'Loja',
-    'menu.achievements': 'Conquistas', 'menu.friends': 'Amigos',
+    'menu.achievements': 'Conquistas',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
     'build.rotate': 'Girar', 'build.buy': 'Comprar',
     'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
-    'modal.achievements': '🏆 Conquistas', 'modal.friends': '👥 Amigos',
+    'modal.achievements': '🏆 Conquistas',
     'modal.settings': '⚙️ Configurações', 'modal.buy': '🛒 Comprar',
     'modal.coins': '🪙 Loja de Moedas', 'modal.gems': '💎 Loja de Diamantes',
     'settings.sound': '🔊 Som', 'settings.music': '🎵 Música',
@@ -4939,7 +5395,6 @@ const I18N = {
     'coinshop.body': 'A loja de moedas com compras reais será integrada na fase de monetização. Por enquanto, ganhe moedas vendendo produtos e concluindo missões!',
     'coinshop.daily': '🎁 Receber 100 moedas de boas-vindas (1x por dia)',
     'gemshop.body': 'Diamantes são a moeda premium: aceleram construções e produções e desbloqueiam itens especiais. A loja de compra será integrada na fase de monetização.',
-    'friends.placeholder': '👥 O sistema de amigos (visitar fazendas, trocar presentes e produtos) será ativado na fase multiplayer. Sua fazenda está pronta para recebê-los!',
     'toast.welcome': '🌾 Bem-vindo! Use 🌱 Plantar para semear sua primeira colheita.',
     'toast.plantHint': '🌱 Escolha uma semente e toque no terreno para plantar.',
     'toast.waterHint': '💧 Toque em uma plantação para regar (cresce mais rápido).',
@@ -5005,6 +5460,48 @@ const I18N = {
     'mp.visitTitle': 'Visitar a fazenda de um amigo',
     'mp.hint2': 'Peça o código de 6 números ao seu amigo.',
     'mp.myCodeHint': 'Toque para copiar',
+    'menu.barn': 'Celeiro',
+    'modal.barn': '🧺 Celeiro & Mercado',
+    'barn.stock': 'Estoque',
+    'barn.sell': 'Vender',
+    'barn.sellAll': 'Vender Tudo',
+    'barn.empty': 'Celeiro vazio. Colha plantações para encher o estoque.',
+    'barn.recipes': 'Receitas da Cozinha',
+    'barn.kitchenNeed': '🍳 Construa a Cozinha (loja → Construções) para cozinhar.',
+    'barn.cook': 'Cozinhar',
+    'barn.share': '🔗 Copiar link da fazenda',
+    'orders.title': 'Pedidos do Mercado',
+    'orders.deliver': 'Entregar',
+    'orders.swap': 'Trocar (🪙 50)',
+    'upg.next': 'Evoluir para {name}',
+    'shop.baby': 'Filhote — cresce em 3 min',
+    'hud.level': 'Nível {n}',
+    'toast.harvestedBarn': '{icon} {name} foi para o Celeiro!',
+    'toast.harvestAllBarn': '🧺 {n} colheitas no Celeiro (+{x} XP)',
+    'toast.barnSold': '💰 +{c} 🪙',
+    'toast.orderDone': '📦 Pedido entregue! +{c} 🪙 +{x} XP',
+    'toast.orderFail': '❌ Estoque insuficiente no celeiro.',
+    'toast.cooked': '🍳 {icon} pronto, foi para o Celeiro!',
+    'toast.cookFail': '❌ Ingredientes insuficientes.',
+    'toast.kitchenNeed': '🍳 Construa a Cozinha primeiro.',
+    'toast.upgraded': '⭐ Ferramenta melhorada!',
+    'toast.rain': '🌧Começou a chover — as plantas se regam sozinhas!',
+    'toast.linkCopied': '🔗 Link copiado! Envie a um amigo.',
+    'toast.mpLost': '📡 Conexão perdida. Você voltou para sua fazenda.',
+    'toast.chatSent': '💬 Enviado!',
+    'toast.visitorSaid': '💬 Visitante: {msg}',
+    'mp.chat': 'Conversar',
+    'tut.title': 'Como jogar',
+    'tut.next': 'Entendi',
+    'tut.skip': 'Pular',
+    'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
+    'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
+    'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
+    'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
+    'tut.harvest': 'Quando a planta dourar, toque em 🧺 Colher Tudo. A colheita vai para o Celeiro.',
+    'tut.sell': 'Abra o 🧺 Celeiro no menu à esquerda: vender, cozinhar e entregar pedidos.',
+    'tut.done': 'Pronto! Compre animais na 🏪 Loja e contrate fazendeiros. Boa colheita!',
+    'chat.list': ['👋 Oi!', '🌾 Que fazenda linda!', '🎁 Presente para você!', '😄 Divirta-se!'],
     'mp.host': 'Abrir minha fazenda para visitas',
     'mp.stop': 'Fechar minha fazenda',
     'mp.hosting': '✅ Fazenda aberta! Amigos entram com o código.',
@@ -5093,12 +5590,12 @@ const I18N = {
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
-    'menu.achievements': 'Achievements', 'menu.friends': 'Friends',
+    'menu.achievements': 'Achievements',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
     'build.rotate': 'Rotate', 'build.buy': 'Buy',
     'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
-    'modal.achievements': '🏆 Achievements', 'modal.friends': '👥 Friends',
+    'modal.achievements': '🏆 Achievements',
     'modal.settings': '⚙️ Settings', 'modal.buy': '🛒 Buy',
     'modal.coins': '🪙 Coin Shop', 'modal.gems': '💎 Diamond Shop',
     'settings.sound': '🔊 Sound', 'settings.music': '🎵 Music',
@@ -5123,7 +5620,6 @@ const I18N = {
     'coinshop.body': 'The real-money coin shop will be integrated in the monetization phase. For now, earn coins by selling products and completing missions!',
     'coinshop.daily': '🎁 Claim 100 welcome coins (once a day)',
     'gemshop.body': 'Diamonds are the premium currency: they speed up construction and production and unlock special items. The purchase shop will be integrated in the monetization phase.',
-    'friends.placeholder': '👥 The friends system (visit farms, trade gifts and products) will be enabled in the multiplayer phase. Your farm is ready to receive them!',
     'toast.welcome': '🌾 Welcome! Use 🌱 Plant to sow your first harvest.',
     'toast.plantHint': '🌱 Pick a seed and tap the ground to plant.',
     'toast.waterHint': '💧 Tap a crop to water it (grows faster).',
@@ -5189,6 +5685,48 @@ const I18N = {
     'mp.visitTitle': 'Visit the farm of a friend',
     'mp.hint2': 'Ask your friend for the 6-number code.',
     'mp.myCodeHint': 'Tap to copy',
+    'menu.barn': 'Barn',
+    'modal.barn': '🧺 Barn & Market',
+    'barn.stock': 'Stock',
+    'barn.sell': 'Sell',
+    'barn.sellAll': 'Sell All',
+    'barn.empty': 'Barn is empty. Harvest crops to fill your stock.',
+    'barn.recipes': 'Kitchen Recipes',
+    'barn.kitchenNeed': '🍳 Build the Kitchen (shop → Buildings) to cook.',
+    'barn.cook': 'Cook',
+    'barn.share': '🔗 Copy farm link',
+    'orders.title': 'Market Orders',
+    'orders.deliver': 'Deliver',
+    'orders.swap': 'Swap (🪙50)',
+    'upg.next': 'Upgrade to {name}',
+    'shop.baby': 'Baby — grows in 3 min',
+    'hud.level': 'Level {n}',
+    'toast.harvestedBarn': '{icon} {name} went to the Barn!',
+    'toast.harvestAllBarn': '🧺 {n} crops in the Barn (+{x} XP)',
+    'toast.barnSold': '💰 +{c} 🪙',
+    'toast.orderDone': '📦 Order delivered! +{c} 🪙 +{x} XP',
+    'toast.orderFail': '❌ Not enough stock in the barn.',
+    'toast.cooked': '🍳 {icon} is ready, sent to the Barn!',
+    'toast.cookFail': '❌ Not enough ingredients.',
+    'toast.kitchenNeed': '🍳 Build the Kitchen first.',
+    'toast.upgraded': '⭐ Tool upgraded!',
+    'toast.rain': '🌧It started raining — crops water themselves!',
+    'toast.linkCopied': '🔗 Link copied! Send it to a friend.',
+    'toast.mpLost': '📡 Connection lost. You are back at your farm.',
+    'toast.chatSent': '💬 Sent!',
+    'toast.visitorSaid': '💬 Visitor: {msg}',
+    'mp.chat': 'Chat',
+    'tut.title': 'How to play',
+    'tut.next': 'Got it',
+    'tut.skip': 'Skip',
+    'tut.move': 'Drag your finger to move around and use Zoom on the left.',
+    'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
+    'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
+    'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
+    'tut.harvest': 'When golden, tap 🧺 Harvest All. Crops go to the Barn.',
+    'tut.sell': 'Open the 🧺 Barn on the left menu: sell, cook and deliver orders.',
+    'tut.done': 'Done! Buy animals at the 🏪 Shop and hire farmers. Happy farming!',
+    'chat.list': ['👋 Hi!', '🌾 Nice farm!', '🎁 A gift for you!', '😄 Have fun!'],
     'mp.host': 'Open my farm for visits',
     'mp.stop': 'Close my farm',
     'mp.hosting': '✅ Farm open! Friends join with the code.',
@@ -5400,7 +5938,7 @@ function refreshHud() {
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
-    $('level-text').textContent = 'Nível ' + game.level;
+    $('level-text').textContent = t('hud.level', { n: game.level });
     $('farm-name').textContent = game.farmName;
     const need = xpForLevel(game.level);
     $('xp-fill').style.width = Math.min(100, (game.xp / need) * 100) + '%';
@@ -5482,7 +6020,8 @@ function openShop() {
     if (currentShopTab === 'animais') {
       for (const def of Object.values(ANIMALS)) {
         const locked = game.level < def.level;
-        const afford = game.coins >= def.price;
+        const price = animalBuyPrice(def.id);
+        const afford = game.coins >= price;
         const full = game.animals.filter(a => a.kind === def.id).length >= MAX_PER_KIND;
         const item = document.createElement('div');
         item.className = 'shop-item';
@@ -5490,7 +6029,8 @@ function openShop() {
           <div class="shop-item-icon">${def.icon}</div>
           <div class="shop-item-name">${t('an_' + def.id)}</div>
           <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('an_' + def.id + '_desc')}</div>
-          <div class="shop-item-price">🪙 ${def.price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-desc" style="font-size:10px;color:#8d6e63;text-align:center">${t('shop.baby')}</div>
           ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
         `;
         const buyBtn = document.createElement('button');
@@ -5505,6 +6045,33 @@ function openShop() {
           }
         };
         item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'upgrades') {
+      for (const def of UPGRADES) {
+        const lvl = upgradeLevel(def.id);
+        const maxed = lvl >= def.max;
+        const price = maxed ? 0 : def.prices[lvl];
+        const name = def.names[Math.min(lvl, def.names.length - 1)];
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${name}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : t('upg.next', { name: def.names[lvl] })}</div>
+          <div class="shop-item-price">${maxed ? '⭐' : '🪙 ' + price.toLocaleString('pt-BR')}</div>
+        `;
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.disabled = maxed || game.coins < price;
+        btn.textContent = maxed ? t('shop.maxed') : t('shop.buyUpgrade');
+        btn.onclick = () => {
+          if (buyUpgrade(def.id)) { showToast(t('toast.upgraded')); refreshHud(); openShop(); }
+        };
+        item.appendChild(btn);
         grid.appendChild(item);
       }
       body.appendChild(grid);
@@ -6037,6 +6604,16 @@ function openMultiplayer() {
     };
     body.appendChild(codeBtn);
 
+    const linkBtn = document.createElement('button');
+    linkBtn.className = 'mp-big-btn';
+    linkBtn.textContent = t('barn.share');
+    linkBtn.onclick = () => {
+      const url = location.origin + location.pathname + '?farm=' + code;
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      showToast(t('toast.linkCopied'));
+    };
+    body.appendChild(linkBtn);
+
     const hostBtn = document.createElement('button');
     hostBtn.className = 'mp-big-btn';
     hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
@@ -6059,7 +6636,214 @@ function openMultiplayer() {
   });
 }
 
+/* ---------- Tutorial da primeira vez ---------- */
+const TUT_STEPS = ['tut.move', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
+let tutStep = 0;
+
+function tutorialActive() {
+  return !game.tutorialDone && tutStep < TUT_STEPS.length;
+}
+
+function tutShow() {
+  const bar = document.getElementById('tut-bar');
+  if (!bar) return;
+  if (!tutorialActive()) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  const txt = bar.querySelector('.tut-text');
+  if (txt) txt.textContent = t(TUT_STEPS[tutStep]);
+  const num = bar.querySelector('.tut-num');
+  if (num) num.textContent = (tutStep + 1) + '/' + TUT_STEPS.length;
+}
+
+function tutNext() {
+  tutStep++;
+  if (tutStep >= TUT_STEPS.length) {
+    game.tutorialDone = true;
+    saveGame(false);
+  }
+  tutShow();
+}
+
+function tutSkip() {
+  tutStep = TUT_STEPS.length;
+  game.tutorialDone = true;
+  saveGame(false);
+  tutShow();
+}
+
+function tutAdvance(action) {
+  if (!tutorialActive()) return;
+  const map = { till: 1, plant: 2, water: 3, harvest: 4, sell: 5 };
+  if (map[action] === tutStep) tutNext();
+}
+
+function setupTutorial() {
+  const bar = document.getElementById('tut-bar');
+  if (!bar) return;
+  const ok = bar.querySelector('.tut-ok');
+  const skip = bar.querySelector('.tut-skip');
+  if (ok) ok.textContent = t('tut.next');
+  if (skip) skip.textContent = t('tut.skip');
+  if (ok) ok.onclick = () => { playSound('click'); tutNext(); };
+  if (skip) skip.onclick = () => { playSound('click'); tutSkip(); };
+  tutShow();
+}
+
+/* ---------- Celeiro & Mercado ---------- */
+function barnItemName(id) {
+  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
+}
+
+function openBarn() {
+  tutAdvance('sell');
+  openModal(t('modal.barn'), body => {
+    ensureOrders();
+
+    const stockLbl = document.createElement('div');
+    stockLbl.className = 'mp-label';
+    stockLbl.textContent = t('barn.stock');
+    body.appendChild(stockLbl);
+
+    const ids = Object.keys(game.barn).filter(id => game.barn[id] > 0);
+    if (!ids.length) {
+      const empty = document.createElement('div');
+      empty.className = 'mp-status';
+      empty.textContent = t('barn.empty');
+      body.appendChild(empty);
+    } else {
+      for (const id of ids) {
+        const row = document.createElement('div');
+        row.className = 'barn-row';
+        const left = document.createElement('span');
+        left.textContent = barnItemIcon(id) + ' ' + barnItemName(id) + ' ×' + game.barn[id];
+        const right = document.createElement('b');
+        right.textContent = '🪙 ' + (barnItemValue(id) * game.barn[id]).toLocaleString('pt-BR');
+        const sell = document.createElement('button');
+        sell.className = 'barn-sell-btn';
+        sell.textContent = t('barn.sell');
+        sell.onclick = () => {
+          const total = barnItemValue(id) * game.barn[id];
+          if (sellBarnItem(id, game.barn[id])) {
+            showToast(t('toast.barnSold', { c: total }));
+            openBarn();
+            refreshHud();
+          }
+        };
+        row.appendChild(left);
+        row.appendChild(right);
+        row.appendChild(sell);
+        body.appendChild(row);
+      }
+      const sellAll = document.createElement('button');
+      sellAll.className = 'mp-big-btn';
+      sellAll.textContent = t('barn.sellAll');
+      sellAll.onclick = () => {
+        const c = sellAllBarn();
+        if (c > 0) showToast(t('toast.barnSold', { c: c }));
+        openBarn();
+        refreshHud();
+      };
+      body.appendChild(sellAll);
+    }
+
+    const hr1 = document.createElement('hr');
+    hr1.className = 'mp-hr';
+    body.appendChild(hr1);
+
+    const recLbl = document.createElement('div');
+    recLbl.className = 'mp-label';
+    recLbl.textContent = t('barn.recipes');
+    body.appendChild(recLbl);
+
+    if (!kitchenBuilt()) {
+      const need = document.createElement('div');
+      need.className = 'mp-status';
+      need.textContent = t('barn.kitchenNeed');
+      body.appendChild(need);
+    } else {
+      for (const r of RECIPES) {
+        const prod = PRODUCTS[r.id];
+        const row = document.createElement('div');
+        row.className = 'barn-row';
+        const inputs = Object.keys(r.inputs).map(k => barnItemIcon(k) + '×' + r.inputs[k]).join(' ');
+        const left = document.createElement('span');
+        left.textContent = inputs + ' → ' + prod.icon + ' 🪙' + prod.sell;
+        const cook = document.createElement('button');
+        cook.className = 'barn-sell-btn';
+        cook.textContent = t('barn.cook');
+        cook.disabled = !canCook(r);
+        cook.onclick = () => { if (cookRecipe(r.id)) { openBarn(); refreshHud(); } };
+        row.appendChild(left);
+        row.appendChild(cook);
+        body.appendChild(row);
+      }
+    }
+
+    const hr2 = document.createElement('hr');
+    hr2.className = 'mp-hr';
+    body.appendChild(hr2);
+
+    const ordLbl = document.createElement('div');
+    ordLbl.className = 'mp-label';
+    ordLbl.textContent = t('orders.title');
+    body.appendChild(ordLbl);
+
+    for (const o of game.orders) {
+      const card = document.createElement('div');
+      card.className = 'barn-order';
+      const items = Object.keys(o.items).map(k => barnItemIcon(k) + '×' + o.items[k]).join('  ');
+      const line = document.createElement('div');
+      line.textContent = items + '   🪙 ' + o.coins + '  +' + o.xp + ' XP';
+      const row = document.createElement('div');
+      row.className = 'barn-row';
+      const deliver = document.createElement('button');
+      deliver.className = 'barn-sell-btn';
+      deliver.textContent = t('orders.deliver');
+      deliver.onclick = () => { if (deliverOrder(o.id)) { openBarn(); refreshHud(); } };
+      const swap = document.createElement('button');
+      swap.className = 'barn-sell-btn muted';
+      swap.textContent = t('orders.swap');
+      swap.onclick = () => { if (swapOrder(o.id)) { openBarn(); refreshHud(); } };
+      row.appendChild(deliver);
+      row.appendChild(swap);
+      card.appendChild(line);
+      card.appendChild(row);
+      body.appendChild(card);
+    }
+
+    const hr3 = document.createElement('hr');
+    hr3.className = 'mp-hr';
+    body.appendChild(hr3);
+
+    const share = document.createElement('button');
+    share.className = 'mp-big-btn';
+    share.textContent = t('barn.share');
+    share.onclick = () => {
+      const url = location.origin + location.pathname + '?farm=' + ensureFarmCode();
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      showToast(t('toast.linkCopied'));
+    };
+    body.appendChild(share);
+  });
+}
+
 function buildGiftUi(body) {
+  const chatLbl = document.createElement('div');
+  chatLbl.className = 'mp-label';
+  chatLbl.textContent = t('mp.chat');
+  body.appendChild(chatLbl);
+  const chatRow = document.createElement('div');
+  chatRow.className = 'farmer-roles';
+  const phrases = t('chat.list') || [];
+  for (let i = 0; i < phrases.length && i < 4; i++) {
+    const b = document.createElement('button');
+    b.className = 'farmer-role-btn';
+    b.textContent = phrases[i];
+    b.onclick = () => { if (sendChat(i)) showToast(t('toast.chatSent')); };
+    chatRow.appendChild(b);
+  }
+  body.appendChild(chatRow);
+
   const kindRow = document.createElement('div');
   kindRow.className = 'farmer-roles';
   let kind = 'coins';
@@ -6167,6 +6951,7 @@ function bindUi(handlers) {
       else if (panel === 'shop') openShop();
       else if (panel === 'achievements') openAchievements();
       else if (panel === 'farmers') openFarmersPanel();
+      else if (panel === 'barn') openBarn();
       else if (panel === 'multiplayer') openMultiplayer();
     };
   }
@@ -6257,6 +7042,14 @@ function hostFarm(onReady) {
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'hello') {
           try { conn.send({ type: 'state', data: mpSnapshot() }); } catch (e) {}
+        } else if (msg.type === 'chat') {
+          const phrases = t('chat.list');
+          const txt = phrases[msg.idx % phrases.length];
+          if (txt) {
+            showToast(t('toast.visitorSaid', { msg: txt }));
+            const f = game.farmers[Math.floor(Math.random() * Math.max(1, game.farmers.length))];
+            if (f && farmerSay) farmerSay(f, phrases[(msg.idx + 1 + Math.floor(Math.random() * 3)) % phrases.length], 6000);
+          }
         } else if (msg.type === 'gift') {
           const res = receiveGift(msg.gift);
           try { conn.send({ type: 'gift-ack', ok: !!res, msg: res ? res.msg : null }); } catch (e) {}
@@ -6304,12 +7097,20 @@ function visitFarm(code, onReady) {
           showToast(msg.ok ? (t('toast.giftSent') + (msg.msg ? ': ' + msg.msg : '')) : t('toast.giftFailed'));
         }
       });
-      conn.on('close', () => { if (mpStatus === 'visiting') leaveVisitMode(); });
+      conn.on('close', () => { if (mpStatus === 'visiting') leaveVisitLost(); });
+      conn.on('error', () => { if (mpStatus === 'visiting') leaveVisitLost(); });
     });
     mpPeer.on('error', e => {
       if (mpStatus === 'connecting') { mpStatus = 'off'; onReady(e); }
+      else if (mpStatus === 'visiting') leaveVisitLost();
     });
   });
+}
+
+function leaveVisitLost() {
+  if (mpStatus !== 'visiting') return;
+  leaveVisitMode(true);
+  showToast(t('toast.mpLost'));
 }
 
 function enterVisitMode(data) {
@@ -6325,7 +7126,7 @@ function enterVisitMode(data) {
   showToast(t('toast.visiting'));
 }
 
-function leaveVisitMode() {
+function leaveVisitMode(silent) {
   if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
   game.visiting = false;
   mpStatus = 'off';
@@ -6339,12 +7140,17 @@ function leaveVisitMode() {
   } catch (e) {}
   if (!restored) loadGame();
   updateVisitBanner();
-  showToast(t('toast.backHome'));
+  if (!silent) showToast(t('toast.backHome'));
 }
 
 function sendGift(gift) {
   if (mpStatus !== 'visiting' || !mpVisitConn) return false;
   try { mpVisitConn.send({ type: 'gift', gift }); return true; } catch (e) { return false; }
+}
+
+function sendChat(idx) {
+  if (mpStatus !== 'visiting' || !mpVisitConn) return false;
+  try { mpVisitConn.send({ type: 'chat', idx }); return true; } catch (e) { return false; }
 }
 
 function updateMultiplayer(dt) {
@@ -6415,7 +7221,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v31';
+const GAME_VERSION = 'v32';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -6632,8 +7438,9 @@ function handleClick(e) {
   if (state.mode === 'till') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
-    if (tillSoil(g.gx, g.gy)) {
+    if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
+      tutAdvance('till');
     }
     return;
   }
@@ -6647,6 +7454,7 @@ function handleClick(e) {
       spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
+      tutAdvance('plant');
       autoClaimReady();
     }
     return;
@@ -6656,9 +7464,10 @@ function handleClick(e) {
     const occ = buildingAt(g.gx, g.gy);
     if (occ && occ.isCrop) {
       if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
-      if (waterCrop(occ)) {
+      if (waterAreaAt(occ.gx, occ.gy) > 0) {
         spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
         showToast(t('toast.watered'));
+        tutAdvance('water');
       } else {
         showToast(t('toast.alreadyWatered'));
       }
@@ -6922,8 +7731,9 @@ const uiHandlers = {
     playSound('click');
     const r = harvestAllCrops();
     if (r.n > 0) {
-      showToast(t('toast.harvestAll', { n: r.n, c: r.coins }));
+      showToast(t('toast.harvestAllBarn', { n: r.n, x: r.xp }));
       refreshHud();
+      tutAdvance('harvest');
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
@@ -6972,10 +7782,11 @@ const zoomHandlers = {
 function doHarvest(crop) {
   const r = harvestCrop(crop);
   if (r) {
-    spawnFloater(crop.gx, crop.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+    spawnFloater(crop.gx, crop.gy, '+1 ' + r.def.icon, '#c5e1a5');
     spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
-    showToast(t('toast.harvested', { icon: r.def.icon, c: r.sell, x: r.xp }));
+    showToast(t('toast.harvestedBarn', { icon: r.def.icon, name: t('c_' + r.def.id) }));
     refreshHud();
+    tutAdvance('harvest');
     autoClaimReady();
   }
 }
@@ -7026,9 +7837,12 @@ function loop(ts) {
   try {
     if (!game.visiting) {
       advanceClock(dt);
+      updateWeather(dt);
       updateAnimals(dt);
       updateFarmers(dt);
       updateDogs(dt);
+      updateParticles(dt);
+      updateAmbient(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
@@ -7064,8 +7878,18 @@ function init() {
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
+  setupTutorial();
   requestAnimationFrame(loop);
   if (!loaded) showToast(t('toast.welcome'));
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
+  }
+  const farmParam = new URLSearchParams(location.search).get('farm');
+  if (farmParam && /^[0-9]{6}$/.test(farmParam)) {
+    visitFarm(farmParam, err => {
+      if (err) showToast(t('toast.mpError', { err: err.message || err.type || 'erro' }));
+    });
+  }
 }
 
 init();

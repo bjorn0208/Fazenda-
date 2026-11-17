@@ -29,7 +29,17 @@ const game = {
   landExpansions: 0,
   meetingDone: false,     // reuniao matinal dos fazendeiro ja aconteceu hoje
   farmCode: null,         // codigo da sala multiplayer (6 numeros, ex.: 482913)
-  visiting: false         // modo visita: somente leitura
+  visiting: false,        // modo visita: somente leitura
+  tutorialDone: false,    // tutorial da primeira vez ja visto
+  barn: {},               // celeiro: id de colheita/produto -> quantidade
+  orders: [],             // pedidos do mercado: {id, items, coins, xp}
+  upgrades: { water: 1, till: 1 },
+  day: 0,                 // dias completos (define a estacao)
+  weather: 'clear',       // clear | rain
+  weatherT: 0,
+  weatherTick: 0,
+  ambT: 0,
+  particles: []           // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
 };
 
 /* ---------- Grade de ocupação ---------- */
@@ -197,6 +207,7 @@ function tillSoil(gx, gy) {
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) return false;
   if (occupancy[occIndex(gx, gy)]) return false;
   game.tilled[gx + ',' + gy] = 1;
+  spawnDust(gx, gy);
   playSound('dig');
   return true;
 }
@@ -207,12 +218,166 @@ function isTilled(gx, gy) {
 
 /* ---------- Colher tudo ---------- */
 function harvestAllCrops() {
-  let n = 0, coins = 0, xp = 0;
+  let n = 0, xp = 0;
   for (let i = game.crops.length - 1; i >= 0; i--) {
     const r = harvestCrop(game.crops[i]);
-    if (r) { n++; coins += r.sell; xp += r.xp; }
+    if (r) { n++; xp += r.xp; }
   }
-  return { n, coins, xp };
+  return { n, xp };
+}
+
+/* ---------- Celeiro: vender estoque ---------- */
+function barnItemValue(id) {
+  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || 0;
+}
+
+function barnItemIcon(id) {
+  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || '📦';
+}
+
+function sellBarnItem(id, n) {
+  const have = game.barn[id] || 0;
+  n = Math.min(n, have);
+  if (n <= 0) return false;
+  const value = barnItemValue(id) * n;
+  game.barn[id] -= n;
+  if (game.barn[id] <= 0) delete game.barn[id];
+  addCoins(value);
+  playSound('harvest');
+  return true;
+}
+
+function sellAllBarn() {
+  let coins = 0;
+  for (const id of Object.keys(game.barn)) {
+    const value = barnItemValue(id) * game.barn[id];
+    coins += value;
+    delete game.barn[id];
+  }
+  if (coins > 0) { addCoins(coins); playSound('level'); }
+  return coins;
+}
+
+/* ---------- Pedidos do mercado ---------- */
+function genOrder() {
+  const pool = Object.values(CROPS).filter(c => c.level <= game.level + 1);
+  const items = {};
+  const kinds = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < kinds; i++) {
+    const c = pool[Math.floor(Math.random() * pool.length)];
+    items[c.id] = 2 + Math.floor(Math.random() * 6);
+  }
+  let coins = 0;
+  for (const id of Object.keys(items)) coins += barnItemValue(id) * items[id];
+  coins = Math.round(coins * 1.5) + 20;
+  return { id: 'o' + game.nextId++, items, coins, xp: Math.round(coins / 8) };
+}
+
+function ensureOrders() {
+  while (game.orders.length < 3) game.orders.push(genOrder());
+}
+
+function deliverOrder(orderId) {
+  const o = game.orders.find(x => x.id === orderId);
+  if (!o) return false;
+  for (const id of Object.keys(o.items)) {
+    if ((game.barn[id] || 0) < o.items[id]) { showToast(t('toast.orderFail')); return false; }
+  }
+  for (const id of Object.keys(o.items)) {
+    game.barn[id] -= o.items[id];
+    if (game.barn[id] <= 0) delete game.barn[id];
+  }
+  addCoins(o.coins);
+  addXp(o.xp);
+  game.orders = game.orders.filter(x => x.id !== orderId);
+  ensureOrders();
+  showToast(t('toast.orderDone', { c: o.coins, x: o.xp }));
+  playSound('level');
+  return true;
+}
+
+function swapOrder(orderId) {
+  if (game.coins < 50) { showToast(t('toast.noCoins')); return false; }
+  const i = game.orders.findIndex(o => o.id === orderId);
+  if (i === -1) return false;
+  addCoins(-50);
+  game.orders[i] = genOrder();
+  return true;
+}
+
+/* ---------- Cozinha: receitas ---------- */
+function kitchenBuilt() {
+  return game.buildings.some(b => b.type === 'kitchen');
+}
+
+function canCook(r) {
+  for (const id of Object.keys(r.inputs)) {
+    if ((game.barn[id] || 0) < r.inputs[id]) return false;
+  }
+  return true;
+}
+
+function cookRecipe(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return false;
+  if (!kitchenBuilt()) { showToast(t('toast.kitchenNeed')); return false; }
+  if (!canCook(r)) { showToast(t('toast.cookFail')); return false; }
+  for (const k of Object.keys(r.inputs)) {
+    game.barn[k] -= r.inputs[k];
+    if (game.barn[k] <= 0) delete game.barn[k];
+  }
+  const prod = PRODUCTS[id];
+  game.barn[id] = (game.barn[id] || 0) + 1;
+  addXp(prod.xp);
+  showToast(t('toast.cooked', { icon: prod.icon }));
+  playSound('harvest');
+  return true;
+}
+
+/* ---------- Melhorias de ferramentas ---------- */
+function upgradeLevel(id) {
+  return (game.upgrades && game.upgrades[id]) || 1;
+}
+
+function buyUpgrade(id) {
+  const def = UPGRADES.find(u => u.id === id);
+  if (!def) return false;
+  const lvl = upgradeLevel(id);
+  if (lvl >= def.max) return false;
+  const price = def.prices[lvl];
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
+  game.upgrades[id] = lvl + 1;
+  showToast(t('toast.upgraded'));
+  playSound('level');
+  return true;
+}
+
+function waterRadius() { return upgradeLevel('water') >= 3 ? 2 : (upgradeLevel('water') === 2 ? 1 : 0); }
+function tillRadius() { return upgradeLevel('till') >= 2 ? 1 : 0; }
+
+function waterAreaAt(gx, gy) {
+  const r = waterRadius();
+  let n = 0;
+  for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -r; dy <= r; dy++) {
+      const c = cropAt(gx + dx, gy + dy);
+      if (c && waterCrop(c, true)) n++;
+    }
+  }
+  if (n > 0) playSound('water');
+  return n;
+}
+
+function tillAreaAt(gx, gy) {
+  const r = tillRadius();
+  let n = 0;
+  for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -r; dy <= r; dy++) {
+      if (tillSoil(gx + dx, gy + dy)) n++;
+    }
+  }
+  return n;
 }
 
 /* ---------- Ciclo dia/noite ---------- */
@@ -229,7 +394,89 @@ function dayPhase() {
 function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
-  if (game.time < prev) game.meetingDone = false;
+  if (game.time < prev) { game.meetingDone = false; game.day++; }
+}
+
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+function seasonIndex() { return Math.floor(game.day / 3) % 4; }
+function seasonName() { return SEASONS[seasonIndex()]; }
+
+/* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
+function updateWeather(dt) {
+  if (game.visiting) return;
+  if (game.weather === 'rain') {
+    game.weatherT -= dt;
+    game.weatherTick -= dt;
+    if (game.weatherTick <= 0) {
+      game.weatherTick = 1.2;
+      const dry = game.crops.filter(c => !c.watered && cropProgress(c) < 1);
+      if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
+    }
+    if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
+  } else {
+    game.weatherT -= dt;
+    if (game.weatherT <= 0 && game.time > 0.05 && game.time < 0.6 && Math.random() < 0.008) {
+      game.weather = 'rain';
+      game.weatherT = 40 + Math.random() * 70;
+      game.weatherTick = 0;
+      showToast(t('toast.rain'));
+    }
+  }
+}
+
+/* ---------- Particulas ---------- */
+function spawnParticle(x, y, z, vx, vy, vz, ttl, color, size, g) {
+  if (game.visiting) return;
+  if (game.particles.length > 220) game.particles.shift();
+  game.particles.push({ x, y, z, vx, vy, vz, life: ttl, ttl, color, size: size || 3, g: g === undefined ? 2.2 : g });
+}
+
+function spawnDust(gx, gy) {
+  for (let i = 0; i < 6; i++) {
+    spawnParticle(gx + 0.5 + (Math.random() - 0.5) * 0.6, gy + 0.5 + (Math.random() - 0.5) * 0.6, 0.1,
+      (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, 0.8 + Math.random(), 0.7, '#a1887f', 2 + Math.random() * 2);
+  }
+}
+
+function spawnSplash(gx, gy) {
+  for (let i = 0; i < 7; i++) {
+    spawnParticle(gx + 0.5 + (Math.random() - 0.5) * 0.5, gy + 0.5 + (Math.random() - 0.5) * 0.5, 0.15,
+      (Math.random() - 0.5) * 1.1, (Math.random() - 0.5) * 1.1, 1.2 + Math.random(), 0.5, '#4fc3f7', 1.5 + Math.random() * 1.5);
+  }
+}
+
+function updateParticles(dt) {
+  const ps = game.particles;
+  for (let i = ps.length - 1; i >= 0; i--) {
+    const p = ps[i];
+    p.life -= dt;
+    if (p.life <= 0) { ps.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    p.vz -= (p.g || 2.2) * dt;
+    if (p.z < 0) { p.z = 0; p.vz = 0; p.vx *= 0.6; p.vy *= 0.6; }
+  }
+}
+
+function updateAmbient(dt) {
+  if (game.visiting) return;
+  game.ambT -= dt;
+  if (game.ambT > 0) return;
+  game.ambT = 0.5;
+  const house = game.buildings.find(b => b.type === 'house');
+  if (house && Math.random() < 0.7) {
+    spawnParticle(house.gx + 1.5, house.gy + 0.9, 2.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2,
+      0.5 + Math.random() * 0.3, 2.5, 'rgba(235,235,235,0.55)', 4 + Math.random() * 3, -0.12);
+  }
+  const si = seasonIndex();
+  const trees = game.buildings.filter(b => b.type === 'tree' || b.type === 'tree_pine' || b.type === 'tree_cherry');
+  if (trees.length && Math.random() < 0.6) {
+    const tr = trees[Math.floor(Math.random() * trees.length)];
+    const col = si === 2 ? '#e6902f' : (si === 0 && tr.type === 'tree_cherry' ? '#f8bbd0' : '#7cb342');
+    spawnParticle(tr.gx + 0.5 + (Math.random() - 0.5), tr.gy + 0.5 + (Math.random() - 0.5), 1.6,
+      (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, -0.15, 3, col, 2.5, 0.05);
+  }
 }
 
 function clockString(t) {
@@ -435,13 +682,13 @@ function depositSeed(farmer, type, n) {
   return true;
 }
 
-function waterCrop(crop) {
+function waterCrop(crop, silent) {
   if (!crop || crop.watered || cropProgress(crop) >= 1) return false;
   const def = CROPS[crop.type];
   const remaining = def.growTime * 1000 - (Date.now() - crop.plantedAt);
   crop.plantedAt -= remaining * 0.4;
   crop.watered = true;
-  playSound('water');
+  if (!silent) { spawnSplash(crop.gx, crop.gy); playSound('water'); }
   return true;
 }
 
@@ -452,11 +699,11 @@ function harvestCrop(crop) {
   if (idx === -1) return null;
   game.crops.splice(idx, 1);
   occupancy[occIndex(crop.gx, crop.gy)] = null;
-  addCoins(def.sell);
+  game.barn[def.id] = (game.barn[def.id] || 0) + 1;
   addXp(def.xp);
   game.stats.harvested = (game.stats.harvested || 0) + 1;
   playSound('harvest');
-  return { def, sell: def.sell, xp: def.xp };
+  return { def, sell: 0, xp: def.xp, toBarn: true };
 }
 
 function removeCrop(crop) {
@@ -473,6 +720,16 @@ function removeCrop(crop) {
 
 /* ---------- Animais compráveis ---------- */
 const MAX_PER_KIND = 100;
+const ANIMAL_GROW_S = 180;
+
+function animalBuyPrice(kind) {
+  const def = ANIMALS[kind];
+  return def ? Math.round(def.price * 0.4) : 0;
+}
+
+function isAdult(a) {
+  return (a.age === undefined ? 999 : a.age) >= ANIMAL_GROW_S;
+}
 
 function buyAnimal(kind) {
   const def = ANIMALS[kind];
@@ -483,7 +740,9 @@ function buyAnimal(kind) {
   if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
-  addCoins(-def.price);
+  const price = animalBuyPrice(kind);
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
   game.animals.push(makeAnimal(kind, spot));
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
   playSound('place');
@@ -568,6 +827,9 @@ function snapshotData() {
     buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
     tilled: game.tilled, farmers: game.farmers,
     pen: game.pen, dogs: game.dogs, time: game.time,
+    barn: game.barn, orders: game.orders, upgrades: game.upgrades,
+    day: game.day, weather: game.weather, weatherT: game.weatherT,
+    tutorialDone: game.tutorialDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
@@ -578,6 +840,8 @@ function snapshotData() {
 function saveGame(showToastMsg) {
   if (game.visiting) return false;
   try {
+    const prev = localStorage.getItem(SAVE_KEY);
+    if (prev) localStorage.setItem(SAVE_KEY + '_bak', prev);
     localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));
     return true;
@@ -588,15 +852,17 @@ function saveGame(showToastMsg) {
 }
 
 function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    return applySaveData(data);
-  } catch (e) {
-    console.error('Falha ao carregar', e);
-    return false;
+  let data = null;
+  for (const key of [SAVE_KEY, SAVE_KEY + '_bak']) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      data = JSON.parse(raw);
+      break;
+    } catch (e) { data = null; }
   }
+  if (!data) return false;
+  return applySaveData(data);
 }
 
 function applySaveData(data) {
@@ -613,8 +879,19 @@ function applySaveData(data) {
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
       landExpansions: data.landExpansions ?? 0,
-      farmCode: data.farmCode ?? null
+      farmCode: data.farmCode ?? null,
+      barn: data.barn ?? {}, orders: data.orders ?? [],
+      upgrades: { water: 1, till: 1, ...(data.upgrades ?? {}) },
+      tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
+      day: data.day ?? 0,
+      weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
+      particles: []
     });
+    for (const a of game.animals) {
+      if (a.age === undefined) a.age = 999;
+      if (a.bornAt === undefined) a.bornAt = Date.now();
+    }
+    if (!data.orders) ensureOrders();
     game.stats.level = game.level;
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
     occupancy.fill(null);
