@@ -151,3 +151,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Botão Fazendeiros 🧑‍🌾** (menu esquerdo): painel para gerenciar todos os fazendeiros — ver sementes do baú, abrir o baú, contratar mais.
 - **Funções por fazendeiro**: escolha entre **Tudo** (planta, colhe e cuida dos animais), **Plantio** (só planta e colhe plantações) ou **Animais** (só coleta ovos/leite e abate porcos). Ex.: um fazendeiro só para animais, outro só para plantio.
 - **Botões de minimizar ▼**: um em cada canto inferior. Esquerdo recolhe o menu (Missões/Loja/Conquistas/Amigos/Fazendeiros); direito recolhe as ferramentas (ações + zoom). A seta vira para cima quando recolhido — toque de novo e as ferramentas descem.
+
+## Revisão 9 — Dinheiro ao vivo e seres mais realistas
+
+- **Correção importante**: o dinheiro das colheitas (e vendas) do fazendeiro agora aparece **na hora no saldo** — antes ele entrava, mas o HUD só atualizava quando você tocava na tela.
+- **Vaca**: orelhas, dois chifres, úbere com tetinhas, cascos escuros, sombra na barriga.
+- **Porco**: manchas de lama, cascos, sombra na barriga.
+- **Galinha**: asa com penas desenhadas, sombra na barriga.
+- **Fazendeiro**: botas, avental de couro, camisa xadrez vermelha com mãos, sorriso.
+- **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
+- **Celeiro**: paredes com tábuas de madeira.

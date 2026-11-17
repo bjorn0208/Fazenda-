@@ -185,6 +185,24 @@ function drawChicken(ctx, bob, dir, walking, phase) {
   ctx.ellipse(0, -9 + bob * 0.5, 9, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.fillStyle = 'rgba(160,160,160,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -5.5 + bob * 0.5, 7, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ededed';
+  ctx.beginPath();
+  ctx.ellipse(dir * -2, -9.5 + bob * 0.5, 4.5, 3.2, dir * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,120,120,0.5)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(dir * -4, -10.5 + bob * 0.5);
+  ctx.lineTo(dir * -0.5, -10 + bob * 0.5);
+  ctx.moveTo(dir * -4, -8.8 + bob * 0.5);
+  ctx.lineTo(dir * -0.5, -8.6 + bob * 0.5);
+  ctx.stroke();
+
   ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
   ctx.moveTo(dir * -8, -10 + bob * 0.5);
@@ -231,15 +249,38 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(-10 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(10 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(-4 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(4 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#f5f1e8';
   ctx.beginPath();
   ctx.ellipse(0, -14 + bob * 0.4, 17, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(140,125,105,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(0, -8.5 + bob * 0.4, 13, 4.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#424242';
   ctx.beginPath();
   ctx.ellipse(-6, -16 + bob * 0.4, 5, 4, 0.4, 0, Math.PI * 2);
   ctx.ellipse(7, -11 + bob * 0.4, 4, 3, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f8bbd0';
+  ctx.beginPath();
+  ctx.ellipse(dir * -9, -8 + bob * 0.4, 4.5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e91e63';
+  ctx.beginPath();
+  ctx.arc(dir * -10.5, -7 + bob * 0.4, 0.8, 0, Math.PI * 2);
+  ctx.arc(dir * -7.5, -7 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.strokeStyle = '#e8e4dc';
@@ -251,6 +292,17 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.fillStyle = '#6d4c41';
   ctx.beginPath();
   ctx.arc(dir * -20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#e8e4dc';
+  ctx.beginPath();
+  ctx.ellipse(dir * 12.5, -22.5 + bob, 3, 1.8, 0.5, 0, Math.PI * 2);
+  ctx.ellipse(dir * 23.5, -22.5 + bob, 3, 1.8, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d7ccc8';
+  ctx.beginPath();
+  ctx.arc(dir * 12.5, -22.5 + bob, 1.2, 0, Math.PI * 2);
+  ctx.arc(dir * 23.5, -22.5 + bob, 1.2, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f1e8';
@@ -273,6 +325,12 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.moveTo(dir * 15, -25 + bob);
   ctx.lineTo(dir * 12, -29 + bob);
   ctx.lineTo(dir * 18, -27 + bob);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(dir * 21, -24.5 + bob);
+  ctx.lineTo(dir * 24.5, -28 + bob);
+  ctx.lineTo(dir * 18.5, -26.5 + bob);
   ctx.closePath();
   ctx.fill();
 
@@ -300,9 +358,28 @@ function drawPig(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
+  ctx.fillStyle = '#8d5a6b';
+  ctx.beginPath();
+  ctx.ellipse(-7 + legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(7 - legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(-2 - legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(2 + legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#f4a9bc';
   ctx.beginPath();
   ctx.ellipse(0, -11 + bob * 0.5, 13, 8.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(190,110,135,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -6.5 + bob * 0.5, 10, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(140,90,60,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(-5, -14 + bob * 0.5, 3, 2, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(6, -9 + bob * 0.5, 2.4, 1.6, -0.4, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.strokeStyle = '#e28ba0';

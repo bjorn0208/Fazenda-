@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v15';
+const GAME_VERSION = 'v16';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -603,6 +603,7 @@ function loop(ts) {
     updateAnimals(dt);
     updateFarmers(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+    refreshHud();
   } catch (err) {
     if (dbgBadge) {
       dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + err.message;

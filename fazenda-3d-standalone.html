@@ -524,7 +524,7 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v15</div>
+<div id="debug-badge">v16</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1924,6 +1924,13 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
   const top = projectPoint(gx + w - 0.15, gy + d * 0.45 + 0.25, 0.67);
   const ts = worldToScreen(cam, top.x, top.y, cw, ch);
   ctx.beginPath(); ctx.arc(ts.x, ts.y, 1.5 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(60,40,20,0.45)';
+  ctx.lineWidth = 1;
+  for (const frac of [0.33, 0.66]) {
+    const l0 = { x: door[0].x + (door[1].x - door[0].x) * frac, y: door[0].y + (door[1].y - door[0].y) * frac };
+    const l1 = { x: door[3].x + (door[2].x - door[3].x) * frac, y: door[3].y + (door[2].y - door[3].y) * frac };
+    ctx.beginPath(); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
+  }
   drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + d * 0.45 + 0.1, 0.18, 0.7, 0.12, '#bcaaa4');
 
   // janelas com moldura e brilho
@@ -1945,6 +1952,11 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
     ctx.moveTo((win[0].x + win[1].x) / 2, (win[0].y + win[1].y) / 2);
     ctx.lineTo((win[2].x + win[3].x) / 2, (win[2].y + win[3].y) / 2);
     ctx.stroke();
+    if (q !== 'baixa') {
+      drawPrism(ctx, cam, cw, ch, gx + w * wy, gy + d - 0.28, 0.42, 0.14, 0.1, '#795548');
+      drawSphere(ctx, cam, cw, ch, gx + w * wy + 0.1, gy + d - 0.2, 0.06, 0.08, '#e53935');
+      drawSphere(ctx, cam, cw, ch, gx + w * wy + 0.3, gy + d - 0.2, 0.06, 0.08, '#fdd835');
+    }
   }
 
   // arbustos nos cantos
@@ -1988,6 +2000,18 @@ function drawRoofShingles(ctx, cam, cw, ch, gx, gy, w, d, baseH, ridgeH) {
 function drawBarn(ctx, cam, cw, ch, gx, gy, w, d, q) {
   drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
   drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, 0.8, '#c62828');
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 6; i++) {
+      const px = gx + 0.1 + (w - 0.2) * i / 6;
+      const pa = projectPoint(px, gy + d - 0.1, 0);
+      const pb = projectPoint(px, gy + d - 0.1, 0.8);
+      const sa = worldToScreen(cam, pa.x, pa.y, cw, ch);
+      const sb = worldToScreen(cam, pb.x, pb.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+    }
+  }
   drawGableRoof(ctx, cam, cw, ch, gx, gy, w, d, 0.8, 0.7, '#8d6e63', 'x');
   drawRoofShingles(ctx, cam, cw, ch, gx, gy, w, d, 0.8, 0.7);
 
@@ -2598,6 +2622,24 @@ function drawChicken(ctx, bob, dir, walking, phase) {
   ctx.ellipse(0, -9 + bob * 0.5, 9, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.fillStyle = 'rgba(160,160,160,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -5.5 + bob * 0.5, 7, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ededed';
+  ctx.beginPath();
+  ctx.ellipse(dir * -2, -9.5 + bob * 0.5, 4.5, 3.2, dir * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,120,120,0.5)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(dir * -4, -10.5 + bob * 0.5);
+  ctx.lineTo(dir * -0.5, -10 + bob * 0.5);
+  ctx.moveTo(dir * -4, -8.8 + bob * 0.5);
+  ctx.lineTo(dir * -0.5, -8.6 + bob * 0.5);
+  ctx.stroke();
+
   ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
   ctx.moveTo(dir * -8, -10 + bob * 0.5);
@@ -2644,15 +2686,38 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(-10 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(10 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(-4 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(4 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#f5f1e8';
   ctx.beginPath();
   ctx.ellipse(0, -14 + bob * 0.4, 17, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(140,125,105,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(0, -8.5 + bob * 0.4, 13, 4.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#424242';
   ctx.beginPath();
   ctx.ellipse(-6, -16 + bob * 0.4, 5, 4, 0.4, 0, Math.PI * 2);
   ctx.ellipse(7, -11 + bob * 0.4, 4, 3, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f8bbd0';
+  ctx.beginPath();
+  ctx.ellipse(dir * -9, -8 + bob * 0.4, 4.5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e91e63';
+  ctx.beginPath();
+  ctx.arc(dir * -10.5, -7 + bob * 0.4, 0.8, 0, Math.PI * 2);
+  ctx.arc(dir * -7.5, -7 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.strokeStyle = '#e8e4dc';
@@ -2664,6 +2729,17 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.fillStyle = '#6d4c41';
   ctx.beginPath();
   ctx.arc(dir * -20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#e8e4dc';
+  ctx.beginPath();
+  ctx.ellipse(dir * 12.5, -22.5 + bob, 3, 1.8, 0.5, 0, Math.PI * 2);
+  ctx.ellipse(dir * 23.5, -22.5 + bob, 3, 1.8, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d7ccc8';
+  ctx.beginPath();
+  ctx.arc(dir * 12.5, -22.5 + bob, 1.2, 0, Math.PI * 2);
+  ctx.arc(dir * 23.5, -22.5 + bob, 1.2, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f1e8';
@@ -2686,6 +2762,12 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.moveTo(dir * 15, -25 + bob);
   ctx.lineTo(dir * 12, -29 + bob);
   ctx.lineTo(dir * 18, -27 + bob);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(dir * 21, -24.5 + bob);
+  ctx.lineTo(dir * 24.5, -28 + bob);
+  ctx.lineTo(dir * 18.5, -26.5 + bob);
   ctx.closePath();
   ctx.fill();
 
@@ -2713,9 +2795,28 @@ function drawPig(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
+  ctx.fillStyle = '#8d5a6b';
+  ctx.beginPath();
+  ctx.ellipse(-7 + legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(7 - legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(-2 - legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(2 + legSwing, 1, 1.9, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#f4a9bc';
   ctx.beginPath();
   ctx.ellipse(0, -11 + bob * 0.5, 13, 8.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(190,110,135,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -6.5 + bob * 0.5, 10, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(140,90,60,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(-5, -14 + bob * 0.5, 3, 2, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(6, -9 + bob * 0.5, 2.4, 1.6, -0.4, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.strokeStyle = '#e28ba0';
@@ -2951,6 +3052,12 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.moveTo(2.5, -8); ctx.lineTo(2.5 - legSwing, 0);
   ctx.stroke();
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(-2.5 + legSwing, 0.5, 2.2, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(2.5 - legSwing, 0.5, 2.2, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#3949ab';
   ctx.beginPath();
   ctx.rect(-5, -18 + bob * 0.4, 10, 11);
@@ -2959,11 +3066,29 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.fillStyle = '#303f9f';
   ctx.fillRect(-5, -12 + bob * 0.4, 10, 2);
 
-  ctx.strokeStyle = '#3949ab';
+  ctx.fillStyle = '#a1887f';
+  ctx.beginPath();
+  ctx.rect(-3.5, -17 + bob * 0.4, 7, 8.5);
+  ctx.fill();
+  ctx.strokeStyle = '#8d6e63';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(-3.5, -17 + bob * 0.4, 7, 8.5);
+  ctx.beginPath();
+  ctx.moveTo(-3.5, -17 + bob * 0.4); ctx.lineTo(-5, -18.5 + bob * 0.4);
+  ctx.moveTo(3.5, -17 + bob * 0.4); ctx.lineTo(5, -18.5 + bob * 0.4);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#c62828';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(-5, -16 + bob * 0.4); ctx.lineTo(-8, -11 + armSwing + bob * 0.4);
   ctx.moveTo(5, -16 + bob * 0.4); ctx.lineTo(8, -11 - armSwing + bob * 0.4);
+  ctx.stroke();
+  ctx.strokeStyle = '#ffcc80';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12 + armSwing + bob * 0.4); ctx.lineTo(-8.5, -10 + armSwing + bob * 0.4);
+  ctx.moveTo(8, -12 - armSwing + bob * 0.4); ctx.lineTo(8.5, -10 - armSwing + bob * 0.4);
   ctx.stroke();
 
   ctx.fillStyle = '#ffcc80';
@@ -2976,6 +3101,12 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.arc(1.5 - 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.arc(1.5 + 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = '#a1887f';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.arc(2, -21.6 + bob * 0.4, 1.6, 0.25, Math.PI - 0.25);
+  ctx.stroke();
 
   ctx.fillStyle = '#e6c465';
   ctx.beginPath();
@@ -3915,7 +4046,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v15';
+const GAME_VERSION = 'v16';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -4467,6 +4598,7 @@ function loop(ts) {
     updateAnimals(dt);
     updateFarmers(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+    refreshHud();
   } catch (err) {
     if (dbgBadge) {
       dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + err.message;

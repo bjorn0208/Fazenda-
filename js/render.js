@@ -481,6 +481,13 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
   const top = projectPoint(gx + w - 0.15, gy + d * 0.45 + 0.25, 0.67);
   const ts = worldToScreen(cam, top.x, top.y, cw, ch);
   ctx.beginPath(); ctx.arc(ts.x, ts.y, 1.5 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(60,40,20,0.45)';
+  ctx.lineWidth = 1;
+  for (const frac of [0.33, 0.66]) {
+    const l0 = { x: door[0].x + (door[1].x - door[0].x) * frac, y: door[0].y + (door[1].y - door[0].y) * frac };
+    const l1 = { x: door[3].x + (door[2].x - door[3].x) * frac, y: door[3].y + (door[2].y - door[3].y) * frac };
+    ctx.beginPath(); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
+  }
   drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + d * 0.45 + 0.1, 0.18, 0.7, 0.12, '#bcaaa4');
 
   // janelas com moldura e brilho
@@ -502,6 +509,11 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
     ctx.moveTo((win[0].x + win[1].x) / 2, (win[0].y + win[1].y) / 2);
     ctx.lineTo((win[2].x + win[3].x) / 2, (win[2].y + win[3].y) / 2);
     ctx.stroke();
+    if (q !== 'baixa') {
+      drawPrism(ctx, cam, cw, ch, gx + w * wy, gy + d - 0.28, 0.42, 0.14, 0.1, '#795548');
+      drawSphere(ctx, cam, cw, ch, gx + w * wy + 0.1, gy + d - 0.2, 0.06, 0.08, '#e53935');
+      drawSphere(ctx, cam, cw, ch, gx + w * wy + 0.3, gy + d - 0.2, 0.06, 0.08, '#fdd835');
+    }
   }
 
   // arbustos nos cantos
@@ -545,6 +557,18 @@ function drawRoofShingles(ctx, cam, cw, ch, gx, gy, w, d, baseH, ridgeH) {
 function drawBarn(ctx, cam, cw, ch, gx, gy, w, d, q) {
   drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
   drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, 0.8, '#c62828');
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 6; i++) {
+      const px = gx + 0.1 + (w - 0.2) * i / 6;
+      const pa = projectPoint(px, gy + d - 0.1, 0);
+      const pb = projectPoint(px, gy + d - 0.1, 0.8);
+      const sa = worldToScreen(cam, pa.x, pa.y, cw, ch);
+      const sb = worldToScreen(cam, pb.x, pb.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+    }
+  }
   drawGableRoof(ctx, cam, cw, ch, gx, gy, w, d, 0.8, 0.7, '#8d6e63', 'x');
   drawRoofShingles(ctx, cam, cw, ch, gx, gy, w, d, 0.8, 0.7);
 

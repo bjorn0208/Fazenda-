@@ -194,6 +194,12 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.moveTo(2.5, -8); ctx.lineTo(2.5 - legSwing, 0);
   ctx.stroke();
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(-2.5 + legSwing, 0.5, 2.2, 1.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(2.5 - legSwing, 0.5, 2.2, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#3949ab';
   ctx.beginPath();
   ctx.rect(-5, -18 + bob * 0.4, 10, 11);
@@ -202,11 +208,29 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.fillStyle = '#303f9f';
   ctx.fillRect(-5, -12 + bob * 0.4, 10, 2);
 
-  ctx.strokeStyle = '#3949ab';
+  ctx.fillStyle = '#a1887f';
+  ctx.beginPath();
+  ctx.rect(-3.5, -17 + bob * 0.4, 7, 8.5);
+  ctx.fill();
+  ctx.strokeStyle = '#8d6e63';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(-3.5, -17 + bob * 0.4, 7, 8.5);
+  ctx.beginPath();
+  ctx.moveTo(-3.5, -17 + bob * 0.4); ctx.lineTo(-5, -18.5 + bob * 0.4);
+  ctx.moveTo(3.5, -17 + bob * 0.4); ctx.lineTo(5, -18.5 + bob * 0.4);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#c62828';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(-5, -16 + bob * 0.4); ctx.lineTo(-8, -11 + armSwing + bob * 0.4);
   ctx.moveTo(5, -16 + bob * 0.4); ctx.lineTo(8, -11 - armSwing + bob * 0.4);
+  ctx.stroke();
+  ctx.strokeStyle = '#ffcc80';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12 + armSwing + bob * 0.4); ctx.lineTo(-8.5, -10 + armSwing + bob * 0.4);
+  ctx.moveTo(8, -12 - armSwing + bob * 0.4); ctx.lineTo(8.5, -10 - armSwing + bob * 0.4);
   ctx.stroke();
 
   ctx.fillStyle = '#ffcc80';
@@ -219,6 +243,12 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.arc(1.5 - 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.arc(1.5 + 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = '#a1887f';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.arc(2, -21.6 + bob * 0.4, 1.6, 0.25, Math.PI - 0.25);
+  ctx.stroke();
 
   ctx.fillStyle = '#e6c465';
   ctx.beginPath();
