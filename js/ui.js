@@ -127,7 +127,9 @@ const I18N = {
     'visit.back': '🏡 Voltar',
     'pers.trabalhador': 'Trabalhador', 'pers.sonhador': 'Sonhador', 'pers.rabugento': 'Rabugento', 'pers.brincalhao': 'Brincalhão', 'pers.sabio': 'Sábio',
     'mood.feliz': 'Feliz', 'mood.animado': 'Animado', 'mood.cansado': 'Cansado', 'mood.irritado': 'Irritado',
-    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
+    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias, taboas e sapos.',
+    'b_doghouse': 'Casinha do Cachorro', 'b_doghouse_desc': 'Quando você desliga o cachorro, ele volta para cá dormir.',
+    'b_bar': 'Bar da Fazenda', 'b_bar_desc': 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
@@ -166,7 +168,8 @@ const I18N = {
     'toast.dogOn': '🐕 O cachorro está juntando os animais no curral!',
     'toast.dogOff': '🐕 O cachorro foi descansar.',
     'toast.noDog': '🐕 Compre um cachorro na loja (aba Ajudantes)!',
-    'toast.dogOwned': 'Você já tem um cachorro.',
+    'toast.dogOwned': 'Você já tem o máximo de cachorros.',
+    'toast.dogLimit': '🐕 Máximo de 3 cachorros.',
     'toast.dogBought': '🐕 Cachorro chegou! Toque no botão 🐕 para soltá-lo.',
     'h_dog': 'Cachorro', 'h_dog_desc': 'Solte-o e ele assusta os animais para dentro do curral.',
     'shop.dogOwned': 'Já tem um',
@@ -304,7 +307,9 @@ const I18N = {
     'visit.back': '🏡 Back',
     'pers.trabalhador': 'Hard worker', 'pers.sonhador': 'Dreamer', 'pers.rabugento': 'Grumpy', 'pers.brincalhao': 'Joker', 'pers.sabio': 'Wise',
     'mood.feliz': 'Happy', 'mood.animado': 'Cheerful', 'mood.cansado': 'Tired', 'mood.irritado': 'Grumpy',
-    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
+    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads, cattails and frogs.',
+    'b_doghouse': 'Doghouse', 'b_doghouse_desc': 'When you switch the dog off, he comes here to sleep.',
+    'b_bar': 'Farm Bar', 'b_bar_desc': 'At night the farmers come for a cold one, barbecue and music.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.shovel': 'Shovel',
@@ -342,7 +347,8 @@ const I18N = {
     'toast.dogOn': '🐕 The dog is gathering the animals into the pen!',
     'toast.dogOff': '🐕 The dog went to rest.',
     'toast.noDog': '🐕 Buy a dog in the shop (Helpers tab)!',
-    'toast.dogOwned': 'You already have a dog.',
+    'toast.dogOwned': 'You already have the maximum number of dogs.',
+    'toast.dogLimit': '🐕 Maximum of 3 dogs.',
     'toast.dogBought': '🐕 Dog arrived! Tap the 🐕 button to release him.',
     'h_dog': 'Dog', 'h_dog_desc': 'Release him and he scares the animals into the pen.',
     'shop.dogOwned': 'Already owned',
@@ -480,8 +486,8 @@ function refreshHud() {
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
-    dogBtn.classList.toggle('hidden', !game.dog);
-    dogBtn.classList.toggle('active', !!(game.dog && game.dog.active));
+    dogBtn.classList.toggle('hidden', !game.dogs.length);
+    dogBtn.classList.toggle('active', game.dogs.some(d => d.active));
   }
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
@@ -599,8 +605,8 @@ function openShop() {
     if (currentShopTab === 'ajudantes') {
       for (const def of Object.values(HELPERS)) {
         const locked = game.level < def.level;
-        const price = def.id === 'farmer' ? farmerPrice() : def.price;
-        const owned = def.id === 'dog' && game.dog;
+        const price = def.id === 'farmer' ? farmerPrice() : (def.id === 'dog' ? dogPrice() : def.price);
+        const owned = def.id === 'dog' && game.dogs.length >= MAX_DOGS;
         const afford = game.coins >= price;
         const item = document.createElement('div');
         item.className = 'shop-item';

@@ -20,7 +20,7 @@ const game = {
   farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
   pen: null,              // {x0, y0, x1, y1, gateX, gateY, paid}
   time: 0.1,              // fracao do dia (0..1): ciclo dia/noite
-  dog: null,              // {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
+  dogs: [],               // cachorros pastores: {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -216,7 +216,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 300; // segundos reais por dia completo (5 minutos)
+const DAY_LENGTH = 600; // segundos reais por dia completo (10 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -327,22 +327,40 @@ function removePen() {
 }
 
 /* ---------- Cachorro (pastor automatico) ---------- */
+const MAX_DOGS = 3;
+
+function dogPrice() {
+  return HELPERS.dog.price * Math.pow(2, game.dogs.length);
+}
+
 function buyDog() {
   const def = HELPERS.dog;
   if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
-  if (game.dog) { showToast(t('toast.dogOwned')); return false; }
-  if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
+  if (game.dogs.length >= MAX_DOGS) { showToast(t('toast.dogLimit')); return false; }
+  const price = dogPrice();
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
-  addCoins(-def.price);
-  game.dog = {
+  addCoins(-price);
+  game.dogs.push({
     gx: spot.x + 0.5, gy: spot.y + 0.5,
     tx: spot.x + 0.5, ty: spot.y + 0.5,
     walking: false, wait: 1, phase: Math.random() * 10,
-    active: false, face: 0, lastDir: 1
-  };
+    active: false, face: 0, lastDir: 1, resting: false
+  });
   playSound('level');
   return true;
+}
+
+/* Tile livre ao lado da casinha do cachorro. */
+function doghouseSpot() {
+  const h = game.buildings.find(b => b.type === 'doghouse');
+  if (!h) return null;
+  for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
+    const x = h.gx + dx, y = h.gy + dy;
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) return { x, y };
+  }
+  return null;
 }
 
 /* ---------- Producao dos animais ---------- */
@@ -549,7 +567,7 @@ function snapshotData() {
     farmName: game.farmName, ownedArea: game.ownedArea,
     buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
     tilled: game.tilled, farmers: game.farmers,
-    pen: game.pen, dog: game.dog, time: game.time,
+    pen: game.pen, dogs: game.dogs, time: game.time,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
@@ -589,7 +607,7 @@ function applySaveData(data) {
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
       tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
-      pen: data.pen ?? null, dog: data.dog ?? null, time: data.time ?? 0.1,
+      pen: data.pen ?? null, dogs: data.dogs ?? (data.dog ? [data.dog] : []), time: data.time ?? 0.1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },

@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v25';
+const GAME_VERSION = 'v26';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -572,10 +572,11 @@ const uiHandlers = {
   },
   dog() {
     playSound('click');
-    if (!game.dog) { showToast(t('toast.noDog')); return; }
-    if (!game.dog.active && !game.pen) { showToast(t('toast.needPen')); return; }
-    game.dog.active = !game.dog.active;
-    showToast(game.dog.active ? t('toast.dogOn') : t('toast.dogOff'));
+    if (!game.dogs.length) { showToast(t('toast.noDog')); return; }
+    const any = game.dogs.some(d => d.active);
+    if (!any && !game.pen) { showToast(t('toast.needPen')); return; }
+    for (const d of game.dogs) d.active = !any;
+    showToast(!any ? t('toast.dogOn') : t('toast.dogOff'));
     refreshHud();
   },
   collectAll() {
@@ -663,7 +664,7 @@ function loop(ts) {
     advanceClock(dt);
     updateAnimals(dt);
     updateFarmers(dt);
-    updateDog(dt);
+    updateDogs(dt);
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();

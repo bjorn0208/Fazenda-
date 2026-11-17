@@ -308,6 +308,12 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   ctx.restore();
 
+  if (grazing) {
+    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22] };
+    const hp = heads[a.kind] || [14, -14];
+    drawGrazingBits(ctx, s.x + dir * hp[0] * z * k.scale * squash, s.y + hp[1] * z * k.scale, z, dir, a.phase);
+  }
+
   let icon = null;
   if (a.kind === 'pig') {
     if (a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS) icon = '🥓';
@@ -385,6 +391,23 @@ function drawChicken(ctx, bob, dir, walking, phase) {
   ctx.beginPath();
   ctx.arc(dir * 7.5, -17 + bob, 1, 0, Math.PI * 2);
   ctx.fill();
+}
+
+/* Filetes de grama sendo comidos (desenhados fora do scale do bicho). */
+function drawGrazingBits(ctx, hx, hy, z, dir, phase) {
+  const k = 0.5 + 0.5 * Math.sin(phase * 5);
+  ctx.strokeStyle = '#4c9c33';
+  ctx.lineWidth = Math.max(1, 1.2 * z);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const bx = hx + dir * (i * 3 - 3) * z;
+    const len = (2.5 + i) * z * (1 - k * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(bx, hy);
+    ctx.quadraticCurveTo(bx + dir * 1.2 * z, hy - len * 0.6, bx + dir * 2 * z, hy - len);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
 }
 
 function drawCow(ctx, bob, dir, walking, phase) {
@@ -587,9 +610,11 @@ function dogWalkTo(d, tx, ty) {
   d.walking = true;
 }
 
-function updateDog(dt) {
-  const d = game.dog;
-  if (!d) return;
+function updateDogs(dt) {
+  for (const d of game.dogs) updateDogOne(d, dt);
+}
+
+function updateDogOne(d, dt) {
   d.phase += dt;
   if (d.walking) {
     const dx = d.tx - d.gx, dy = d.ty - d.gy;
@@ -600,7 +625,7 @@ function updateDog(dt) {
       if (Math.abs(fx) >= 0.15) d.lastDir = fx >= 0 ? 1 : -1;
     }
     const dist = Math.hypot(dx, dy);
-    const step = 1.7 * dt;
+    const step = 3.4 * dt;
     if (dist <= step) {
       d.gx = d.tx; d.gy = d.ty;
       if (d.path && d.path.length) {
@@ -646,6 +671,19 @@ function updateDog(dt) {
       }
     }
   }
+  const home = (!d.active && dayPhase() !== 'night') ? doghouseSpot() : null;
+  if (home) {
+    d.resting = true;
+    if (Math.hypot(home.x + 0.5 - d.gx, home.y + 0.5 - d.gy) > 0.6) {
+      dogWalkTo(d, home.x, home.y);
+    } else {
+      d.walking = false;
+      d.wait = 2 + Math.random() * 3;
+    }
+    return;
+  }
+  d.resting = false;
+
   const cx = Math.floor(d.gx), cy = Math.floor(d.gy);
   const opts = [];
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -748,6 +786,14 @@ function drawDog(ctx, cam, cw, ch, d) {
   ctx.stroke();
 
   ctx.restore();
+
+  if (d.resting && !d.walking) {
+    ctx.font = Math.max(9, 11 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.75;
+    ctx.fillText('💤', s.x + 10 * z, s.y - 26 * z + Math.sin(d.phase * 2) * 2 * z);
+    ctx.globalAlpha = 1;
+  }
 }
 
 
@@ -767,7 +813,7 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
-  ctx.fillStyle = '#5d4037';
+  ctx.fillStyle = '#3e2723';
   ctx.beginPath();
   ctx.ellipse(-12 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
   ctx.ellipse(12 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
@@ -790,12 +836,35 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.ellipse(-4, -20 + bob * 0.4, 6, 4, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(0, -24 + bob * 0.4, 6.5, 3.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8d6e63';
+  ctx.beginPath();
+  ctx.ellipse(0, -25.2 + bob * 0.4, 4.2, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(-6, -22.5 + bob * 0.4);
+  ctx.lineTo(-5, -12 + bob * 0.4);
+  ctx.moveTo(6, -22.5 + bob * 0.4);
+  ctx.lineTo(5, -12 + bob * 0.4);
+  ctx.stroke();
+
   const tailWag = walking ? Math.sin(phase * 7) * 3 : Math.sin(phase * 2) * 1.5;
   ctx.strokeStyle = '#4e342e';
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(dir * -16, -21 + bob * 0.4);
   ctx.quadraticCurveTo(dir * -22, -18 + bob * 0.4 + tailWag, dir * -23, -11 + bob * 0.4 + tailWag);
+  ctx.stroke();
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(dir * -16, -20 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * -20.5, -16 + bob * 0.4 + tailWag, dir * -21.5, -9 + bob * 0.4 + tailWag);
   ctx.stroke();
 
   ctx.fillStyle = '#8d6e63';
@@ -830,6 +899,28 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.quadraticCurveTo(dir * 15, -36 + bob, dir * 18, -30 + bob);
   ctx.quadraticCurveTo(dir * 15.5, -31.5 + bob, dir * 13, -29 + bob);
   ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.moveTo(dir * 14, -29 + bob);
+  ctx.quadraticCurveTo(dir * 8, -27 + bob, dir * 4, -24 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * 9, -25.5 + bob, dir * 14.5, -27.5 + bob);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(dir * 17, -30 + bob);
+  ctx.lineTo(dir * 21, -24 + bob);
+  ctx.moveTo(dir * 15, -26 + bob);
+  ctx.lineTo(dir * 21, -22.5 + bob);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(dir * 18.5, -26.5 + bob, 1.1, 2.2, dir * 0.25, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#e91e63';

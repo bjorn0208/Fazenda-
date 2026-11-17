@@ -162,6 +162,17 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 19 — Mais cachorros, casinha, sapos, cavalos finos, animais comendo grama e o Bar da Fazenda
+
+- **Vários cachorros 🐕**: agora dá para ter até **3 cachorros** — cada um custa o **dobro do anterior** (🪙3500, 🪙7000, 🪙14000). O botão 🐕 liga/desliga todos de uma vez, e cada um corre **2× mais rápido** para juntar os animais.
+- **Casinha do cachorro 🛖** (loja → Construções, 🪙600, nível 4): quando você desliga o cachorro, ele volta para a casinha, deita e fica **dormindo com 💤** até ser ativado de novo (ou até a noite, quando volta ao trabalho).
+- **Bar da Fazenda 🍺** (loja → Construções, 🪙4500, nível 7): balcão, banquinhas, barris e **pisca-pisca** colorido. À noite, cerca de 2 em cada 3 fazendeiros dão uma passada no bar para **tomar cerveja, comer churrasco e ouvir música** (notas 🎵 flutuando) — recuperam energia com frases novas dessa modalidade e depois vão dormir.
+- **Sapos no lago**: 3 sapos saltitam entre as vitórias-régias, com olhos saltados e ondas nos pulinhos.
+- **Animais comem grama**: ao pastar, aparecem filetes de grama sendo mordidos na boca de galinhas, vacas, porcos e cavalos.
+- **Cavalo 🐎 bem mais bonito**: sela de couro com faixa, crina, brida com redeas, lista branca na testa, cascos escuros e rabo cheio.
+- **Mais vagalumes**: o dobro de pontos piscando na noite (26).
+- **Ciclo agora dura 10 minutos** (era 5).
+
 ## Revisão 18 — Check-up geral: bugs e polimento visual
 
 **Bugs corrigidos:**

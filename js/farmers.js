@@ -38,7 +38,8 @@ const MIND_LINES = {
     meetBorrow: ['{other}, me empresta sementes de {crop}? Meu bau zerou.', 'To sem {crop}... {other}, pode me emprestar?', 'Empresta umas sementes de {crop}, {other}? Devolvo na colheita.'],
     meetLend: ['Claro, {other}! Te dou umas agora.', 'Pega, {other}! A colheita e de quem planta.', 'Toma, {other}. Sucesso com elas!'],
     meetNoSeeds: ['Sem sementes por enquanto... vou ajudar no resto.', 'Hoje trabalho na aracao e na agua.'],
-    meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!']
+    meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!'],
+    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!']
   },
   'en-US': {
     idle: ['Nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...', 'Good sun for planting today.', 'I love the morning soil smell.', 'That fence needs a touch-up.', 'The well never ran dry. Bless it.', 'So many birds today.', 'My jaw hurts from talking.', 'Finally a little rest.', 'The {farm} looks great this year.', 'I should have brought water.', 'The bees were angry back there.', 'These new boots pinch.', 'How long have we worked here?'],
@@ -59,7 +60,8 @@ const MIND_LINES = {
     meetBorrow: ['{other}, lend me {crop} seeds? My chest is empty.', "I'm out of {crop}... {other}, can you lend me some?", 'Lend me some {crop} seeds, {other}? I pay you back at harvest.'],
     meetLend: ['Sure, {other}! Here you go.', 'Take it, {other}! The harvest belongs to whoever plants.', 'Here, {other}. Good luck with them!'],
     meetNoSeeds: ['No seeds for now... I will help with the rest.', "I'll work the tilling and watering today."],
-    meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!']
+    meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!'],
+    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!']
   }
 };
 
@@ -192,6 +194,22 @@ function farmerEnsureMind(f) {
   f.thoughtLog = [];
   f.shirt = SHIRT_PALETTE[(f.id || 0) % SHIRT_PALETTE.length];
   f.shirtDark = shadeColor(f.shirt, 0.62);
+  f.barTonight = Math.random() < 0.65;
+  f.barDone = false;
+  f.atBar = false;
+  f.barT = 0;
+}
+
+function barSpotFor(f, bar) {
+  const cands = [];
+  for (let x = bar.gx; x < bar.gx + 3; x++) {
+    if (inBounds(x, bar.gy + 2) && inOwnedArea(x, bar.gy + 2) && !occupancy[occIndex(x, bar.gy + 2)]) cands.push({ x, y: bar.gy + 2 });
+  }
+  for (const [x, y] of [[bar.gx - 1, bar.gy + 1], [bar.gx + 3, bar.gy + 1]]) {
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
+  }
+  if (!cands.length) return { x: bar.gx + 1, y: bar.gy + 2 };
+  return cands[(f.id || 0) % cands.length];
 }
 
 function farmerSay(f, text, dur) {
@@ -202,6 +220,7 @@ function farmerSay(f, text, dur) {
 }
 
 function farmerThink(f) {
+  if (f.atBar) { farmerSay(f, mindLine('bar'), 4200); return; }
   if (f.inside) { farmerSay(f, mindLine('night'), 4200); return; }
   const phase = dayPhase();
   let pool = 'idle';
@@ -394,7 +413,14 @@ function updateFarmers(dt) {
     }
 
     if (f.inside) {
-      if (dayPhase() !== 'night') { f.inside = false; f.wait = 0.5; }
+      if (dayPhase() !== 'night') {
+        f.inside = false;
+        f.wait = 0.5;
+        f.barTonight = Math.random() < 0.65;
+        f.barDone = false;
+        f.atBar = false;
+        f.barT = 0;
+      }
       else {
         f.energy = Math.min(100, (f.energy || 60) + 40 * dt);
         f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
@@ -430,6 +456,26 @@ function updateFarmers(dt) {
     if (!game.meetingDone && dayPhase() === 'day') continue;
 
     if (dayPhase() === 'night') {
+      const bar = game.buildings.find(b => b.type === 'bar');
+      if (bar && f.barTonight && !f.barDone) {
+        f.atBar = true;
+        const spot = barSpotFor(f, bar);
+        if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
+          f.walking = false;
+          f.riding = false;
+          f.energy = Math.min(100, (f.energy || 60) + 22 * dt);
+          f.wait = 0.5;
+          f.barT = (f.barT || 0) + dt;
+          if (Math.random() < dt * 0.25) farmerSay(f, mindLine('bar'), 4500);
+          if (f.barT > 40 || game.time > 0.97) f.barDone = true;
+        } else {
+          f.riding = false;
+          f.tx = spot.x + 0.5;
+          f.ty = spot.y + 0.5;
+          f.walking = true;
+        }
+        continue;
+      }
       const door = houseDoorTile();
       if (door) {
         if (Math.hypot(door.x + 0.5 - f.gx, door.y + 0.5 - f.gy) < 0.9) {

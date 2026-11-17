@@ -621,7 +621,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v25</div>
+<div id="debug-badge">v26</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -740,8 +740,20 @@ const BUILDINGS = {
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
     price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
-    desc: 'Água viva com vitórias-régias e taboas.',
+    desc: 'Água viva com vitórias-régias, taboas e sapos.',
     refund: 0.3
+  },
+  doghouse: {
+    id: 'doghouse', name: 'Casinha do Cachorro', icon: '🛖',
+    price: 600, w: 1, d: 1, level: 4, category: 'construcoes',
+    desc: 'Quando você desliga o cachorro, ele volta para cá dormir.',
+    refund: 0.5
+  },
+  bar: {
+    id: 'bar', name: 'Bar da Fazenda', icon: '🍺',
+    price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
+    desc: 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
+    refund: 0.5
   }
 };
 
@@ -1104,7 +1116,7 @@ const game = {
   farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
   pen: null,              // {x0, y0, x1, y1, gateX, gateY, paid}
   time: 0.1,              // fracao do dia (0..1): ciclo dia/noite
-  dog: null,              // {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
+  dogs: [],               // cachorros pastores: {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -1300,7 +1312,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 300; // segundos reais por dia completo (5 minutos)
+const DAY_LENGTH = 600; // segundos reais por dia completo (10 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -1411,22 +1423,40 @@ function removePen() {
 }
 
 /* ---------- Cachorro (pastor automatico) ---------- */
+const MAX_DOGS = 3;
+
+function dogPrice() {
+  return HELPERS.dog.price * Math.pow(2, game.dogs.length);
+}
+
 function buyDog() {
   const def = HELPERS.dog;
   if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
-  if (game.dog) { showToast(t('toast.dogOwned')); return false; }
-  if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
+  if (game.dogs.length >= MAX_DOGS) { showToast(t('toast.dogLimit')); return false; }
+  const price = dogPrice();
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
   const spot = randomFreeTile();
   if (!spot) { showToast(t('toast.invalid')); return false; }
-  addCoins(-def.price);
-  game.dog = {
+  addCoins(-price);
+  game.dogs.push({
     gx: spot.x + 0.5, gy: spot.y + 0.5,
     tx: spot.x + 0.5, ty: spot.y + 0.5,
     walking: false, wait: 1, phase: Math.random() * 10,
-    active: false, face: 0, lastDir: 1
-  };
+    active: false, face: 0, lastDir: 1, resting: false
+  });
   playSound('level');
   return true;
+}
+
+/* Tile livre ao lado da casinha do cachorro. */
+function doghouseSpot() {
+  const h = game.buildings.find(b => b.type === 'doghouse');
+  if (!h) return null;
+  for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
+    const x = h.gx + dx, y = h.gy + dy;
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) return { x, y };
+  }
+  return null;
 }
 
 /* ---------- Producao dos animais ---------- */
@@ -1633,7 +1663,7 @@ function snapshotData() {
     farmName: game.farmName, ownedArea: game.ownedArea,
     buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
     tilled: game.tilled, farmers: game.farmers,
-    pen: game.pen, dog: game.dog, time: game.time,
+    pen: game.pen, dogs: game.dogs, time: game.time,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
@@ -1673,7 +1703,7 @@ function applySaveData(data) {
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
       tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
-      pen: data.pen ?? null, dog: data.dog ?? null, time: data.time ?? 0.1,
+      pen: data.pen ?? null, dogs: data.dogs ?? (data.dog ? [data.dog] : []), time: data.time ?? 0.1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
@@ -2196,7 +2226,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
-  if (game.dog) items.push({ key: game.dog.gx + game.dog.gy, kind: 'd', ref: game.dog });
+  for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -2251,6 +2281,8 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'doghouse': drawDoghouse(ctx, cam, cw, ch, gx, gy, q); break;
+    case 'bar':     drawBar(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 
@@ -2708,6 +2740,40 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
+    const frogs = [[0.5, 0.38, 0], [0.74, 0.72, 1.8], [0.3, 0.6, 3.1]];
+    for (const [ox, oy, ph] of frogs) {
+      const hop = Math.sin(t * 0.9 + ph);
+      const hopK = hop > 0.93 ? (hop - 0.93) / 0.07 : 0;
+      const p = projectPoint(gx + ox + hopK * 0.06, gy + oy - hopK * 0.1, 0.03 + hopK * 0.15);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      const fz = cam.zoom;
+      ctx.fillStyle = '#66bb6a';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4.5 * fz, 3 * fz, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#43a047';
+      ctx.beginPath();
+      ctx.ellipse(ps.x + 2.5 * fz, ps.y - 2 * fz, 2.6 * fz, 2 * fz, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ps.x + 1.8 * fz, ps.y - 3.6 * fz, 1.1 * fz, 0, Math.PI * 2);
+      ctx.arc(ps.x + 3.6 * fz, ps.y - 3.4 * fz, 1.1 * fz, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#222222';
+      ctx.beginPath();
+      ctx.arc(ps.x + 1.8 * fz, ps.y - 3.6 * fz, 0.5 * fz, 0, Math.PI * 2);
+      ctx.arc(ps.x + 3.6 * fz, ps.y - 3.4 * fz, 0.5 * fz, 0, Math.PI * 2);
+      ctx.fill();
+      if (hopK > 0) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(ps.x, ps.y + 2.5 * fz, 5.5 * fz, 2.5 * fz, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
     const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
     for (const [ox, oy] of reeds) {
       const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
@@ -2729,12 +2795,128 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
 }
 
+/* --- Casinha do cachorro: madeira, telhado vermelho, entrada em arco, placa com osso --- */
+function drawDoghouse(ctx, cam, cw, ch, gx, gy, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.16);
+  drawPrism(ctx, cam, cw, ch, gx + 0.12, gy + 0.12, 0.76, 0.76, 0.42, '#a1662f');
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.04, gy + 0.04, 0.92, 0.92, 0.42, 0.34, '#c62828', 'x');
+
+  const fr = projectPoint(gx + 0.5, gy + 0.85, 0.06);
+  const fs = worldToScreen(cam, fr.x, fr.y, cw, ch);
+  const fz = cam.zoom;
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.ellipse(fs.x, fs.y, 7 * fz, 8 * fz, 0, Math.PI, Math.PI * 2);
+  ctx.lineTo(fs.x + 7 * fz, fs.y + 1 * fz);
+  ctx.lineTo(fs.x - 7 * fz, fs.y + 1 * fz);
+  ctx.closePath();
+  ctx.fill();
+
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(62,39,35,0.45)';
+    ctx.lineWidth = Math.max(1, 1.2 * fz);
+    for (let i = 0; i < 3; i++) {
+      const a1 = projectPoint(gx + 0.14, gy + 0.2 + i * 0.24, 0.4);
+      const a2 = projectPoint(gx + 0.86, gy + 0.2 + i * 0.24, 0.4);
+      const s1 = worldToScreen(cam, a1.x, a1.y, cw, ch);
+      const s2 = worldToScreen(cam, a2.x, a2.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+    }
+    const sp = projectPoint(gx + 1.02, gy + 0.9, 0);
+    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(ss.x - 1 * fz, ss.y - 12 * fz, 2 * fz, 12 * fz);
+    ctx.fillStyle = '#d7a86e';
+    ctx.beginPath();
+    ctx.roundRect(ss.x - 8 * fz, ss.y - 20 * fz, 16 * fz, 9 * fz, 2 * fz);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ss.x - 5 * fz, ss.y - 17.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x - 5 * fz, ss.y - 14.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x + 5 * fz, ss.y - 17.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x + 5 * fz, ss.y - 14.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(ss.x - 5 * fz, ss.y - 17.5 * fz, 10 * fz, 2.6 * fz);
+  }
+}
+
+/* --- Bar da fazenda: balcao, banquinhas, barris, pisca-pisca e musica a noite --- */
+function drawBar(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
+  drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, 0.85, '#8d6e63');
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(62,39,35,0.4)';
+    ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
+    for (let i = 0; i < 4; i++) {
+      const a1 = projectPoint(gx + 0.12, gy + 0.25 + i * 0.42, 0.8);
+      const a2 = projectPoint(gx + w - 0.12, gy + 0.25 + i * 0.42, 0.8);
+      const s1 = worldToScreen(cam, a1.x, a1.y, cw, ch);
+      const s2 = worldToScreen(cam, a2.x, a2.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+    }
+  }
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.02, gy + 0.02, w - 0.04, d - 0.04, 0.85, 0.5, '#4e342e', 'x');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.35, 0.42, '#a1662f');
+  drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.08, 0.06, '#d7a86e');
+
+  if (q !== 'baixa') {
+    drawSphere(ctx, cam, cw, ch, gx + 0.7, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawSphere(ctx, cam, cw, ch, gx + 1.5, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawSphere(ctx, cam, cw, ch, gx + 2.3, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.32, 0.32, 0.4, '#6d4c41');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.36, 0.36, 0.06, '#4e342e');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.08, gy + 0.95, 0.28, 0.28, 0.34, '#8d6e63');
+
+    const w1 = projectPoint(gx + 0.08, gy + d - 0.32, 0.95);
+    const w2 = projectPoint(gx + w - 0.08, gy + d - 0.32, 0.95);
+    const p1 = worldToScreen(cam, w1.x, w1.y, cw, ch);
+    const p2 = worldToScreen(cam, w2.x, w2.y, cw, ch);
+    ctx.strokeStyle = 'rgba(60,50,40,0.7)';
+    ctx.lineWidth = Math.max(1, 1.1 * cam.zoom);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.quadraticCurveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + 6 * cam.zoom, p2.x, p2.y);
+    ctx.stroke();
+    const bulbs = ['#ff5252', '#ffd740', '#69f0ae', '#40c4ff', '#ff4081'];
+    for (let i = 1; i < 7; i++) {
+      const k = i / 7;
+      const bx = p1.x + (p2.x - p1.x) * k;
+      const by = p1.y + (p2.y - p1.y) * k + 6 * cam.zoom * Math.sin(Math.PI * k) + 3.5 * cam.zoom;
+      const lit = (Math.floor(performance.now() / 700) + i) % 2 === 0;
+      ctx.fillStyle = bulbs[i % bulbs.length];
+      ctx.globalAlpha = lit ? 1 : 0.45;
+      ctx.beginPath();
+      ctx.arc(bx, by, 2 * cam.zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  if (nightAlpha(game.time) > 0.15) {
+    const t = performance.now() / 1000;
+    ctx.font = Math.max(10, 13 * cam.zoom) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const bobn = Math.sin(t * 1.6 + i * 2.1) * 5 * cam.zoom;
+      const nx = gx + 0.6 + i * 0.9, ny = gy + 0.4 + (i % 2) * 0.8;
+      const np = projectPoint(nx, ny, 1.3 + Math.sin(t * 0.9 + i) * 0.12);
+      const ns = worldToScreen(cam, np.x, np.y, cw, ch);
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(t * 2 + i * 1.9);
+      ctx.fillText('🎵', ns.x, ns.y + bobn);
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left';
+  }
+}
+
 /* ---------- Vagalumes (noite) ---------- */
 function drawFireflies(ctx, cam, cw, ch, na) {
   const t = performance.now() / 1000;
   const a = game.ownedArea;
   ctx.save();
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 26; i++) {
     const hx = noiseHash(i * 13 + 1, 7);
     const hy = noiseHash(5, i * 29 + 3);
     const gx = a.x0 + hx * (a.x1 - a.x0) + Math.sin(t * 0.7 + i * 2.1) * 1.3;
@@ -3197,6 +3379,12 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   ctx.restore();
 
+  if (grazing) {
+    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22] };
+    const hp = heads[a.kind] || [14, -14];
+    drawGrazingBits(ctx, s.x + dir * hp[0] * z * k.scale * squash, s.y + hp[1] * z * k.scale, z, dir, a.phase);
+  }
+
   let icon = null;
   if (a.kind === 'pig') {
     if (a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS) icon = '🥓';
@@ -3274,6 +3462,23 @@ function drawChicken(ctx, bob, dir, walking, phase) {
   ctx.beginPath();
   ctx.arc(dir * 7.5, -17 + bob, 1, 0, Math.PI * 2);
   ctx.fill();
+}
+
+/* Filetes de grama sendo comidos (desenhados fora do scale do bicho). */
+function drawGrazingBits(ctx, hx, hy, z, dir, phase) {
+  const k = 0.5 + 0.5 * Math.sin(phase * 5);
+  ctx.strokeStyle = '#4c9c33';
+  ctx.lineWidth = Math.max(1, 1.2 * z);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const bx = hx + dir * (i * 3 - 3) * z;
+    const len = (2.5 + i) * z * (1 - k * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(bx, hy);
+    ctx.quadraticCurveTo(bx + dir * 1.2 * z, hy - len * 0.6, bx + dir * 2 * z, hy - len);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
 }
 
 function drawCow(ctx, bob, dir, walking, phase) {
@@ -3476,9 +3681,11 @@ function dogWalkTo(d, tx, ty) {
   d.walking = true;
 }
 
-function updateDog(dt) {
-  const d = game.dog;
-  if (!d) return;
+function updateDogs(dt) {
+  for (const d of game.dogs) updateDogOne(d, dt);
+}
+
+function updateDogOne(d, dt) {
   d.phase += dt;
   if (d.walking) {
     const dx = d.tx - d.gx, dy = d.ty - d.gy;
@@ -3489,7 +3696,7 @@ function updateDog(dt) {
       if (Math.abs(fx) >= 0.15) d.lastDir = fx >= 0 ? 1 : -1;
     }
     const dist = Math.hypot(dx, dy);
-    const step = 1.7 * dt;
+    const step = 3.4 * dt;
     if (dist <= step) {
       d.gx = d.tx; d.gy = d.ty;
       if (d.path && d.path.length) {
@@ -3535,6 +3742,19 @@ function updateDog(dt) {
       }
     }
   }
+  const home = (!d.active && dayPhase() !== 'night') ? doghouseSpot() : null;
+  if (home) {
+    d.resting = true;
+    if (Math.hypot(home.x + 0.5 - d.gx, home.y + 0.5 - d.gy) > 0.6) {
+      dogWalkTo(d, home.x, home.y);
+    } else {
+      d.walking = false;
+      d.wait = 2 + Math.random() * 3;
+    }
+    return;
+  }
+  d.resting = false;
+
   const cx = Math.floor(d.gx), cy = Math.floor(d.gy);
   const opts = [];
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -3637,6 +3857,14 @@ function drawDog(ctx, cam, cw, ch, d) {
   ctx.stroke();
 
   ctx.restore();
+
+  if (d.resting && !d.walking) {
+    ctx.font = Math.max(9, 11 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.75;
+    ctx.fillText('💤', s.x + 10 * z, s.y - 26 * z + Math.sin(d.phase * 2) * 2 * z);
+    ctx.globalAlpha = 1;
+  }
 }
 
 
@@ -3656,7 +3884,7 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.stroke();
   ctx.lineCap = 'butt';
 
-  ctx.fillStyle = '#5d4037';
+  ctx.fillStyle = '#3e2723';
   ctx.beginPath();
   ctx.ellipse(-12 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
   ctx.ellipse(12 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
@@ -3679,12 +3907,35 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.ellipse(-4, -20 + bob * 0.4, 6, 4, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.ellipse(0, -24 + bob * 0.4, 6.5, 3.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8d6e63';
+  ctx.beginPath();
+  ctx.ellipse(0, -25.2 + bob * 0.4, 4.2, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(-6, -22.5 + bob * 0.4);
+  ctx.lineTo(-5, -12 + bob * 0.4);
+  ctx.moveTo(6, -22.5 + bob * 0.4);
+  ctx.lineTo(5, -12 + bob * 0.4);
+  ctx.stroke();
+
   const tailWag = walking ? Math.sin(phase * 7) * 3 : Math.sin(phase * 2) * 1.5;
   ctx.strokeStyle = '#4e342e';
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(dir * -16, -21 + bob * 0.4);
   ctx.quadraticCurveTo(dir * -22, -18 + bob * 0.4 + tailWag, dir * -23, -11 + bob * 0.4 + tailWag);
+  ctx.stroke();
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(dir * -16, -20 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * -20.5, -16 + bob * 0.4 + tailWag, dir * -21.5, -9 + bob * 0.4 + tailWag);
   ctx.stroke();
 
   ctx.fillStyle = '#8d6e63';
@@ -3719,6 +3970,28 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.quadraticCurveTo(dir * 15, -36 + bob, dir * 18, -30 + bob);
   ctx.quadraticCurveTo(dir * 15.5, -31.5 + bob, dir * 13, -29 + bob);
   ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.moveTo(dir * 14, -29 + bob);
+  ctx.quadraticCurveTo(dir * 8, -27 + bob, dir * 4, -24 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * 9, -25.5 + bob, dir * 14.5, -27.5 + bob);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(dir * 17, -30 + bob);
+  ctx.lineTo(dir * 21, -24 + bob);
+  ctx.moveTo(dir * 15, -26 + bob);
+  ctx.lineTo(dir * 21, -22.5 + bob);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(dir * 18.5, -26.5 + bob, 1.1, 2.2, dir * 0.25, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#e91e63';
@@ -3777,7 +4050,8 @@ const MIND_LINES = {
     meetBorrow: ['{other}, me empresta sementes de {crop}? Meu bau zerou.', 'To sem {crop}... {other}, pode me emprestar?', 'Empresta umas sementes de {crop}, {other}? Devolvo na colheita.'],
     meetLend: ['Claro, {other}! Te dou umas agora.', 'Pega, {other}! A colheita e de quem planta.', 'Toma, {other}. Sucesso com elas!'],
     meetNoSeeds: ['Sem sementes por enquanto... vou ajudar no resto.', 'Hoje trabalho na aracao e na agua.'],
-    meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!']
+    meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!'],
+    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!']
   },
   'en-US': {
     idle: ['Nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...', 'Good sun for planting today.', 'I love the morning soil smell.', 'That fence needs a touch-up.', 'The well never ran dry. Bless it.', 'So many birds today.', 'My jaw hurts from talking.', 'Finally a little rest.', 'The {farm} looks great this year.', 'I should have brought water.', 'The bees were angry back there.', 'These new boots pinch.', 'How long have we worked here?'],
@@ -3798,7 +4072,8 @@ const MIND_LINES = {
     meetBorrow: ['{other}, lend me {crop} seeds? My chest is empty.', "I'm out of {crop}... {other}, can you lend me some?", 'Lend me some {crop} seeds, {other}? I pay you back at harvest.'],
     meetLend: ['Sure, {other}! Here you go.', 'Take it, {other}! The harvest belongs to whoever plants.', 'Here, {other}. Good luck with them!'],
     meetNoSeeds: ['No seeds for now... I will help with the rest.', "I'll work the tilling and watering today."],
-    meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!']
+    meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!'],
+    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!']
   }
 };
 
@@ -3931,6 +4206,22 @@ function farmerEnsureMind(f) {
   f.thoughtLog = [];
   f.shirt = SHIRT_PALETTE[(f.id || 0) % SHIRT_PALETTE.length];
   f.shirtDark = shadeColor(f.shirt, 0.62);
+  f.barTonight = Math.random() < 0.65;
+  f.barDone = false;
+  f.atBar = false;
+  f.barT = 0;
+}
+
+function barSpotFor(f, bar) {
+  const cands = [];
+  for (let x = bar.gx; x < bar.gx + 3; x++) {
+    if (inBounds(x, bar.gy + 2) && inOwnedArea(x, bar.gy + 2) && !occupancy[occIndex(x, bar.gy + 2)]) cands.push({ x, y: bar.gy + 2 });
+  }
+  for (const [x, y] of [[bar.gx - 1, bar.gy + 1], [bar.gx + 3, bar.gy + 1]]) {
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
+  }
+  if (!cands.length) return { x: bar.gx + 1, y: bar.gy + 2 };
+  return cands[(f.id || 0) % cands.length];
 }
 
 function farmerSay(f, text, dur) {
@@ -3941,6 +4232,7 @@ function farmerSay(f, text, dur) {
 }
 
 function farmerThink(f) {
+  if (f.atBar) { farmerSay(f, mindLine('bar'), 4200); return; }
   if (f.inside) { farmerSay(f, mindLine('night'), 4200); return; }
   const phase = dayPhase();
   let pool = 'idle';
@@ -4133,7 +4425,14 @@ function updateFarmers(dt) {
     }
 
     if (f.inside) {
-      if (dayPhase() !== 'night') { f.inside = false; f.wait = 0.5; }
+      if (dayPhase() !== 'night') {
+        f.inside = false;
+        f.wait = 0.5;
+        f.barTonight = Math.random() < 0.65;
+        f.barDone = false;
+        f.atBar = false;
+        f.barT = 0;
+      }
       else {
         f.energy = Math.min(100, (f.energy || 60) + 40 * dt);
         f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
@@ -4169,6 +4468,26 @@ function updateFarmers(dt) {
     if (!game.meetingDone && dayPhase() === 'day') continue;
 
     if (dayPhase() === 'night') {
+      const bar = game.buildings.find(b => b.type === 'bar');
+      if (bar && f.barTonight && !f.barDone) {
+        f.atBar = true;
+        const spot = barSpotFor(f, bar);
+        if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
+          f.walking = false;
+          f.riding = false;
+          f.energy = Math.min(100, (f.energy || 60) + 22 * dt);
+          f.wait = 0.5;
+          f.barT = (f.barT || 0) + dt;
+          if (Math.random() < dt * 0.25) farmerSay(f, mindLine('bar'), 4500);
+          if (f.barT > 40 || game.time > 0.97) f.barDone = true;
+        } else {
+          f.riding = false;
+          f.tx = spot.x + 0.5;
+          f.ty = spot.y + 0.5;
+          f.walking = true;
+        }
+        continue;
+      }
       const door = houseDoorTile();
       if (door) {
         if (Math.hypot(door.x + 0.5 - f.gx, door.y + 0.5 - f.gy) < 0.9) {
@@ -4502,7 +4821,9 @@ const I18N = {
     'visit.back': '🏡 Voltar',
     'pers.trabalhador': 'Trabalhador', 'pers.sonhador': 'Sonhador', 'pers.rabugento': 'Rabugento', 'pers.brincalhao': 'Brincalhão', 'pers.sabio': 'Sábio',
     'mood.feliz': 'Feliz', 'mood.animado': 'Animado', 'mood.cansado': 'Cansado', 'mood.irritado': 'Irritado',
-    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
+    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias, taboas e sapos.',
+    'b_doghouse': 'Casinha do Cachorro', 'b_doghouse_desc': 'Quando você desliga o cachorro, ele volta para cá dormir.',
+    'b_bar': 'Bar da Fazenda', 'b_bar_desc': 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
@@ -4541,7 +4862,8 @@ const I18N = {
     'toast.dogOn': '🐕 O cachorro está juntando os animais no curral!',
     'toast.dogOff': '🐕 O cachorro foi descansar.',
     'toast.noDog': '🐕 Compre um cachorro na loja (aba Ajudantes)!',
-    'toast.dogOwned': 'Você já tem um cachorro.',
+    'toast.dogOwned': 'Você já tem o máximo de cachorros.',
+    'toast.dogLimit': '🐕 Máximo de 3 cachorros.',
     'toast.dogBought': '🐕 Cachorro chegou! Toque no botão 🐕 para soltá-lo.',
     'h_dog': 'Cachorro', 'h_dog_desc': 'Solte-o e ele assusta os animais para dentro do curral.',
     'shop.dogOwned': 'Já tem um',
@@ -4679,7 +5001,9 @@ const I18N = {
     'visit.back': '🏡 Back',
     'pers.trabalhador': 'Hard worker', 'pers.sonhador': 'Dreamer', 'pers.rabugento': 'Grumpy', 'pers.brincalhao': 'Joker', 'pers.sabio': 'Wise',
     'mood.feliz': 'Happy', 'mood.animado': 'Cheerful', 'mood.cansado': 'Tired', 'mood.irritado': 'Grumpy',
-    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
+    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads, cattails and frogs.',
+    'b_doghouse': 'Doghouse', 'b_doghouse_desc': 'When you switch the dog off, he comes here to sleep.',
+    'b_bar': 'Farm Bar', 'b_bar_desc': 'At night the farmers come for a cold one, barbecue and music.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.shovel': 'Shovel',
@@ -4717,7 +5041,8 @@ const I18N = {
     'toast.dogOn': '🐕 The dog is gathering the animals into the pen!',
     'toast.dogOff': '🐕 The dog went to rest.',
     'toast.noDog': '🐕 Buy a dog in the shop (Helpers tab)!',
-    'toast.dogOwned': 'You already have a dog.',
+    'toast.dogOwned': 'You already have the maximum number of dogs.',
+    'toast.dogLimit': '🐕 Maximum of 3 dogs.',
     'toast.dogBought': '🐕 Dog arrived! Tap the 🐕 button to release him.',
     'h_dog': 'Dog', 'h_dog_desc': 'Release him and he scares the animals into the pen.',
     'shop.dogOwned': 'Already owned',
@@ -4855,8 +5180,8 @@ function refreshHud() {
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
-    dogBtn.classList.toggle('hidden', !game.dog);
-    dogBtn.classList.toggle('active', !!(game.dog && game.dog.active));
+    dogBtn.classList.toggle('hidden', !game.dogs.length);
+    dogBtn.classList.toggle('active', game.dogs.some(d => d.active));
   }
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
@@ -4974,8 +5299,8 @@ function openShop() {
     if (currentShopTab === 'ajudantes') {
       for (const def of Object.values(HELPERS)) {
         const locked = game.level < def.level;
-        const price = def.id === 'farmer' ? farmerPrice() : def.price;
-        const owned = def.id === 'dog' && game.dog;
+        const price = def.id === 'farmer' ? farmerPrice() : (def.id === 'dog' ? dogPrice() : def.price);
+        const owned = def.id === 'dog' && game.dogs.length >= MAX_DOGS;
         const afford = game.coins >= price;
         const item = document.createElement('div');
         item.className = 'shop-item';
@@ -5866,7 +6191,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v25';
+const GAME_VERSION = 'v26';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -6386,10 +6711,11 @@ const uiHandlers = {
   },
   dog() {
     playSound('click');
-    if (!game.dog) { showToast(t('toast.noDog')); return; }
-    if (!game.dog.active && !game.pen) { showToast(t('toast.needPen')); return; }
-    game.dog.active = !game.dog.active;
-    showToast(game.dog.active ? t('toast.dogOn') : t('toast.dogOff'));
+    if (!game.dogs.length) { showToast(t('toast.noDog')); return; }
+    const any = game.dogs.some(d => d.active);
+    if (!any && !game.pen) { showToast(t('toast.needPen')); return; }
+    for (const d of game.dogs) d.active = !any;
+    showToast(!any ? t('toast.dogOn') : t('toast.dogOff'));
     refreshHud();
   },
   collectAll() {
@@ -6477,7 +6803,7 @@ function loop(ts) {
     advanceClock(dt);
     updateAnimals(dt);
     updateFarmers(dt);
-    updateDog(dt);
+    updateDogs(dt);
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();

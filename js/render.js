@@ -422,7 +422,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
-  if (game.dog) items.push({ key: game.dog.gx + game.dog.gy, kind: 'd', ref: game.dog });
+  for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -477,6 +477,8 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'doghouse': drawDoghouse(ctx, cam, cw, ch, gx, gy, q); break;
+    case 'bar':     drawBar(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 
@@ -934,6 +936,40 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
+    const frogs = [[0.5, 0.38, 0], [0.74, 0.72, 1.8], [0.3, 0.6, 3.1]];
+    for (const [ox, oy, ph] of frogs) {
+      const hop = Math.sin(t * 0.9 + ph);
+      const hopK = hop > 0.93 ? (hop - 0.93) / 0.07 : 0;
+      const p = projectPoint(gx + ox + hopK * 0.06, gy + oy - hopK * 0.1, 0.03 + hopK * 0.15);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      const fz = cam.zoom;
+      ctx.fillStyle = '#66bb6a';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4.5 * fz, 3 * fz, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#43a047';
+      ctx.beginPath();
+      ctx.ellipse(ps.x + 2.5 * fz, ps.y - 2 * fz, 2.6 * fz, 2 * fz, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ps.x + 1.8 * fz, ps.y - 3.6 * fz, 1.1 * fz, 0, Math.PI * 2);
+      ctx.arc(ps.x + 3.6 * fz, ps.y - 3.4 * fz, 1.1 * fz, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#222222';
+      ctx.beginPath();
+      ctx.arc(ps.x + 1.8 * fz, ps.y - 3.6 * fz, 0.5 * fz, 0, Math.PI * 2);
+      ctx.arc(ps.x + 3.6 * fz, ps.y - 3.4 * fz, 0.5 * fz, 0, Math.PI * 2);
+      ctx.fill();
+      if (hopK > 0) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(ps.x, ps.y + 2.5 * fz, 5.5 * fz, 2.5 * fz, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
     const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
     for (const [ox, oy] of reeds) {
       const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
@@ -955,12 +991,128 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
 }
 
+/* --- Casinha do cachorro: madeira, telhado vermelho, entrada em arco, placa com osso --- */
+function drawDoghouse(ctx, cam, cw, ch, gx, gy, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.16);
+  drawPrism(ctx, cam, cw, ch, gx + 0.12, gy + 0.12, 0.76, 0.76, 0.42, '#a1662f');
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.04, gy + 0.04, 0.92, 0.92, 0.42, 0.34, '#c62828', 'x');
+
+  const fr = projectPoint(gx + 0.5, gy + 0.85, 0.06);
+  const fs = worldToScreen(cam, fr.x, fr.y, cw, ch);
+  const fz = cam.zoom;
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.ellipse(fs.x, fs.y, 7 * fz, 8 * fz, 0, Math.PI, Math.PI * 2);
+  ctx.lineTo(fs.x + 7 * fz, fs.y + 1 * fz);
+  ctx.lineTo(fs.x - 7 * fz, fs.y + 1 * fz);
+  ctx.closePath();
+  ctx.fill();
+
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(62,39,35,0.45)';
+    ctx.lineWidth = Math.max(1, 1.2 * fz);
+    for (let i = 0; i < 3; i++) {
+      const a1 = projectPoint(gx + 0.14, gy + 0.2 + i * 0.24, 0.4);
+      const a2 = projectPoint(gx + 0.86, gy + 0.2 + i * 0.24, 0.4);
+      const s1 = worldToScreen(cam, a1.x, a1.y, cw, ch);
+      const s2 = worldToScreen(cam, a2.x, a2.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+    }
+    const sp = projectPoint(gx + 1.02, gy + 0.9, 0);
+    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(ss.x - 1 * fz, ss.y - 12 * fz, 2 * fz, 12 * fz);
+    ctx.fillStyle = '#d7a86e';
+    ctx.beginPath();
+    ctx.roundRect(ss.x - 8 * fz, ss.y - 20 * fz, 16 * fz, 9 * fz, 2 * fz);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ss.x - 5 * fz, ss.y - 17.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x - 5 * fz, ss.y - 14.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x + 5 * fz, ss.y - 17.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.arc(ss.x + 5 * fz, ss.y - 14.5 * fz, 1.8 * fz, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(ss.x - 5 * fz, ss.y - 17.5 * fz, 10 * fz, 2.6 * fz);
+  }
+}
+
+/* --- Bar da fazenda: balcao, banquinhas, barris, pisca-pisca e musica a noite --- */
+function drawBar(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
+  drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, 0.85, '#8d6e63');
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(62,39,35,0.4)';
+    ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
+    for (let i = 0; i < 4; i++) {
+      const a1 = projectPoint(gx + 0.12, gy + 0.25 + i * 0.42, 0.8);
+      const a2 = projectPoint(gx + w - 0.12, gy + 0.25 + i * 0.42, 0.8);
+      const s1 = worldToScreen(cam, a1.x, a1.y, cw, ch);
+      const s2 = worldToScreen(cam, a2.x, a2.y, cw, ch);
+      ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+    }
+  }
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.02, gy + 0.02, w - 0.04, d - 0.04, 0.85, 0.5, '#4e342e', 'x');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.35, 0.42, '#a1662f');
+  drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.08, 0.06, '#d7a86e');
+
+  if (q !== 'baixa') {
+    drawSphere(ctx, cam, cw, ch, gx + 0.7, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawSphere(ctx, cam, cw, ch, gx + 1.5, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawSphere(ctx, cam, cw, ch, gx + 2.3, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.32, 0.32, 0.4, '#6d4c41');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.36, 0.36, 0.06, '#4e342e');
+    drawPrism(ctx, cam, cw, ch, gx + w + 0.08, gy + 0.95, 0.28, 0.28, 0.34, '#8d6e63');
+
+    const w1 = projectPoint(gx + 0.08, gy + d - 0.32, 0.95);
+    const w2 = projectPoint(gx + w - 0.08, gy + d - 0.32, 0.95);
+    const p1 = worldToScreen(cam, w1.x, w1.y, cw, ch);
+    const p2 = worldToScreen(cam, w2.x, w2.y, cw, ch);
+    ctx.strokeStyle = 'rgba(60,50,40,0.7)';
+    ctx.lineWidth = Math.max(1, 1.1 * cam.zoom);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.quadraticCurveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + 6 * cam.zoom, p2.x, p2.y);
+    ctx.stroke();
+    const bulbs = ['#ff5252', '#ffd740', '#69f0ae', '#40c4ff', '#ff4081'];
+    for (let i = 1; i < 7; i++) {
+      const k = i / 7;
+      const bx = p1.x + (p2.x - p1.x) * k;
+      const by = p1.y + (p2.y - p1.y) * k + 6 * cam.zoom * Math.sin(Math.PI * k) + 3.5 * cam.zoom;
+      const lit = (Math.floor(performance.now() / 700) + i) % 2 === 0;
+      ctx.fillStyle = bulbs[i % bulbs.length];
+      ctx.globalAlpha = lit ? 1 : 0.45;
+      ctx.beginPath();
+      ctx.arc(bx, by, 2 * cam.zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  if (nightAlpha(game.time) > 0.15) {
+    const t = performance.now() / 1000;
+    ctx.font = Math.max(10, 13 * cam.zoom) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const bobn = Math.sin(t * 1.6 + i * 2.1) * 5 * cam.zoom;
+      const nx = gx + 0.6 + i * 0.9, ny = gy + 0.4 + (i % 2) * 0.8;
+      const np = projectPoint(nx, ny, 1.3 + Math.sin(t * 0.9 + i) * 0.12);
+      const ns = worldToScreen(cam, np.x, np.y, cw, ch);
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(t * 2 + i * 1.9);
+      ctx.fillText('🎵', ns.x, ns.y + bobn);
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left';
+  }
+}
+
 /* ---------- Vagalumes (noite) ---------- */
 function drawFireflies(ctx, cam, cw, ch, na) {
   const t = performance.now() / 1000;
   const a = game.ownedArea;
   ctx.save();
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 26; i++) {
     const hx = noiseHash(i * 13 + 1, 7);
     const hy = noiseHash(5, i * 29 + 3);
     const gx = a.x0 + hx * (a.x1 - a.x0) + Math.sin(t * 0.7 + i * 2.1) * 1.3;

@@ -79,8 +79,20 @@ const BUILDINGS = {
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
     price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
-    desc: 'Água viva com vitórias-régias e taboas.',
+    desc: 'Água viva com vitórias-régias, taboas e sapos.',
     refund: 0.3
+  },
+  doghouse: {
+    id: 'doghouse', name: 'Casinha do Cachorro', icon: '🛖',
+    price: 600, w: 1, d: 1, level: 4, category: 'construcoes',
+    desc: 'Quando você desliga o cachorro, ele volta para cá dormir.',
+    refund: 0.5
+  },
+  bar: {
+    id: 'bar', name: 'Bar da Fazenda', icon: '🍺',
+    price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
+    desc: 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
+    refund: 0.5
   }
 };
 

@@ -282,8 +282,8 @@ vm.runInContext(`
   }
   if (!penPlaced) throw new Error('nenhum lugar livre para o curral');
   if (!buyDog()) throw new Error('buyDog falhou');
-  game.dog.active = true;
-  for (let i = 0; i < 600; i++) updateDog(0.05);
+  game.dogs[0].active = true;
+  for (let i = 0; i < 600; i++) updateDogs(0.05);
   if (!game.animals.some(a => a.scaredT > 0 || a.herdStage > 0 || inPen(a))) throw new Error('cachorro nao assustou ninguem');
   for (const a of game.animals) if (!inPen(a)) herdAnimal(a);
   for (let i = 0; i < 8000; i++) updateAnimals(0.05);
@@ -338,17 +338,17 @@ vm.runInContext(`
     }
   }
   if (!pen2) throw new Error('nenhum lugar livre para o curral 2');
-  game.dog.active = false;
+  for (const dg of game.dogs) dg.active = false;
   for (const a of game.animals) { a.herdStage = 0; a.scaredT = 0; }
   game.time = 0.9;
-  for (let i = 0; i < 8000; i++) { updateDog(0.05); updateAnimals(0.05); }
+  for (let i = 0; i < 8000; i++) { updateDogs(0.05); updateAnimals(0.05); }
   const foraNoite = game.animals.filter(a => !inPen(a)).length;
   if (foraNoite > 0) throw new Error('cachorro nao juntou os animais a noite: ' + foraNoite);
 
   // ao amanhecer o cachorro solta os animais para pastar
   game.time = 0.02;
   for (const a of game.animals) { a.herdStage = 0; a.scaredT = 0; }
-  for (let i = 0; i < 8000; i++) { updateDog(0.05); updateAnimals(0.05); }
+  for (let i = 0; i < 8000; i++) { updateDogs(0.05); updateAnimals(0.05); }
   if (!game.animals.some(a => !inPen(a))) throw new Error('cachorro nao soltou os animais ao amanhecer');
   const spotsDawn = new Set(game.animals.filter(a => !inPen(a)).map(a => Math.floor(a.gx) + ',' + Math.floor(a.gy)));
   if (game.animals.length > 3 && spotsDawn.size < 2) throw new Error('animais nao se espalharam ao amanhecer');
@@ -487,8 +487,59 @@ vm.runInContext(`
   updateGhostPosition(10, 10);
   render(ctx, cam, 800, 600, state);
 
-  // ciclo de 5 minutos
-  if (DAY_LENGTH !== 300) throw new Error('ciclo deveria durar 5 minutos (300s)');
+  // ciclo de 10 minutos
+  if (DAY_LENGTH !== 600) throw new Error('ciclo deveria durar 10 minutos (600s)');
+
+  // multiplos cachorros: preco dobra e limite de 3
+  game.coins = 999999;
+  game.level = 5;
+  while (game.dogs.length < 3) {
+    const before = dogPrice();
+    if (!buyDog()) throw new Error('buyDog adicional falhou com ' + game.dogs.length + ' cachorros');
+    if (dogPrice() !== before * 2) throw new Error('preco do cachorro nao dobrou');
+  }
+  if (buyDog()) throw new Error('compra acima do limite de 3 cachorros deveria falhar');
+  if (game.dogs.length !== 3) throw new Error('esperava 3 cachorros');
+
+  // casinha do cachorro: desligado, ele vai dormir la
+  let dhSpot = null;
+  for (let y = 2; y < 46 && !dhSpot; y++) {
+    for (let x = 2; x < 46 && !dhSpot; x++) {
+      if (canPlace('doghouse', x, y, 0) && placeBuilding('doghouse', x, y, 0, true)) dhSpot = { x, y };
+    }
+  }
+  if (!dhSpot) throw new Error('sem lugar para a casinha do cachorro');
+  for (const dg of game.dogs) { dg.active = false; dg.resting = false; }
+  game.time = 0.2;
+  for (let i = 0; i < 4000; i++) updateDogs(0.05);
+  for (const dg of game.dogs) {
+    if (!dg.resting) throw new Error('cachorro desligado nao descansou na casinha');
+    if (Math.hypot(dg.gx - (dhSpot.x + 0.5), dg.gy - (dhSpot.y + 0.5)) > 2.5) {
+      throw new Error('cachorro longe da casinha: ' + dg.gx.toFixed(1) + ',' + dg.gy.toFixed(1));
+    }
+  }
+  render(ctx, cam, 800, 600, state);
+  shovelTile(dhSpot.x, dhSpot.y);
+
+  // bar: a noite os fazendeiros vão ao bar beber e só depois dormem
+  let barSpot = null;
+  for (let y = 2; y < 45 && !barSpot; y++) {
+    for (let x = 2; x < 45 && !barSpot; x++) {
+      if (canPlace('bar', x, y, 0) && placeBuilding('bar', x, y, 0, true)) barSpot = { x, y };
+    }
+  }
+  if (!barSpot) throw new Error('sem lugar para o bar');
+  for (const f of game.farmers) {
+    f.barTonight = true; f.barDone = false; f.barT = 0; f.atBar = false;
+    f.inside = false; f.walking = false; f.wait = 0; f.riding = false;
+  }
+  game.meetingDone = true;
+  game.time = 0.9;
+  for (let i = 0; i < 600; i++) updateFarmers(0.1);
+  const atBar = game.farmers.filter(f => f.atBar && Math.hypot(f.gx - (barSpot.x + 1.5), f.gy - (barSpot.y + 1)) < 3).length;
+  if (atBar === 0) throw new Error('nenhum fazendeiro foi ao bar a noite');
+  render(ctx, cam, 800, 600, state);
+  game.time = 0.1;
 
   // camisa unica por fazendeiro
   if (!game.farmers.every(f => f.shirt && f.shirtDark)) throw new Error('fazendeiro sem roupa propria');
