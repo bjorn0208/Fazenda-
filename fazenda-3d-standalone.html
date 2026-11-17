@@ -39,6 +39,8 @@ html, body {
 #game-canvas.mode-build, #game-canvas.mode-move { cursor: crosshair; }
 #game-canvas.mode-remove { cursor: not-allowed; }
 #game-canvas.mode-rotate { cursor: pointer; }
+#game-canvas.mode-plant { cursor: cell; }
+#game-canvas.mode-water { cursor: pointer; }
 
 .hidden { display: none !important; }
 
@@ -109,6 +111,31 @@ html, body {
 #build-bar {
   position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 10px; z-index: 15;
+  flex-wrap: wrap; justify-content: center; max-width: 96vw;
+}
+
+#seed-bar {
+  position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; padding: 8px 10px;
+  background: rgba(255,255,255,0.95); border: 2px solid var(--wood-dark);
+  border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  max-width: 94vw; overflow-x: auto; z-index: 16;
+}
+.seed-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 64px; padding: 6px 8px; position: relative;
+  background: #fff; border: 2px solid #d7ccc8; border-radius: 10px;
+  font-family: inherit; cursor: pointer;
+}
+.seed-item.selected { border-color: var(--green-dark); background: #e8f5e9; }
+.seed-item.locked { opacity: 0.55; cursor: not-allowed; }
+.seed-icon { font-size: 22px; }
+.seed-name { font-size: 11px; font-weight: bold; color: #33691e; }
+.seed-info { font-size: 10px; color: #6d4c41; white-space: nowrap; }
+.seed-locked {
+  position: absolute; top: -7px; right: -7px;
+  background: #e53935; color: #fff; font-size: 9px;
+  padding: 1px 5px; border-radius: 8px;
 }
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -295,11 +322,16 @@ html, body {
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
   <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
+  <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
+  <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
   <button class="build-btn" id="btn-buy"><span class="build-icon">🛒</span><span class="build-label" data-i18n="build.buy">Comprar</span></button>
 </div>
+
+<!-- Barra de sementes (modo plantar) -->
+<div id="seed-bar" class="hidden"></div>
 
 <!-- Barra de confirmação flutuante (construir / mover / girar) -->
 <div id="confirm-bar" class="hidden">
@@ -402,6 +434,31 @@ const BUILDINGS = {
   }
 };
 
+/* Catálogo de culturas: semente (custo), tempo de crescimento (s),
+   valor de venda e XP ao colher. Crescimento usa tempo real (funciona offline). */
+const CROPS = {
+  wheat: {
+    id: 'wheat', name: 'Trigo', icon: '🌾',
+    seedCost: 10, growTime: 30, sell: 25, xp: 6, level: 1
+  },
+  corn: {
+    id: 'corn', name: 'Milho', icon: '🌽',
+    seedCost: 25, growTime: 60, sell: 65, xp: 12, level: 2
+  },
+  carrot: {
+    id: 'carrot', name: 'Cenoura', icon: '🥕',
+    seedCost: 45, growTime: 100, sell: 120, xp: 20, level: 3
+  },
+  tomato: {
+    id: 'tomato', name: 'Tomate', icon: '🍅',
+    seedCost: 70, growTime: 150, sell: 200, xp: 30, level: 4
+  },
+  pumpkin: {
+    id: 'pumpkin', name: 'Abóbora', icon: '🎃',
+    seedCost: 110, growTime: 240, sell: 330, xp: 45, level: 5
+  }
+};
+
 const SHOP_CATEGORIES = [
   { id: 'construcoes', name: 'Construções' },
   { id: 'decoracoes', name: 'Decorações' },
@@ -422,7 +479,11 @@ const MISSIONS = [
   { id: 'm_any', title: 'Em obras', desc: 'Construa 5 estruturas quaisquer.',
     stat: 'built_any', target: 5, rewardCoins: 150, rewardXp: 75 },
   { id: 'm_land', title: 'Território', desc: 'Compre 1 expansão de terreno.',
-    stat: 'land_expansions', target: 1, rewardCoins: 200, rewardXp: 100 }
+    stat: 'land_expansions', target: 1, rewardCoins: 200, rewardXp: 100 },
+  { id: 'm_plant', title: 'Primeira horta', desc: 'Plante 5 sementes.',
+    stat: 'planted', target: 5, rewardCoins: 100, rewardXp: 50 },
+  { id: 'm_harvest', title: 'Primeira colheita', desc: 'Colha 10 plantações.',
+    stat: 'harvested', target: 10, rewardCoins: 180, rewardXp: 90 }
 ];
 
 /* Conquistas de longo prazo. */
@@ -438,7 +499,11 @@ const ACHIEVEMENTS = [
   { id: 'a_level5', title: 'Fazendeiro experiente', desc: 'Alcance o nível 5.',
     stat: 'level', target: 5, rewardCoins: 250 },
   { id: 'a_expand', title: 'Expansor', desc: 'Compre 2 expansões de terreno.',
-    stat: 'land_expansions', target: 2, rewardCoins: 300 }
+    stat: 'land_expansions', target: 2, rewardCoins: 300 },
+  { id: 'a_harvest25', title: 'Colheitadeira', desc: 'Colha 25 plantações.',
+    stat: 'harvested', target: 25, rewardCoins: 300 },
+  { id: 'a_harvest100', title: 'Granjeiro', desc: 'Colha 100 plantações.',
+    stat: 'harvested', target: 100, rewardCoins: 800 }
 ];
 
 /* Expansão de terreno: cada compra adiciona um anel de tiles ao redor da área atual. */
@@ -658,6 +723,7 @@ const game = {
   farmName: 'Fazenda do Jogador',
   ownedArea: { ...START_AREA },
   buildings: [],          // {id, type, gx, gy, rot}
+  crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -794,6 +860,71 @@ function rotateBuilding(id) {
   return true;
 }
 
+/* ---------- Plantações ---------- */
+function cropProgress(crop) {
+  const def = CROPS[crop.type];
+  return Math.min(1, (Date.now() - crop.plantedAt) / (def.growTime * 1000));
+}
+
+function cropAt(x, y) {
+  const occ = buildingAt(x, y);
+  return (occ && occ.isCrop) ? occ : null;
+}
+
+function plantCrop(type, gx, gy) {
+  const def = CROPS[type];
+  if (!def) return null;
+  if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
+  if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
+  if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
+  addCoins(-def.seedCost);
+  const crop = {
+    id: game.nextId++, isCrop: true, type, gx, gy,
+    plantedAt: Date.now(), watered: false
+  };
+  game.crops.push(crop);
+  occupancy[occIndex(gx, gy)] = crop;
+  game.stats.planted = (game.stats.planted || 0) + 1;
+  playSound('plant');
+  return crop;
+}
+
+function waterCrop(crop) {
+  if (!crop || crop.watered || cropProgress(crop) >= 1) return false;
+  const def = CROPS[crop.type];
+  const remaining = def.growTime * 1000 - (Date.now() - crop.plantedAt);
+  crop.plantedAt -= remaining * 0.4;
+  crop.watered = true;
+  playSound('water');
+  return true;
+}
+
+function harvestCrop(crop) {
+  if (!crop || cropProgress(crop) < 1) return null;
+  const def = CROPS[crop.type];
+  const idx = game.crops.indexOf(crop);
+  if (idx === -1) return null;
+  game.crops.splice(idx, 1);
+  occupancy[occIndex(crop.gx, crop.gy)] = null;
+  addCoins(def.sell);
+  addXp(def.xp);
+  game.stats.harvested = (game.stats.harvested || 0) + 1;
+  playSound('harvest');
+  return { def, sell: def.sell, xp: def.xp };
+}
+
+function removeCrop(crop) {
+  const idx = game.crops.indexOf(crop);
+  if (idx === -1) return null;
+  const def = CROPS[crop.type];
+  game.crops.splice(idx, 1);
+  occupancy[occIndex(crop.gx, crop.gy)] = null;
+  const refund = Math.floor(def.seedCost * 0.5);
+  addCoins(refund);
+  playSound('remove');
+  return { refund, def };
+}
+
 /* ---------- Expansão de terreno ---------- */
 function expansionPrice() {
   return Math.round(LAND_EXPANSION.basePrice * Math.pow(LAND_EXPANSION.priceGrowth, game.landExpansions));
@@ -870,7 +1001,7 @@ function saveGame(showToastMsg) {
     const data = {
       coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
       farmName: game.farmName, ownedArea: game.ownedArea,
-      buildings: game.buildings, nextId: game.nextId,
+      buildings: game.buildings, crops: game.crops, nextId: game.nextId,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -894,7 +1025,7 @@ function loadGame() {
       xp: data.xp ?? 0, level: data.level ?? 1,
       farmName: data.farmName ?? 'Fazenda do Jogador',
       ownedArea: data.ownedArea ?? { ...START_AREA },
-      buildings: data.buildings ?? [], nextId: data.nextId ?? 1,
+      buildings: data.buildings ?? [], crops: data.crops ?? [], nextId: data.nextId ?? 1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
@@ -904,6 +1035,7 @@ function loadGame() {
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
     occupancy.fill(null);
     for (const b of game.buildings) markOccupancy(b, true);
+    for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
     return true;
   } catch (e) {
     console.error('Falha ao carregar', e);
@@ -942,6 +1074,41 @@ function render(ctx, cam, cw, ch, state) {
   drawBuildings(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
+  drawFloaters(ctx, cam, cw, ch, performance.now());
+}
+
+/* ---------- Textos flutuantes (+moedas, +XP) ---------- */
+const floaters = [];
+
+function spawnFloater(gx, gy, text, color) {
+  floaters.push({ gx, gy, text, color, born: performance.now() });
+}
+
+function drawFloaters(ctx, cam, cw, ch, now) {
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    const age = (now - f.born) / 1400;
+    if (age >= 1) { floaters.splice(i, 1); continue; }
+    const p = projectPoint(f.gx + 0.5, f.gy + 0.5, 0.6 + age * 1.2);
+    const s = worldToScreen(cam, p.x, p.y, cw, ch);
+    ctx.globalAlpha = 1 - age;
+    ctx.font = `bold ${Math.round(15 * cam.zoom)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(f.text, s.x, s.y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, s.x, s.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* Hash determinístico por tile para detalhes de grama. */
+function tileHash(x, y) {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = ((h ^ (h >> 13)) * 1274126177) | 0;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967295;
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -971,6 +1138,18 @@ function drawTerrain(ctx, cam, cw, ch, view) {
         ? (alt ? COLORS.grassOwned : COLORS.grassOwnedAlt)
         : (alt ? COLORS.grassLocked : COLORS.grassLockedAlt);
       drawTileDiamond(ctx, corners, fill, 'rgba(0,0,0,0.06)');
+      if (owned && !occupancy[occIndex(x, y)] && game.settings.quality !== 'baixa' && tileHash(x, y) > 0.86) {
+        ctx.fillStyle = 'rgba(52,120,35,0.45)';
+        for (let i = 0; i < 3; i++) {
+          const hx = tileHash(x * 7 + i, y * 13 + 1);
+          const hy = tileHash(x * 3 + 2, y * 5 + i);
+          const pp = projectPoint(x + 0.2 + hx * 0.6, y + 0.2 + hy * 0.6, 0);
+          const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 1.6 * cam.zoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
   }
   // borda da área possuída
@@ -993,18 +1172,83 @@ function drawTileHighlight(ctx, cam, cw, ch, tile) {
 
 /* ---------- Desenho das construções ---------- */
 function drawBuildings(ctx, cam, cw, ch, state) {
-  const sorted = [...game.buildings].sort((a, b) =>
-    (a.gx + a.gy + footprintOf(a.type, a.rot).w + footprintOf(a.type, a.rot).d) -
-    (b.gx + b.gy + footprintOf(b.type, b.rot).w + footprintOf(b.type, b.rot).d));
+  const items = [];
+  for (const b of game.buildings) {
+    const f = footprintOf(b.type, b.rot);
+    items.push({ key: b.gx + b.gy + f.w + f.d, kind: 'b', ref: b });
+  }
+  for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
+  items.sort((a, b) => a.key - b.key);
 
   let selected = null;
-  for (const b of sorted) {
-    if (state.mode === 'move' && state.moveId === b.id) { selected = b; continue; }
-    // no modo girar o fantasma já mostra a rotação; não desenhar a original por cima
-    if (state.mode === 'rotate' && state.rotateId === b.id) continue;
-    drawBuilding(ctx, cam, cw, ch, b);
+  for (const it of items) {
+    const b = it.ref;
+    if (it.kind === 'b') {
+      if (state.mode === 'move' && state.moveId === b.id) { selected = b; continue; }
+      // no modo girar o fantasma já mostra a rotação; não desenhar a original por cima
+      if (state.mode === 'rotate' && state.rotateId === b.id) continue;
+      drawBuilding(ctx, cam, cw, ch, b);
+    } else {
+      drawCrop(ctx, cam, cw, ch, b);
+    }
   }
   if (selected) drawBuilding(ctx, cam, cw, ch, selected, true);
+}
+
+/* ---------- Desenho das plantações ---------- */
+function drawCrop(ctx, cam, cw, ch, crop) {
+  const def = CROPS[crop.type];
+  const p = cropProgress(crop);
+  const gx = crop.gx, gy = crop.gy;
+
+  const bed = [projectPoint(gx + 0.08, gy + 0.08, 0), projectPoint(gx + 0.92, gy + 0.08, 0),
+               projectPoint(gx + 0.92, gy + 0.92, 0), projectPoint(gx + 0.08, gy + 0.92, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawTileDiamond(ctx, bed, crop.watered ? '#7d5a32' : '#b98a4e', 'rgba(0,0,0,0.2)');
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 1;
+  for (const off of [0.35, 0.6]) {
+    const a = projectPoint(gx + 0.15, gy + off, 0);
+    const b2 = projectPoint(gx + 0.85, gy + off, 0);
+    const sa = worldToScreen(cam, a.x, a.y, cw, ch);
+    const sb = worldToScreen(cam, b2.x, b2.y, cw, ch);
+    ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+  }
+
+  if (p >= 1) {
+    drawSphere(ctx, cam, cw, ch, gx + 0.35, gy + 0.35, 0.3, 0.2, '#66bb6a');
+    drawSphere(ctx, cam, cw, ch, gx + 0.65, gy + 0.6, 0.32, 0.22, '#4caf50');
+    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.45, 0.44, 0.24, '#43a047');
+    const c = projectPoint(gx + 0.5, gy + 0.5, 0.85);
+    const s = worldToScreen(cam, c.x, c.y, cw, ch);
+    const bounce = Math.abs(Math.sin(performance.now() / 300)) * 6 * cam.zoom;
+    ctx.font = `${Math.round(20 * cam.zoom)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(def.icon, s.x, s.y - bounce);
+    ctx.strokeStyle = 'rgba(255,235,59,0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - bounce, 15 * cam.zoom, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const stage = p < 0.34 ? 0 : (p < 0.67 ? 1 : 2);
+    const h = [0.12, 0.22, 0.34][stage];
+    const r = [0.1, 0.15, 0.2][stage];
+    const col = ['#81c784', '#66bb6a', '#4caf50'][stage];
+    const spots = stage === 0 ? [[0.5, 0.5]] : [[0.35, 0.35], [0.65, 0.6], [0.5, 0.45]];
+    for (const [ox, oy] of spots) {
+      drawPrism(ctx, cam, cw, ch, gx + ox - 0.04, gy + oy - 0.04, 0.08, 0.08, h, '#5d4037');
+      drawSphere(ctx, cam, cw, ch, gx + ox, gy + oy, h + 0.05, r, col);
+    }
+    const top = projectPoint(gx + 0.5, gy + 0.5, 0.75);
+    const s = worldToScreen(cam, top.x, top.y, cw, ch);
+    const w = 34 * cam.zoom, hgt = 5 * cam.zoom;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(s.x - w / 2, s.y, w, hgt);
+    ctx.fillStyle = '#aed581';
+    ctx.fillRect(s.x - w / 2, s.y, w * p, hgt);
+  }
 }
 
 function drawBuilding(ctx, cam, cw, ch, b, selected) {
@@ -1231,6 +1475,7 @@ const I18N = {
     'menu.achievements': 'Conquistas', 'menu.friends': 'Amigos',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
     'build.rotate': 'Girar', 'build.buy': 'Comprar',
+    'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
     'modal.achievements': '🏆 Conquistas', 'modal.friends': '👥 Amigos',
     'modal.settings': '⚙️ Configurações', 'modal.buy': '🛒 Comprar',
@@ -1257,7 +1502,17 @@ const I18N = {
     'coinshop.daily': '🎁 Receber 100 moedas de boas-vindas (1x por dia)',
     'gemshop.body': 'Diamantes são a moeda premium: aceleram construções e produções e desbloqueiam itens especiais. A loja de compra será integrada na fase de monetização.',
     'friends.placeholder': '👥 O sistema de amigos (visitar fazendas, trocar presentes e produtos) será ativado na fase multiplayer. Sua fazenda está pronta para recebê-los!',
-    'toast.welcome': '🌾 Bem-vindo à sua fazenda! Use 🪧 Construir para começar.',
+    'toast.welcome': '🌾 Bem-vindo! Use 🌱 Plantar para semear sua primeira colheita.',
+    'toast.plantHint': '🌱 Escolha uma semente e toque no terreno para plantar.',
+    'toast.waterHint': '💧 Toque em uma plantação para regar (cresce mais rápido).',
+    'toast.planted': '{icon} {name} plantado!',
+    'toast.harvested': '{icon} Colhido! +🪙 {c} +{x} XP',
+    'toast.watered': '💧 Regado! Crescimento acelerado.',
+    'toast.alreadyWatered': 'Essa plantação já foi regada.',
+    'toast.notReady': '⏳ Ainda crescendo: {p}%',
+    'toast.tileBusy': 'Esse tile já está ocupado.',
+    'toast.cropNoMove': 'Plantações não podem ser movidas. Use ✖ Remover para arrancar.',
+    'dialog.removeCropText': 'Arrancar {icon} {name}? Você receberá 🪙 {refund} de volta.',
     'toast.buildHint': '{icon} Escolha o local e clique para confirmar (R gira · Esc cancela)',
     'toast.invalid': '🚫 Local inválido! Escolha uma área livre dentro do terreno.',
     'toast.noCoins': '🪙 Moedas insuficientes!',
@@ -1290,13 +1545,16 @@ const I18N = {
     'b_fence': 'Cerca', 'b_fence_desc': 'Delimita áreas e currais.',
     'b_tree': 'Árvore', 'b_tree_desc': 'Decoração natural da fazenda.',
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
-    'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.'
+    'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.',
+    'c_wheat': 'Trigo', 'c_corn': 'Milho', 'c_carrot': 'Cenoura',
+    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
     'menu.achievements': 'Achievements', 'menu.friends': 'Friends',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
     'build.rotate': 'Rotate', 'build.buy': 'Buy',
+    'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
     'modal.achievements': '🏆 Achievements', 'modal.friends': '👥 Friends',
     'modal.settings': '⚙️ Settings', 'modal.buy': '🛒 Buy',
@@ -1323,7 +1581,17 @@ const I18N = {
     'coinshop.daily': '🎁 Claim 100 welcome coins (once a day)',
     'gemshop.body': 'Diamonds are the premium currency: they speed up construction and production and unlock special items. The purchase shop will be integrated in the monetization phase.',
     'friends.placeholder': '👥 The friends system (visit farms, trade gifts and products) will be enabled in the multiplayer phase. Your farm is ready to receive them!',
-    'toast.welcome': '🌾 Welcome to your farm! Use 🪧 Build to get started.',
+    'toast.welcome': '🌾 Welcome! Use 🌱 Plant to sow your first harvest.',
+    'toast.plantHint': '🌱 Pick a seed and tap the ground to plant.',
+    'toast.waterHint': '💧 Tap a crop to water it (grows faster).',
+    'toast.planted': '{icon} {name} planted!',
+    'toast.harvested': '{icon} Harvested! +🪙 {c} +{x} XP',
+    'toast.watered': '💧 Watered! Growth boosted.',
+    'toast.alreadyWatered': 'This crop was already watered.',
+    'toast.notReady': '⏳ Still growing: {p}%',
+    'toast.tileBusy': 'That tile is already occupied.',
+    'toast.cropNoMove': 'Crops cannot be moved. Use ✖ Remove to dig them up.',
+    'dialog.removeCropText': 'Dig up {icon} {name}? You will get 🪙 {refund} back.',
     'toast.buildHint': '{icon} Choose a spot and click to confirm (R rotates · Esc cancels)',
     'toast.invalid': '🚫 Invalid spot! Choose a free area inside your land.',
     'toast.noCoins': '🪙 Not enough coins!',
@@ -1356,7 +1624,9 @@ const I18N = {
     'b_fence': 'Fence', 'b_fence_desc': 'Delimits areas and pens.',
     'b_tree': 'Tree', 'b_tree_desc': 'Natural farm decoration.',
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
-    'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.'
+    'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.',
+    'c_wheat': 'Wheat', 'c_corn': 'Corn', 'c_carrot': 'Carrot',
+    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin'
   }
 };
 
@@ -1391,7 +1661,8 @@ function playSound(kind) {
     const ac = getAudioCtx();
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
-      rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18]
+      rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
+      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16]
     };
     const [freq, dur] = notes[kind] || notes.click;
     const osc = ac.createOscillator();
@@ -1729,12 +2000,37 @@ function showConfirmBar(info) {
 }
 function hideConfirmBar() { $('confirm-bar').classList.add('hidden'); }
 
+/* ---------- Barra de sementes (modo plantar) ---------- */
+function buildSeedBar() {
+  const bar = $('seed-bar');
+  bar.innerHTML = '';
+  for (const def of Object.values(CROPS)) {
+    const locked = game.level < def.level;
+    const item = document.createElement('button');
+    item.className = 'seed-item' + (def.id === state.selectedSeed ? ' selected' : '') + (locked ? ' locked' : '');
+    item.disabled = locked;
+    item.innerHTML = `
+      <span class="seed-icon">${def.icon}</span>
+      <span class="seed-name">${t('c_' + def.id)}</span>
+      <span class="seed-info">🪙 ${def.seedCost} · ${def.growTime}s</span>
+      ${locked ? `<span class="seed-locked">🔒 ${def.level}</span>` : ''}
+    `;
+    item.onclick = () => { state.selectedSeed = def.id; buildSeedBar(); playSound('click'); };
+    bar.appendChild(item);
+  }
+  bar.classList.remove('hidden');
+}
+
+function hideSeedBar() { $('seed-bar').classList.add('hidden'); }
+
 /* ---------- Ligação dos botões ---------- */
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-plant').onclick = () => handlers.plant();
+  $('btn-water').onclick = () => handlers.water();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
@@ -1785,7 +2081,8 @@ const state = {
   moveId: null,
   rotateId: null,
   ghostPinned: false,  // posição fixa aguardando confirmação
-  highlightTile: null
+  highlightTile: null,
+  selectedSeed: 'wheat'
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -1963,10 +2260,41 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'plant') {
+    if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
+    if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    const crop = plantCrop(state.selectedSeed, g.gx, g.gy);
+    if (crop) {
+      const def = CROPS[crop.type];
+      spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
+      showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
+      refreshHud();
+      autoClaimReady();
+    }
+    return;
+  }
+
+  if (state.mode === 'water') {
+    const occ = buildingAt(g.gx, g.gy);
+    if (occ && occ.isCrop) {
+      if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
+      if (waterCrop(occ)) {
+        spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
+        showToast(t('toast.watered'));
+      } else {
+        showToast(t('toast.alreadyWatered'));
+      }
+    } else {
+      showToast(t('toast.waterHint'));
+    }
+    return;
+  }
+
   if (state.mode === 'move') {
     if (!state.moveId) {
       const sel = buildingAt(g.gx, g.gy);
       if (!sel) { showToast(t('toast.clickBuilding')); return; }
+      if (sel.isCrop) { showToast(t('toast.cropNoMove')); return; }
       state.moveId = sel.id;
       state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: sel.rot, valid: true };
       showToast(t('toast.moveSelect'));
@@ -1996,6 +2324,18 @@ function handleClick(e) {
   const b = buildingAt(g.gx, g.gy);
 
   if (state.mode === 'remove') {
+    if (b && b.isCrop) {
+      const def = CROPS[b.type];
+      const refund = Math.floor(def.seedCost * 0.5);
+      confirmDialog(
+        t('dialog.removeCropText', { icon: def.icon, name: t('c_' + def.id), refund: refund.toLocaleString('pt-BR') }),
+        () => {
+          const r = removeCrop(b);
+          if (r) showToast(t('toast.removed', { refund: r.refund.toLocaleString('pt-BR') }));
+          refreshHud();
+        });
+      return;
+    }
     if (b) {
       const def = BUILDINGS[b.type];
       const refund = Math.floor(def.price * def.refund);
@@ -2015,6 +2355,7 @@ function handleClick(e) {
 
   if (state.mode === 'rotate') {
     if (b) {
+      if (b.isCrop) { showToast(t('toast.cropNoMove')); return; }
       const def = BUILDINGS[b.type];
       if (def.w === 1 && def.d === 1) {
         showToast(t('toast.noRotate'));
@@ -2032,7 +2373,17 @@ function handleClick(e) {
     return;
   }
 
-  // modo normal: destaque informativo
+  // modo normal: colher plantação pronta ou destacar construção
+  if (b && b.isCrop) {
+    const p = cropProgress(b);
+    if (p >= 1) {
+      doHarvest(b);
+    } else {
+      showToast(t('toast.notReady', { p: Math.floor(p * 100) }));
+    }
+    return;
+  }
+
   if (b) {
     const def = BUILDINGS[b.type];
     state.highlightTile = { gx: b.gx, gy: b.gy };
@@ -2059,10 +2410,11 @@ function setMode(mode) {
   state.moveId = null;
   state.rotateId = null;
   hideConfirmBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate');
+  if (mode !== 'plant') hideSeedBar();
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -2131,8 +2483,32 @@ const uiHandlers = {
   },
   confirmCancel() {
     setMode('idle');
+  },
+  plant() {
+    playSound('click');
+    if (state.mode === 'plant') { setMode('idle'); return; }
+    setMode('plant');
+    buildSeedBar();
+    showToast(t('toast.plantHint'));
+  },
+  water() {
+    playSound('click');
+    if (state.mode === 'water') { setMode('idle'); return; }
+    setMode('water');
+    showToast(t('toast.waterHint'));
   }
 };
+
+function doHarvest(crop) {
+  const r = harvestCrop(crop);
+  if (r) {
+    spawnFloater(crop.gx, crop.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+    spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
+    showToast(t('toast.harvested', { icon: r.def.icon, c: r.sell, x: r.xp }));
+    refreshHud();
+    autoClaimReady();
+  }
+}
 
 /* ---------- Teclado ---------- */
 window.addEventListener('keydown', e => {

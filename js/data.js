@@ -66,6 +66,31 @@ const BUILDINGS = {
   }
 };
 
+/* Catálogo de culturas: semente (custo), tempo de crescimento (s),
+   valor de venda e XP ao colher. Crescimento usa tempo real (funciona offline). */
+const CROPS = {
+  wheat: {
+    id: 'wheat', name: 'Trigo', icon: '🌾',
+    seedCost: 10, growTime: 30, sell: 25, xp: 6, level: 1
+  },
+  corn: {
+    id: 'corn', name: 'Milho', icon: '🌽',
+    seedCost: 25, growTime: 60, sell: 65, xp: 12, level: 2
+  },
+  carrot: {
+    id: 'carrot', name: 'Cenoura', icon: '🥕',
+    seedCost: 45, growTime: 100, sell: 120, xp: 20, level: 3
+  },
+  tomato: {
+    id: 'tomato', name: 'Tomate', icon: '🍅',
+    seedCost: 70, growTime: 150, sell: 200, xp: 30, level: 4
+  },
+  pumpkin: {
+    id: 'pumpkin', name: 'Abóbora', icon: '🎃',
+    seedCost: 110, growTime: 240, sell: 330, xp: 45, level: 5
+  }
+};
+
 const SHOP_CATEGORIES = [
   { id: 'construcoes', name: 'Construções' },
   { id: 'decoracoes', name: 'Decorações' },
@@ -86,7 +111,11 @@ const MISSIONS = [
   { id: 'm_any', title: 'Em obras', desc: 'Construa 5 estruturas quaisquer.',
     stat: 'built_any', target: 5, rewardCoins: 150, rewardXp: 75 },
   { id: 'm_land', title: 'Território', desc: 'Compre 1 expansão de terreno.',
-    stat: 'land_expansions', target: 1, rewardCoins: 200, rewardXp: 100 }
+    stat: 'land_expansions', target: 1, rewardCoins: 200, rewardXp: 100 },
+  { id: 'm_plant', title: 'Primeira horta', desc: 'Plante 5 sementes.',
+    stat: 'planted', target: 5, rewardCoins: 100, rewardXp: 50 },
+  { id: 'm_harvest', title: 'Primeira colheita', desc: 'Colha 10 plantações.',
+    stat: 'harvested', target: 10, rewardCoins: 180, rewardXp: 90 }
 ];
 
 /* Conquistas de longo prazo. */
@@ -102,7 +131,11 @@ const ACHIEVEMENTS = [
   { id: 'a_level5', title: 'Fazendeiro experiente', desc: 'Alcance o nível 5.',
     stat: 'level', target: 5, rewardCoins: 250 },
   { id: 'a_expand', title: 'Expansor', desc: 'Compre 2 expansões de terreno.',
-    stat: 'land_expansions', target: 2, rewardCoins: 300 }
+    stat: 'land_expansions', target: 2, rewardCoins: 300 },
+  { id: 'a_harvest25', title: 'Colheitadeira', desc: 'Colha 25 plantações.',
+    stat: 'harvested', target: 25, rewardCoins: 300 },
+  { id: 'a_harvest100', title: 'Granjeiro', desc: 'Colha 100 plantações.',
+    stat: 'harvested', target: 100, rewardCoins: 800 }
 ];
 
 /* Expansão de terreno: cada compra adiciona um anel de tiles ao redor da área atual. */

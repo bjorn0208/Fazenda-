@@ -14,6 +14,7 @@ const game = {
   farmName: 'Fazenda do Jogador',
   ownedArea: { ...START_AREA },
   buildings: [],          // {id, type, gx, gy, rot}
+  crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -150,6 +151,71 @@ function rotateBuilding(id) {
   return true;
 }
 
+/* ---------- Plantações ---------- */
+function cropProgress(crop) {
+  const def = CROPS[crop.type];
+  return Math.min(1, (Date.now() - crop.plantedAt) / (def.growTime * 1000));
+}
+
+function cropAt(x, y) {
+  const occ = buildingAt(x, y);
+  return (occ && occ.isCrop) ? occ : null;
+}
+
+function plantCrop(type, gx, gy) {
+  const def = CROPS[type];
+  if (!def) return null;
+  if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
+  if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
+  if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
+  addCoins(-def.seedCost);
+  const crop = {
+    id: game.nextId++, isCrop: true, type, gx, gy,
+    plantedAt: Date.now(), watered: false
+  };
+  game.crops.push(crop);
+  occupancy[occIndex(gx, gy)] = crop;
+  game.stats.planted = (game.stats.planted || 0) + 1;
+  playSound('plant');
+  return crop;
+}
+
+function waterCrop(crop) {
+  if (!crop || crop.watered || cropProgress(crop) >= 1) return false;
+  const def = CROPS[crop.type];
+  const remaining = def.growTime * 1000 - (Date.now() - crop.plantedAt);
+  crop.plantedAt -= remaining * 0.4;
+  crop.watered = true;
+  playSound('water');
+  return true;
+}
+
+function harvestCrop(crop) {
+  if (!crop || cropProgress(crop) < 1) return null;
+  const def = CROPS[crop.type];
+  const idx = game.crops.indexOf(crop);
+  if (idx === -1) return null;
+  game.crops.splice(idx, 1);
+  occupancy[occIndex(crop.gx, crop.gy)] = null;
+  addCoins(def.sell);
+  addXp(def.xp);
+  game.stats.harvested = (game.stats.harvested || 0) + 1;
+  playSound('harvest');
+  return { def, sell: def.sell, xp: def.xp };
+}
+
+function removeCrop(crop) {
+  const idx = game.crops.indexOf(crop);
+  if (idx === -1) return null;
+  const def = CROPS[crop.type];
+  game.crops.splice(idx, 1);
+  occupancy[occIndex(crop.gx, crop.gy)] = null;
+  const refund = Math.floor(def.seedCost * 0.5);
+  addCoins(refund);
+  playSound('remove');
+  return { refund, def };
+}
+
 /* ---------- Expansão de terreno ---------- */
 function expansionPrice() {
   return Math.round(LAND_EXPANSION.basePrice * Math.pow(LAND_EXPANSION.priceGrowth, game.landExpansions));
@@ -226,7 +292,7 @@ function saveGame(showToastMsg) {
     const data = {
       coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
       farmName: game.farmName, ownedArea: game.ownedArea,
-      buildings: game.buildings, nextId: game.nextId,
+      buildings: game.buildings, crops: game.crops, nextId: game.nextId,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -250,7 +316,7 @@ function loadGame() {
       xp: data.xp ?? 0, level: data.level ?? 1,
       farmName: data.farmName ?? 'Fazenda do Jogador',
       ownedArea: data.ownedArea ?? { ...START_AREA },
-      buildings: data.buildings ?? [], nextId: data.nextId ?? 1,
+      buildings: data.buildings ?? [], crops: data.crops ?? [], nextId: data.nextId ?? 1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
@@ -260,6 +326,7 @@ function loadGame() {
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
     occupancy.fill(null);
     for (const b of game.buildings) markOccupancy(b, true);
+    for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
     return true;
   } catch (e) {
     console.error('Falha ao carregar', e);

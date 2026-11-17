@@ -22,6 +22,41 @@ function render(ctx, cam, cw, ch, state) {
   drawBuildings(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
+  drawFloaters(ctx, cam, cw, ch, performance.now());
+}
+
+/* ---------- Textos flutuantes (+moedas, +XP) ---------- */
+const floaters = [];
+
+function spawnFloater(gx, gy, text, color) {
+  floaters.push({ gx, gy, text, color, born: performance.now() });
+}
+
+function drawFloaters(ctx, cam, cw, ch, now) {
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    const age = (now - f.born) / 1400;
+    if (age >= 1) { floaters.splice(i, 1); continue; }
+    const p = projectPoint(f.gx + 0.5, f.gy + 0.5, 0.6 + age * 1.2);
+    const s = worldToScreen(cam, p.x, p.y, cw, ch);
+    ctx.globalAlpha = 1 - age;
+    ctx.font = `bold ${Math.round(15 * cam.zoom)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(f.text, s.x, s.y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, s.x, s.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* Hash determinístico por tile para detalhes de grama. */
+function tileHash(x, y) {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = ((h ^ (h >> 13)) * 1274126177) | 0;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967295;
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -51,6 +86,18 @@ function drawTerrain(ctx, cam, cw, ch, view) {
         ? (alt ? COLORS.grassOwned : COLORS.grassOwnedAlt)
         : (alt ? COLORS.grassLocked : COLORS.grassLockedAlt);
       drawTileDiamond(ctx, corners, fill, 'rgba(0,0,0,0.06)');
+      if (owned && !occupancy[occIndex(x, y)] && game.settings.quality !== 'baixa' && tileHash(x, y) > 0.86) {
+        ctx.fillStyle = 'rgba(52,120,35,0.45)';
+        for (let i = 0; i < 3; i++) {
+          const hx = tileHash(x * 7 + i, y * 13 + 1);
+          const hy = tileHash(x * 3 + 2, y * 5 + i);
+          const pp = projectPoint(x + 0.2 + hx * 0.6, y + 0.2 + hy * 0.6, 0);
+          const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 1.6 * cam.zoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
   }
   // borda da área possuída
@@ -73,18 +120,83 @@ function drawTileHighlight(ctx, cam, cw, ch, tile) {
 
 /* ---------- Desenho das construções ---------- */
 function drawBuildings(ctx, cam, cw, ch, state) {
-  const sorted = [...game.buildings].sort((a, b) =>
-    (a.gx + a.gy + footprintOf(a.type, a.rot).w + footprintOf(a.type, a.rot).d) -
-    (b.gx + b.gy + footprintOf(b.type, b.rot).w + footprintOf(b.type, b.rot).d));
+  const items = [];
+  for (const b of game.buildings) {
+    const f = footprintOf(b.type, b.rot);
+    items.push({ key: b.gx + b.gy + f.w + f.d, kind: 'b', ref: b });
+  }
+  for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
+  items.sort((a, b) => a.key - b.key);
 
   let selected = null;
-  for (const b of sorted) {
-    if (state.mode === 'move' && state.moveId === b.id) { selected = b; continue; }
-    // no modo girar o fantasma já mostra a rotação; não desenhar a original por cima
-    if (state.mode === 'rotate' && state.rotateId === b.id) continue;
-    drawBuilding(ctx, cam, cw, ch, b);
+  for (const it of items) {
+    const b = it.ref;
+    if (it.kind === 'b') {
+      if (state.mode === 'move' && state.moveId === b.id) { selected = b; continue; }
+      // no modo girar o fantasma já mostra a rotação; não desenhar a original por cima
+      if (state.mode === 'rotate' && state.rotateId === b.id) continue;
+      drawBuilding(ctx, cam, cw, ch, b);
+    } else {
+      drawCrop(ctx, cam, cw, ch, b);
+    }
   }
   if (selected) drawBuilding(ctx, cam, cw, ch, selected, true);
+}
+
+/* ---------- Desenho das plantações ---------- */
+function drawCrop(ctx, cam, cw, ch, crop) {
+  const def = CROPS[crop.type];
+  const p = cropProgress(crop);
+  const gx = crop.gx, gy = crop.gy;
+
+  const bed = [projectPoint(gx + 0.08, gy + 0.08, 0), projectPoint(gx + 0.92, gy + 0.08, 0),
+               projectPoint(gx + 0.92, gy + 0.92, 0), projectPoint(gx + 0.08, gy + 0.92, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawTileDiamond(ctx, bed, crop.watered ? '#7d5a32' : '#b98a4e', 'rgba(0,0,0,0.2)');
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 1;
+  for (const off of [0.35, 0.6]) {
+    const a = projectPoint(gx + 0.15, gy + off, 0);
+    const b2 = projectPoint(gx + 0.85, gy + off, 0);
+    const sa = worldToScreen(cam, a.x, a.y, cw, ch);
+    const sb = worldToScreen(cam, b2.x, b2.y, cw, ch);
+    ctx.beginPath(); ctx.moveTo(sa.x, sa.y); ctx.lineTo(sb.x, sb.y); ctx.stroke();
+  }
+
+  if (p >= 1) {
+    drawSphere(ctx, cam, cw, ch, gx + 0.35, gy + 0.35, 0.3, 0.2, '#66bb6a');
+    drawSphere(ctx, cam, cw, ch, gx + 0.65, gy + 0.6, 0.32, 0.22, '#4caf50');
+    drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.45, 0.44, 0.24, '#43a047');
+    const c = projectPoint(gx + 0.5, gy + 0.5, 0.85);
+    const s = worldToScreen(cam, c.x, c.y, cw, ch);
+    const bounce = Math.abs(Math.sin(performance.now() / 300)) * 6 * cam.zoom;
+    ctx.font = `${Math.round(20 * cam.zoom)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(def.icon, s.x, s.y - bounce);
+    ctx.strokeStyle = 'rgba(255,235,59,0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - bounce, 15 * cam.zoom, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const stage = p < 0.34 ? 0 : (p < 0.67 ? 1 : 2);
+    const h = [0.12, 0.22, 0.34][stage];
+    const r = [0.1, 0.15, 0.2][stage];
+    const col = ['#81c784', '#66bb6a', '#4caf50'][stage];
+    const spots = stage === 0 ? [[0.5, 0.5]] : [[0.35, 0.35], [0.65, 0.6], [0.5, 0.45]];
+    for (const [ox, oy] of spots) {
+      drawPrism(ctx, cam, cw, ch, gx + ox - 0.04, gy + oy - 0.04, 0.08, 0.08, h, '#5d4037');
+      drawSphere(ctx, cam, cw, ch, gx + ox, gy + oy, h + 0.05, r, col);
+    }
+    const top = projectPoint(gx + 0.5, gy + 0.5, 0.75);
+    const s = worldToScreen(cam, top.x, top.y, cw, ch);
+    const w = 34 * cam.zoom, hgt = 5 * cam.zoom;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(s.x - w / 2, s.y, w, hgt);
+    ctx.fillStyle = '#aed581';
+    ctx.fillRect(s.x - w / 2, s.y, w * p, hgt);
+  }
 }
 
 function drawBuilding(ctx, cam, cw, ch, b, selected) {

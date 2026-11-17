@@ -12,6 +12,7 @@ const I18N = {
     'menu.achievements': 'Conquistas', 'menu.friends': 'Amigos',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
     'build.rotate': 'Girar', 'build.buy': 'Comprar',
+    'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
     'modal.achievements': '🏆 Conquistas', 'modal.friends': '👥 Amigos',
     'modal.settings': '⚙️ Configurações', 'modal.buy': '🛒 Comprar',
@@ -38,7 +39,17 @@ const I18N = {
     'coinshop.daily': '🎁 Receber 100 moedas de boas-vindas (1x por dia)',
     'gemshop.body': 'Diamantes são a moeda premium: aceleram construções e produções e desbloqueiam itens especiais. A loja de compra será integrada na fase de monetização.',
     'friends.placeholder': '👥 O sistema de amigos (visitar fazendas, trocar presentes e produtos) será ativado na fase multiplayer. Sua fazenda está pronta para recebê-los!',
-    'toast.welcome': '🌾 Bem-vindo à sua fazenda! Use 🪧 Construir para começar.',
+    'toast.welcome': '🌾 Bem-vindo! Use 🌱 Plantar para semear sua primeira colheita.',
+    'toast.plantHint': '🌱 Escolha uma semente e toque no terreno para plantar.',
+    'toast.waterHint': '💧 Toque em uma plantação para regar (cresce mais rápido).',
+    'toast.planted': '{icon} {name} plantado!',
+    'toast.harvested': '{icon} Colhido! +🪙 {c} +{x} XP',
+    'toast.watered': '💧 Regado! Crescimento acelerado.',
+    'toast.alreadyWatered': 'Essa plantação já foi regada.',
+    'toast.notReady': '⏳ Ainda crescendo: {p}%',
+    'toast.tileBusy': 'Esse tile já está ocupado.',
+    'toast.cropNoMove': 'Plantações não podem ser movidas. Use ✖ Remover para arrancar.',
+    'dialog.removeCropText': 'Arrancar {icon} {name}? Você receberá 🪙 {refund} de volta.',
     'toast.buildHint': '{icon} Escolha o local e clique para confirmar (R gira · Esc cancela)',
     'toast.invalid': '🚫 Local inválido! Escolha uma área livre dentro do terreno.',
     'toast.noCoins': '🪙 Moedas insuficientes!',
@@ -71,13 +82,16 @@ const I18N = {
     'b_fence': 'Cerca', 'b_fence_desc': 'Delimita áreas e currais.',
     'b_tree': 'Árvore', 'b_tree_desc': 'Decoração natural da fazenda.',
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
-    'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.'
+    'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.',
+    'c_wheat': 'Trigo', 'c_corn': 'Milho', 'c_carrot': 'Cenoura',
+    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
     'menu.achievements': 'Achievements', 'menu.friends': 'Friends',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
     'build.rotate': 'Rotate', 'build.buy': 'Buy',
+    'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
     'modal.achievements': '🏆 Achievements', 'modal.friends': '👥 Friends',
     'modal.settings': '⚙️ Settings', 'modal.buy': '🛒 Buy',
@@ -104,7 +118,17 @@ const I18N = {
     'coinshop.daily': '🎁 Claim 100 welcome coins (once a day)',
     'gemshop.body': 'Diamonds are the premium currency: they speed up construction and production and unlock special items. The purchase shop will be integrated in the monetization phase.',
     'friends.placeholder': '👥 The friends system (visit farms, trade gifts and products) will be enabled in the multiplayer phase. Your farm is ready to receive them!',
-    'toast.welcome': '🌾 Welcome to your farm! Use 🪧 Build to get started.',
+    'toast.welcome': '🌾 Welcome! Use 🌱 Plant to sow your first harvest.',
+    'toast.plantHint': '🌱 Pick a seed and tap the ground to plant.',
+    'toast.waterHint': '💧 Tap a crop to water it (grows faster).',
+    'toast.planted': '{icon} {name} planted!',
+    'toast.harvested': '{icon} Harvested! +🪙 {c} +{x} XP',
+    'toast.watered': '💧 Watered! Growth boosted.',
+    'toast.alreadyWatered': 'This crop was already watered.',
+    'toast.notReady': '⏳ Still growing: {p}%',
+    'toast.tileBusy': 'That tile is already occupied.',
+    'toast.cropNoMove': 'Crops cannot be moved. Use ✖ Remove to dig them up.',
+    'dialog.removeCropText': 'Dig up {icon} {name}? You will get 🪙 {refund} back.',
     'toast.buildHint': '{icon} Choose a spot and click to confirm (R rotates · Esc cancels)',
     'toast.invalid': '🚫 Invalid spot! Choose a free area inside your land.',
     'toast.noCoins': '🪙 Not enough coins!',
@@ -137,7 +161,9 @@ const I18N = {
     'b_fence': 'Fence', 'b_fence_desc': 'Delimits areas and pens.',
     'b_tree': 'Tree', 'b_tree_desc': 'Natural farm decoration.',
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
-    'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.'
+    'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.',
+    'c_wheat': 'Wheat', 'c_corn': 'Corn', 'c_carrot': 'Carrot',
+    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin'
   }
 };
 
@@ -172,7 +198,8 @@ function playSound(kind) {
     const ac = getAudioCtx();
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
-      rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18]
+      rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
+      plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16]
     };
     const [freq, dur] = notes[kind] || notes.click;
     const osc = ac.createOscillator();
@@ -510,12 +537,37 @@ function showConfirmBar(info) {
 }
 function hideConfirmBar() { $('confirm-bar').classList.add('hidden'); }
 
+/* ---------- Barra de sementes (modo plantar) ---------- */
+function buildSeedBar() {
+  const bar = $('seed-bar');
+  bar.innerHTML = '';
+  for (const def of Object.values(CROPS)) {
+    const locked = game.level < def.level;
+    const item = document.createElement('button');
+    item.className = 'seed-item' + (def.id === state.selectedSeed ? ' selected' : '') + (locked ? ' locked' : '');
+    item.disabled = locked;
+    item.innerHTML = `
+      <span class="seed-icon">${def.icon}</span>
+      <span class="seed-name">${t('c_' + def.id)}</span>
+      <span class="seed-info">🪙 ${def.seedCost} · ${def.growTime}s</span>
+      ${locked ? `<span class="seed-locked">🔒 ${def.level}</span>` : ''}
+    `;
+    item.onclick = () => { state.selectedSeed = def.id; buildSeedBar(); playSound('click'); };
+    bar.appendChild(item);
+  }
+  bar.classList.remove('hidden');
+}
+
+function hideSeedBar() { $('seed-bar').classList.add('hidden'); }
+
 /* ---------- Ligação dos botões ---------- */
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
   $('btn-add-gems').onclick = openGemShop;
   $('btn-build').onclick = () => handlers.build();
+  $('btn-plant').onclick = () => handlers.plant();
+  $('btn-water').onclick = () => handlers.water();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();

@@ -32,6 +32,8 @@ html, body {
 #game-canvas.mode-build, #game-canvas.mode-move { cursor: crosshair; }
 #game-canvas.mode-remove { cursor: not-allowed; }
 #game-canvas.mode-rotate { cursor: pointer; }
+#game-canvas.mode-plant { cursor: cell; }
+#game-canvas.mode-water { cursor: pointer; }
 
 .hidden { display: none !important; }
 
@@ -102,6 +104,31 @@ html, body {
 #build-bar {
   position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 10px; z-index: 15;
+  flex-wrap: wrap; justify-content: center; max-width: 96vw;
+}
+
+#seed-bar {
+  position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; padding: 8px 10px;
+  background: rgba(255,255,255,0.95); border: 2px solid var(--wood-dark);
+  border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  max-width: 94vw; overflow-x: auto; z-index: 16;
+}
+.seed-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 64px; padding: 6px 8px; position: relative;
+  background: #fff; border: 2px solid #d7ccc8; border-radius: 10px;
+  font-family: inherit; cursor: pointer;
+}
+.seed-item.selected { border-color: var(--green-dark); background: #e8f5e9; }
+.seed-item.locked { opacity: 0.55; cursor: not-allowed; }
+.seed-icon { font-size: 22px; }
+.seed-name { font-size: 11px; font-weight: bold; color: #33691e; }
+.seed-info { font-size: 10px; color: #6d4c41; white-space: nowrap; }
+.seed-locked {
+  position: absolute; top: -7px; right: -7px;
+  background: #e53935; color: #fff; font-size: 9px;
+  padding: 1px 5px; border-radius: 8px;
 }
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;

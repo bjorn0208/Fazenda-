@@ -52,6 +52,24 @@ python3 -m http.server 8000
 - Barra inferior: Construir, Mover, Remover, Girar, Comprar.
 - Sons de interação via WebAudio (sem arquivos externos).
 
+## Fase 2 — Plantio e colheita ✅
+
+### Sistema de culturas
+- 5 culturas desbloqueadas por nível: Trigo 🌾 (nv.1), Milho 🌽 (nv.2), Cenoura 🥕 (nv.3), Tomate 🍅 (nv.4) e Abóbora 🎃 (nv.5).
+- Modo 🌱 Plantar com barra de sementes (custo, tempo de crescimento e bloqueio por nível visíveis).
+- Crescimento em tempo real com 4 estágios visuais (broto → maturação) e barra de progresso sobre o canteiro — funciona offline (usa timestamp).
+- 💧 Regar acelera o crescimento em 40% do tempo restante (1x por plantação).
+- Colheita com um toque quando pronto (ícone saltitante + anel dourado): moedas + XP com textos flutuantes animados.
+- Cada cultura ocupa seu tile — construções não podem ser postas sobre plantações.
+
+### Missões e conquistas novas
+- Missões: "Primeira horta" (5 sementes) e "Primeira colheita" (10 colheitas).
+- Conquistas: "Colheitadeira" (25) e "Granjeiro" (100 colheitas).
+
+### Polimento visual
+- Tufos de grama determinísticos nos tiles vazios (desativados na qualidade baixa).
+- Textos flutuantes de moedas/XP ao plantar e colher.
+
 ## Roadmap
 
 - **Fase 2 — Agricultura:** tiles de plantio, culturas (milho, tomate, cenoura, alface, trigo) com estágios de crescimento, irrigação pelo poço, timers.

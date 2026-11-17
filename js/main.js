@@ -12,7 +12,8 @@ const state = {
   moveId: null,
   rotateId: null,
   ghostPinned: false,  // posição fixa aguardando confirmação
-  highlightTile: null
+  highlightTile: null,
+  selectedSeed: 'wheat'
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -190,10 +191,41 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'plant') {
+    if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
+    if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    const crop = plantCrop(state.selectedSeed, g.gx, g.gy);
+    if (crop) {
+      const def = CROPS[crop.type];
+      spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
+      showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
+      refreshHud();
+      autoClaimReady();
+    }
+    return;
+  }
+
+  if (state.mode === 'water') {
+    const occ = buildingAt(g.gx, g.gy);
+    if (occ && occ.isCrop) {
+      if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
+      if (waterCrop(occ)) {
+        spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
+        showToast(t('toast.watered'));
+      } else {
+        showToast(t('toast.alreadyWatered'));
+      }
+    } else {
+      showToast(t('toast.waterHint'));
+    }
+    return;
+  }
+
   if (state.mode === 'move') {
     if (!state.moveId) {
       const sel = buildingAt(g.gx, g.gy);
       if (!sel) { showToast(t('toast.clickBuilding')); return; }
+      if (sel.isCrop) { showToast(t('toast.cropNoMove')); return; }
       state.moveId = sel.id;
       state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: sel.rot, valid: true };
       showToast(t('toast.moveSelect'));
@@ -223,6 +255,18 @@ function handleClick(e) {
   const b = buildingAt(g.gx, g.gy);
 
   if (state.mode === 'remove') {
+    if (b && b.isCrop) {
+      const def = CROPS[b.type];
+      const refund = Math.floor(def.seedCost * 0.5);
+      confirmDialog(
+        t('dialog.removeCropText', { icon: def.icon, name: t('c_' + def.id), refund: refund.toLocaleString('pt-BR') }),
+        () => {
+          const r = removeCrop(b);
+          if (r) showToast(t('toast.removed', { refund: r.refund.toLocaleString('pt-BR') }));
+          refreshHud();
+        });
+      return;
+    }
     if (b) {
       const def = BUILDINGS[b.type];
       const refund = Math.floor(def.price * def.refund);
@@ -242,6 +286,7 @@ function handleClick(e) {
 
   if (state.mode === 'rotate') {
     if (b) {
+      if (b.isCrop) { showToast(t('toast.cropNoMove')); return; }
       const def = BUILDINGS[b.type];
       if (def.w === 1 && def.d === 1) {
         showToast(t('toast.noRotate'));
@@ -259,7 +304,17 @@ function handleClick(e) {
     return;
   }
 
-  // modo normal: destaque informativo
+  // modo normal: colher plantação pronta ou destacar construção
+  if (b && b.isCrop) {
+    const p = cropProgress(b);
+    if (p >= 1) {
+      doHarvest(b);
+    } else {
+      showToast(t('toast.notReady', { p: Math.floor(p * 100) }));
+    }
+    return;
+  }
+
   if (b) {
     const def = BUILDINGS[b.type];
     state.highlightTile = { gx: b.gx, gy: b.gy };
@@ -286,10 +341,11 @@ function setMode(mode) {
   state.moveId = null;
   state.rotateId = null;
   hideConfirmBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate');
+  if (mode !== 'plant') hideSeedBar();
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -358,8 +414,32 @@ const uiHandlers = {
   },
   confirmCancel() {
     setMode('idle');
+  },
+  plant() {
+    playSound('click');
+    if (state.mode === 'plant') { setMode('idle'); return; }
+    setMode('plant');
+    buildSeedBar();
+    showToast(t('toast.plantHint'));
+  },
+  water() {
+    playSound('click');
+    if (state.mode === 'water') { setMode('idle'); return; }
+    setMode('water');
+    showToast(t('toast.waterHint'));
   }
 };
+
+function doHarvest(crop) {
+  const r = harvestCrop(crop);
+  if (r) {
+    spawnFloater(crop.gx, crop.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+    spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
+    showToast(t('toast.harvested', { icon: r.def.icon, c: r.sell, x: r.xp }));
+    refreshHud();
+    autoClaimReady();
+  }
+}
 
 /* ---------- Teclado ---------- */
 window.addEventListener('keydown', e => {
