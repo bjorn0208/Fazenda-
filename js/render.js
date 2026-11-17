@@ -221,6 +221,115 @@ function drawWildflowers(ctx, cam, cw, ch, x, y, h) {
   }
 }
 
+/* ---------- Plantações ---------- */
+const CROP_FRUIT_COLORS = {
+  wheat: '#e6c465', corn: '#fdd835', carrot: '#ff7043', tomato: '#ef5350',
+  pumpkin: '#ff9800', lettuce: '#aed581', potato: '#c8a061', strawberry: '#ec407a',
+  grape: '#8e6bc1', sunflower: '#ffd54f'
+};
+
+function drawCrop(ctx, cam, cw, ch, b) {
+  const def = CROPS[b.type];
+  if (!def) return;
+  const p = cropProgress(b);
+  const z = cam.zoom;
+  const corners = tileCorners(cam, cw, ch, b.gx, b.gy);
+  const at = (gx, gy, gz) => {
+    const pr = projectPoint(gx, gy, gz);
+    return worldToScreen(cam, pr.x, pr.y, cw, ch);
+  };
+
+  drawTileDiamond(ctx, corners, b.watered ? '#8a5f34' : '#a3743f', 'rgba(0,0,0,0.12)');
+
+  ctx.strokeStyle = 'rgba(60,35,15,0.30)';
+  ctx.lineWidth = Math.max(1, 1 * z);
+  for (let i = 1; i <= 2; i++) {
+    const a = at(b.gx + 0.08, b.gy + i / 3, 0);
+    const c = at(b.gx + 0.92, b.gy + i / 3, 0);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+  }
+
+  const spots = [[0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7]];
+  const fruit = CROP_FRUIT_COLORS[b.type] || '#ffd54f';
+  ctx.lineCap = 'round';
+  for (let i = 0; i < spots.length; i++) {
+    const base = at(b.gx + spots[i][0], b.gy + spots[i][1], 0);
+    const hh = tileHash(b.gx * 3 + i, b.gy * 5 + i);
+    if (p < 0.33) {
+      const len = (3 + hh * 2.5) * z;
+      ctx.strokeStyle = '#66b545';
+      ctx.lineWidth = Math.max(1, 1.4 * z);
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y);
+      ctx.lineTo(base.x + (hh - 0.5) * 2.5 * z, base.y - len);
+      ctx.stroke();
+    } else {
+      const len = (9 + hh * 4) * z;
+      const tipX = base.x + (hh - 0.5) * 4 * z;
+      ctx.strokeStyle = '#4c9c33';
+      ctx.lineWidth = Math.max(1, 1.6 * z);
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y);
+      ctx.quadraticCurveTo(base.x + (hh - 0.5) * 3 * z, base.y - len * 0.6, tipX, base.y - len);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y - len * 0.45);
+      ctx.lineTo(base.x - 3.5 * z, base.y - len * 0.65);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y - len * 0.5);
+      ctx.lineTo(base.x + 3.5 * z, base.y - len * 0.7);
+      ctx.stroke();
+      if (p >= 1) {
+        ctx.fillStyle = fruit;
+        ctx.beginPath();
+        ctx.arc(tipX, base.y - len - 1.5 * z, 2.6 * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.lineCap = 'butt';
+
+  const center = at(b.gx + 0.5, b.gy + 0.5, 0);
+  if (p >= 1) {
+    const pulse = 1 + Math.sin(performance.now() / 280) * 0.07;
+    ctx.strokeStyle = 'rgba(255,213,79,0.95)';
+    ctx.lineWidth = Math.max(1.5, 2.2 * z);
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    ctx.lineTo(corners[1].x, corners[1].y);
+    ctx.lineTo(corners[2].x, corners[2].y);
+    ctx.lineTo(corners[3].x, corners[3].y);
+    ctx.closePath();
+    ctx.stroke();
+    const bounce = Math.abs(Math.sin(performance.now() / 320)) * 5 * z;
+    ctx.font = Math.max(13, 17 * z * pulse) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.icon, center.x, center.y - 14 * z - bounce);
+    ctx.textBaseline = 'alphabetic';
+  } else if (p > 0.04) {
+    const w = 22 * z, bh = 3.5 * z;
+    const bx = center.x - w / 2, by = center.y - 20 * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(bx - 1, by - 1, w + 2, bh + 2);
+    ctx.fillStyle = p > 0.75 ? '#ffd54f' : '#8bc34a';
+    ctx.fillRect(bx, by, w * p, bh);
+  }
+
+  if (b.watered && p < 1) {
+    const wpt = at(b.gx + 0.85, b.gy + 0.85, 0.1);
+    ctx.fillStyle = '#4fc3f7';
+    ctx.beginPath();
+    ctx.arc(wpt.x, wpt.y, 2.2 * z, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(wpt.x - 0.7 * z, wpt.y - 0.7 * z, 0.7 * z, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawDirtPatch(ctx, cam, cw, ch, x, y, h) {
   const corners = tileCorners(cam, cw, ch, x, y);
   ctx.save();

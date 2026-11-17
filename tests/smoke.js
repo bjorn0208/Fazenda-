@@ -1,0 +1,197 @@
+/* Teste de fumaça do Fazenda 3D — roda com: node tests/smoke.js
+   1) Varredura estática: nenhuma função chamada pode estar indefinida.
+   2) Simulação completa: carrega os 7 scripts e exercita render, zoom,
+      plantio, rega, colheita, animais e save/load. */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = path.join(__dirname, '..');
+const SCRIPTS = ['data.js', 'iso.js', 'game.js', 'render.js', 'animals.js', 'ui.js', 'main.js'];
+
+let failures = 0;
+const fail = msg => { failures++; console.error('FALHOU: ' + msg); };
+
+/* ---------- 1) Varredura estática de chamadas indefinidas ---------- */
+function stripNoise(src) {
+  src = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  src = src.replace(/\/\/[^\n]*/g, '');
+  src = src.replace(/'(?:\\.|[^'\\])*'/g, "''");
+  src = src.replace(/"(?:\\.|[^"\\])*"/g, '""');
+  src = src.replace(/`(?:\\.|[^`\\])*`/g, '``');
+  return src;
+}
+
+const defined = new Set();
+const stripped = {};
+for (const f of SCRIPTS) {
+  const src = stripNoise(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'));
+  stripped[f] = src;
+  for (const m of src.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)) defined.add(m[1]);
+  for (const m of src.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) defined.add(m[1]);
+  for (const m of src.matchAll(/^\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/gm)) defined.add(m[1]);
+  for (const m of src.matchAll(/\bfunction\s+[A-Za-z_$][\w$]*\s*\(([^)]*)\)/g)) {
+    for (const p of m[1].split(',')) {
+      const name = p.trim().split(/[=\s]/)[0];
+      if (name) defined.add(name);
+    }
+  }
+  for (const m of src.matchAll(/\(([^()]*)\)\s*=>/g)) {
+    for (const p of m[1].split(',')) {
+      const name = p.trim().split(/[=\s]/)[0];
+      if (name && /^[A-Za-z_$][\w$]*$/.test(name)) defined.add(name);
+    }
+  }
+}
+
+const BUILTINS = new Set(('if for while switch catch return function new delete typeof instanceof in of do ' +
+  'else try console Math Date JSON parseInt parseFloat isNaN Number String Boolean Array Object ' +
+  'Infinity NaN undefined performance requestAnimationFrame cancelAnimationFrame setTimeout ' +
+  'clearTimeout setInterval clearInterval addEventListener removeEventListener localStorage ' +
+  'document window navigator devicePixelRatio Symbol Proxy Set Map Promise Error TypeError').split(' '));
+
+for (const [f, src] of Object.entries(stripped)) {
+  for (const m of src.matchAll(/(?<![\w.$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const name = m[1];
+    if (defined.has(name) || BUILTINS.has(name) || /^[A-Z]/.test(name)) continue;
+    fail(`chamada indefinida "${name}" em js/${f}`);
+  }
+}
+
+/* ---------- 2) Simulação completa em sandbox ---------- */
+function makeCtx() {
+  const proxy = new Proxy(function () {}, {
+    get(t, p) {
+      if (p === Symbol.toPrimitive) return () => 0;
+      if (p === 'canvas') return { width: 800, height: 600 };
+      return (...a) => proxy;
+    },
+    set() { return true; },
+    apply() { return proxy; }
+  });
+  return proxy;
+}
+
+function makeEl() {
+  return {
+    classList: { add() {}, remove() {}, contains() { return false; }, toggle() {} },
+    addEventListener() {}, removeEventListener() {},
+    style: {}, dataset: {}, textContent: '', innerHTML: '', value: '', title: '',
+    appendChild() {}, removeChild() {}, remove() {}, focus() {}, blur() {},
+    getBoundingClientRect() { return { left: 0, top: 0, width: 800, height: 600 }; },
+    clientWidth: 800, clientHeight: 600, width: 800, height: 600,
+    getContext() { return makeCtx(); },
+    setPointerCapture() {}, releasePointerCapture() {},
+    querySelector() { return makeEl(); }, querySelectorAll() { return []; },
+    insertAdjacentHTML() {}, closest() { return null; },
+    disabled: false, checked: false, hidden: false
+  };
+}
+
+const store = {};
+const els = {};
+const noop = () => {};
+const sandbox = {
+  console, Math, Date, JSON,
+  performance: { now: () => Date.now() },
+  requestAnimationFrame: () => 0, cancelAnimationFrame: noop,
+  setTimeout: () => 0, clearTimeout: noop, setInterval: () => 0, clearInterval: noop,
+  addEventListener: noop, removeEventListener: noop, dispatchEvent() { return true; },
+  localStorage: {
+    getItem: k => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: k => { delete store[k]; }
+  },
+  devicePixelRatio: 1,
+  navigator: { language: 'pt-BR' },
+  document: {
+    documentElement: makeEl(),
+    getElementById: id => (els[id] = els[id] || makeEl()),
+    createElement: () => makeEl(),
+    querySelectorAll: () => [],
+    addEventListener: noop, removeEventListener: noop,
+    visibilityState: 'visible', body: makeEl(), hidden: false
+  }
+};
+sandbox.window = sandbox;
+sandbox.globalThis = sandbox;
+vm.createContext(sandbox);
+
+for (const f of SCRIPTS) {
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), sandbox, { filename: f });
+}
+
+vm.runInContext(`
+  // render base com todas as construcoes do catalogo
+  game.coins = 999999;
+  game.gems = 99;
+  let bx = 2, by = 2, row = 0;
+  for (const id of Object.keys(BUILDINGS)) {
+    placeBuilding(id, bx, by, 0, true);
+    bx += 6;
+    if (bx > 40) { bx = 2; by += 6; }
+  }
+  // todas as culturas nos 3 estagios de crescimento
+  game.ownedArea = { x0: 0, y0: 0, x1: 47, y1: 47 };
+  let cx = 2, cy = 20;
+  for (const id of Object.keys(CROPS)) {
+    const c = plantCrop(id, cx, cy);
+    if (!c) throw new Error('plantCrop falhou para ' + id);
+    if (Math.random === undefined) throw new Error('impossivel');
+    cx += 1;
+    if (cx > 12) { cx = 2; cy += 1; }
+  }
+  const crops = game.crops.slice();
+  crops[0].plantedAt -= CROPS[crops[0].type].growTime * 1000;      // pronto
+  crops[1].plantedAt -= CROPS[crops[1].type].growTime * 500;       // metade
+  crops[1].watered = true;
+  waterCrop(cropAt(crops[2].gx, crops[2].gy));
+  crops[3].plantedAt -= CROPS[crops[3].type].growTime * 1000;
+  crops[3].watered = true;
+
+  // render em varios zooms e modos
+  for (const z of [0.4, 0.72, 1, 1.5, 2.5]) {
+    cam.zoom = z;
+    render(ctx, cam, 800, 600, state);
+  }
+  spawnFloater(12, 12, '+25 moedas', '#ffd54f');
+  render(ctx, cam, 800, 600, state);
+
+  state.mode = 'build';
+  state.ghost = { type: 'house', gx: 30, gy: 30, rot: 0, valid: true };
+  render(ctx, cam, 800, 600, state);
+  state.ghost = null;
+  state.mode = 'idle';
+  state.highlightTile = { gx: 22, gy: 22 };
+  render(ctx, cam, 800, 600, state);
+  state.highlightTile = null;
+
+  // acoes centrais
+  zoomAt(400, 300, 1.5);
+  zoomStep(1 / 1.25);
+  zoomHandlers.zoomReset();
+  const c1 = cropAt(crops[0].gx, crops[0].gy);
+  if (!harvestCrop(c1)) throw new Error('colheita falhou');
+  buyAnimal('cow');
+  updateAnimals(0.016);
+  render(ctx, cam, 800, 600, state);
+
+  // save/load roundtrip
+  saveGame(false);
+  const snapshot = JSON.stringify({ coins: game.coins, crops: game.crops.length, animals: game.animals.length });
+  if (!loadGame()) throw new Error('loadGame falhou');
+  const restored = JSON.stringify({ coins: game.coins, crops: game.crops.length, animals: game.animals.length });
+  if (snapshot !== restored) throw new Error('save/load divergiu: ' + snapshot + ' vs ' + restored);
+
+  console.log('render: todas as construcoes, culturas e estagios desenhados sem erro');
+  console.log('acoes: zoom, plantio, rega, colheita, animais OK');
+  console.log('save/load roundtrip OK');
+`, sandbox, { filename: 'smoke' });
+
+if (failures) {
+  console.error(`\n${failures} problema(s) encontrado(s).`);
+  process.exit(1);
+}
+console.log('\nTUDO OK');

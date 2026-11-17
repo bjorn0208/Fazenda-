@@ -110,3 +110,11 @@ js/main.js      — inicialização, entrada (mouse/toque/teclado), loop
 - **Progresso:** salvamento também ao fechar/minimizar a aba (antes era só a cada 15s); configurações mescladas com padrões ao carregar saves antigos; contadores de nível e pico de moedas sincronizados (conquistas de nível/riqueza agora registram corretamente).
 - **Sem botões decorativos:** toggle de Música toca uma melodia ambiente gerada via WebAudio; opção de Idioma traduz toda a interface (pt-BR/en-US); áudio retomado corretamente no iOS; configurações são salvas ao alterar.
 - **Usabilidade:** loja mostra "Sem moedas" quando não pode comprar; novo clique reposiciona o fantasma durante confirmação; `Esc` fecha modais/diálogos; barra de confirmação responsiva em telas pequenas.
+
+## Testes
+
+```bash
+node tests/smoke.js
+```
+
+Varredura estática de chamadas indefinidas + simulação completa (render de todas as construções/culturas/estágios, zoom, plantio, rega, colheita, animais, save/load).
