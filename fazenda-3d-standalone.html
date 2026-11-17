@@ -620,7 +620,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v23</div>
+<div id="debug-badge">v24</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -4043,7 +4043,7 @@ function houseDoorTile() {
   for (const [x, y] of cands) {
     if (farmerWalkable(x, y)) return { x, y };
   }
-  return null;
+  return { x: b.gx + 1, y: b.gy + 3 };
 }
 
 function updateFarmers(dt) {
@@ -5802,7 +5802,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v23';
+const GAME_VERSION = 'v24';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {

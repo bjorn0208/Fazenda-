@@ -162,6 +162,11 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 17 — Correções de robustez
+
+- **Porta da casa sempre encontrada**: se plantações ou cercas bloquearem todos os pontos de entrada, os fazendeiros agora usam o tile à frente da porta de qualquer forma — antes eles podiam ficar acordados a noite inteira.
+- **Teste da reunião determinístico**: o smoke test agora verifica o empréstimo de sementes no exato momento em que a reunião termina (antes os fazendeiros podiam plantar as sementes emprestadas antes da verificação, derrubando o teste aleatoriamente).
+
 ## Revisão 16 — Reunião matinal, 100+ falas e roupas únicas
 
 - **Bolha de fala corrigida**: o texto nunca mais sai fora do balão, em qualquer zoom.

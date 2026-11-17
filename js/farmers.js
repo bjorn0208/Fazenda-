@@ -361,7 +361,7 @@ function houseDoorTile() {
   for (const [x, y] of cands) {
     if (farmerWalkable(x, y)) return { x, y };
   }
-  return null;
+  return { x: b.gx + 1, y: b.gy + 3 };
 }
 
 function updateFarmers(dt) {

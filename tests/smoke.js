@@ -496,12 +496,14 @@ vm.runInContext(`
   game.meetingDone = false;
   game.meetingScript = null;
   game.time = 0.2;
-  for (let i = 0; i < 400; i++) updateFarmers(0.1);
+  let meetGuard = 0;
+  while (!game.meetingDone && meetGuard < 600) { updateFarmers(0.1); meetGuard++; }
   if (!game.meetingDone) throw new Error('reuniao matinal nao aconteceu');
-  if (game.meetingScript && game.meetingScript.length) throw new Error('falas da reuniao nao terminaram');
   const broke = game.farmers.find(f => f !== rich);
   if (!broke || !(broke.chest.wheat >= 3)) throw new Error('emprestimo de sementes nao aconteceu');
   if ((rich.chest.wheat || 0) !== 3) throw new Error('sementes nao foram deduzidas de quem emprestou');
+  for (let i = 0; i < 400 && game.meetingScript && game.meetingScript.length; i++) updateFarmers(0.1);
+  if (game.meetingScript && game.meetingScript.length) throw new Error('falas da reuniao nao terminaram');
 
   // bolha longa renderiza sem estourar em zoom afastado
   const bFarmer = game.farmers[0];
