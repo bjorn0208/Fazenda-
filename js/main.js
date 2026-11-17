@@ -496,6 +496,7 @@ function init() {
   spawnAnimals();
   applyLang();
   centerCamera();
+  if (canvas.clientWidth < 520) cam.zoom = 0.72;
   bindUi(uiHandlers);
   refreshHud();
   requestAnimationFrame(loop);
