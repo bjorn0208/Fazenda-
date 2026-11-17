@@ -740,6 +740,34 @@ const CLOUDS = [
   { x: 0.35, y: 0.3, s: 0.55, v: 15 }
 ];
 
+/* ---------- Textos flutuantes (ganhos, XP, água) ---------- */
+const floaters = [];
+
+function spawnFloater(gx, gy, text, color) {
+  floaters.push({ gx, gy, text, color, born: performance.now() });
+  if (floaters.length > 30) floaters.shift();
+}
+
+function drawFloaters(ctx, cam, cw, ch, now) {
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    const age = (now - f.born) / 1400;
+    if (age >= 1) { floaters.splice(i, 1); continue; }
+    const pp = projectPoint(f.gx + 0.5, f.gy + 0.5, 1.2 + age * 1.1);
+    const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    ctx.save();
+    ctx.globalAlpha = age < 0.7 ? 1 : 1 - (age - 0.7) / 0.3;
+    ctx.font = 'bold ' + Math.max(11, 13 * cam.zoom) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.strokeText(f.text, pt.x, pt.y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, pt.x, pt.y);
+    ctx.restore();
+  }
+}
+
 function drawClouds(ctx, cam, cw, ch) {
   if (game.settings.quality === 'baixa') return;
   const t = performance.now() / 1000;
