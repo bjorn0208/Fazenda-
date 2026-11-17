@@ -2937,64 +2937,144 @@ function zoomAt(sx, sy, factor) {
   clampCamera();
 }
 
-/* ---------- Entrada: mouse (pointer) e toque (touch nativo) ---------- */
+/* ---------- Entrada: gestos unificados (Pointer Events + fallback touch) ---------- */
 const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0 };
+const activePointers = new Map();
+let gesture = null;
+let lastTap = { t: 0, x: 0, y: 0 };
 
 function eventPos(e) {
   const rect = canvas.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
-function touchPos(t) {
-  const rect = canvas.getBoundingClientRect();
-  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
-}
-
-function gridFromScreenPos(p) {
+function gridFromEvent(e) {
+  const p = eventPos(e);
   const w = screenToWorld(cam, p.x, p.y, canvas.clientWidth, canvas.clientHeight);
   lastPointerGrid = screenToGrid(w.x, w.y);
   return lastPointerGrid;
 }
 
-function gridFromEvent(e) { return gridFromScreenPos(eventPos(e)); }
-function gridFromTouch(t) { return gridFromScreenPos(touchPos(t)); }
-
-/* Mouse: arrastar move a câmera; clique curto interage. */
-canvas.addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'mouse' || e.button !== 0) return;
-  pointer.down = true; pointer.dragging = false;
-  pointer.sx = e.clientX; pointer.sy = e.clientY;
-  pointer.cx = cam.x; pointer.cy = cam.y;
-  canvas.setPointerCapture(e.pointerId);
-});
-
-canvas.addEventListener('pointermove', e => {
-  if (e.pointerType !== 'mouse') return;
-  gridFromEvent(e);
-  if (pointer.down) {
-    const dx = e.clientX - pointer.sx, dy = e.clientY - pointer.sy;
-    if (!pointer.dragging && Math.abs(dx) + Math.abs(dy) > 6) pointer.dragging = true;
-    if (pointer.dragging) {
-      cam.x = pointer.cx - dx / cam.zoom;
-      cam.y = pointer.cy - dy / cam.zoom;
-      clampCamera();
-      canvas.classList.add('dragging');
-    }
-  }
+function updateGhostFollow() {
   if (!state.ghostPinned && state.ghost &&
       (state.mode === 'build' || (state.mode === 'move' && state.moveId))) {
     updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
   }
-});
+}
 
-canvas.addEventListener('pointerup', e => {
-  if (e.pointerType !== 'mouse') return;
+function beginPinch() {
+  const [a, b] = [...activePointers.values()];
+  gesture = {
+    type: 'pinch',
+    dist: Math.hypot(a.x - b.x, a.y - b.y)
+  };
+}
+
+function onDown(e) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (e.pointerType === 'mouse') {
+    pointer.down = true; pointer.dragging = false;
+    pointer.sx = e.clientX; pointer.sy = e.clientY;
+    pointer.cx = cam.x; pointer.cy = cam.y;
+  }
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* sem captura */ }
+  activePointers.set(e.pointerId, eventPos(e));
+  if (activePointers.size === 1) {
+    gesture = { type: 'pending', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
+    gridFromEvent(e);
+  } else if (activePointers.size >= 2) {
+    beginPinch();
+  }
+}
+
+function onMove(e) {
+  if (!activePointers.has(e.pointerId)) {
+    if (e.pointerType === 'mouse') { gridFromEvent(e); updateGhostFollow(); }
+    return;
+  }
+  activePointers.set(e.pointerId, eventPos(e));
+  if (!gesture) return;
+
+  if (gesture.type === 'pending') {
+    const dx = e.clientX - gesture.sx, dy = e.clientY - gesture.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 8) gesture.type = 'drag';
+  }
+
+  if (gesture.type === 'drag') {
+    const dx = e.clientX - gesture.sx, dy = e.clientY - gesture.sy;
+    cam.x = gesture.cx - dx / cam.zoom;
+    cam.y = gesture.cy - dy / cam.zoom;
+    clampCamera();
+    canvas.classList.add('dragging');
+    gridFromEvent(e);
+  } else if (gesture.type === 'pinch' && activePointers.size >= 2) {
+    const [a, b] = [...activePointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (gesture.dist > 0 && d > 0) zoomAt(mid.x, mid.y, d / gesture.dist);
+    gesture.dist = d;
+  }
+  updateGhostFollow();
+}
+
+function onEnd(e) {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.delete(e.pointerId);
   canvas.classList.remove('dragging');
-  if (!pointer.down) return;
-  const wasDragging = pointer.dragging;
-  pointer.down = false; pointer.dragging = false;
-  if (!wasDragging) handleClick(e);
-});
+
+  const wasTap = gesture && gesture.type === 'pending';
+  const wasMouse = e.pointerType === 'mouse';
+  if (wasMouse) pointer.down = false;
+
+  if (activePointers.size === 0) {
+    gesture = null;
+    if (wasTap) {
+      const now = performance.now();
+      const near = Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+      if (!wasMouse && now - lastTap.t < 320 && near) {
+        const p = eventPos(e);
+        zoomAt(p.x, p.y, 1.5);
+        lastTap = { t: 0, x: 0, y: 0 };
+      } else {
+        lastTap = { t: now, x: e.clientX, y: e.clientY };
+      }
+      handleClick(e);
+    }
+  } else if (activePointers.size === 1) {
+    const [p] = [...activePointers.values()];
+    const rect = canvas.getBoundingClientRect();
+    gesture = { type: 'drag', sx: rect.left + p.x, sy: rect.top + p.y, cx: cam.x, cy: cam.y };
+    if (wasMouse) { pointer.dragging = true; }
+  } else {
+    beginPinch();
+  }
+}
+
+if (window.PointerEvent) {
+  canvas.addEventListener('pointerdown', onDown);
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', onEnd);
+  canvas.addEventListener('pointercancel', onEnd);
+} else {
+  const toSynthetic = t => ({
+    pointerId: t.identifier, pointerType: 'touch',
+    clientX: t.clientX, clientY: t.clientY
+  });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) onDown(toSynthetic(t));
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) onMove(toSynthetic(t));
+  }, { passive: false });
+  canvas.addEventListener('touchend', e => {
+    for (const t of e.changedTouches) onEnd(toSynthetic(t));
+  }, { passive: false });
+  canvas.addEventListener('touchcancel', e => {
+    for (const t of e.changedTouches) onEnd(toSynthetic(t));
+  }, { passive: false });
+}
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -3002,73 +3082,6 @@ canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const p = eventPos(e);
   zoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1 / 1.12);
-}, { passive: false });
-
-/* Toque: 1 dedo arrasta, 2 dedos dão zoom por pinça. */
-let touchDrag = null;
-let pinch = null;
-
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (e.touches.length === 1) {
-    const t = e.touches[0];
-    touchDrag = { sx: t.clientX, sy: t.clientY, cx: cam.x, cy: cam.y, moved: false };
-    gridFromTouch(t);
-  } else if (e.touches.length >= 2) {
-    touchDrag = null;
-    const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
-    pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) };
-  }
-}, { passive: false });
-
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if (e.touches.length === 1 && touchDrag) {
-    const t = e.touches[0];
-    const dx = t.clientX - touchDrag.sx, dy = t.clientY - touchDrag.sy;
-    if (!touchDrag.moved && Math.abs(dx) + Math.abs(dy) > 6) touchDrag.moved = true;
-    if (touchDrag.moved) {
-      cam.x = touchDrag.cx - dx / cam.zoom;
-      cam.y = touchDrag.cy - dy / cam.zoom;
-      clampCamera();
-    } else {
-      gridFromTouch(t);
-    }
-  } else if (e.touches.length >= 2) {
-    const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
-    const d = Math.hypot(a.x - b.x, a.y - b.y);
-    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    if (!pinch) pinch = { dist: d };
-    if (pinch.dist > 0) zoomAt(mid.x, mid.y, d / pinch.dist);
-    pinch.dist = d;
-    touchDrag = null;
-    return;
-  }
-  if (!state.ghostPinned && state.ghost &&
-      (state.mode === 'build' || (state.mode === 'move' && state.moveId))) {
-    updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
-  }
-}, { passive: false });
-
-canvas.addEventListener('touchend', e => {
-  e.preventDefault();
-  if (e.touches.length === 0) {
-    if (touchDrag && !touchDrag.moved) {
-      const t = e.changedTouches[0];
-      handleClick({ clientX: t.clientX, clientY: t.clientY });
-    }
-    touchDrag = null;
-    pinch = null;
-  } else if (e.touches.length === 1 && pinch) {
-    const t = e.touches[0];
-    touchDrag = { sx: t.clientX, sy: t.clientY, cx: cam.x, cy: cam.y, moved: true };
-    pinch = null;
-  }
-}, { passive: false });
-
-canvas.addEventListener('touchcancel', () => {
-  touchDrag = null;
-  pinch = null;
 }, { passive: false });
 
 /* ---------- Clique no mundo ---------- */
