@@ -70,6 +70,12 @@ function updateFarmers(dt) {
 
     if (f.walking) {
       const dx = f.tx - f.gx, dy = f.ty - f.gy;
+      const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+      if (sdx * sdx + sdy * sdy > 1e-6) {
+        f.face = lerpAngle(f.face || 0, Math.atan2(sdy, sdx), Math.min(1, dt * 6));
+        const fx = Math.cos(f.face);
+        if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
+      }
       const dist = Math.hypot(dx, dy);
       const step = FARMER_SPEED * dt;
       if (dist <= step) {
@@ -160,10 +166,14 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   const bob = f.walking ? Math.abs(Math.sin(f.phase * 8)) * 2.5 * z : Math.sin(f.phase * 2) * 0.6 * z;
   const legSwing = f.walking ? Math.sin(f.phase * 8) * 3 : 0;
   const armSwing = f.walking ? Math.sin(f.phase * 8 + Math.PI) * 2 : 0;
+  const face = f.face || 0;
+  const fx = Math.cos(face);
+  const flip = Math.abs(fx) < 0.15 ? (f.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const squash = Math.max(0.5, Math.abs(fx));
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z, z);
+  ctx.scale(z * flip * squash, z);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
   ctx.beginPath();
@@ -199,7 +209,8 @@ function drawFarmer(ctx, cam, cw, ch, f) {
 
   ctx.fillStyle = '#5d4037';
   ctx.beginPath();
-  ctx.arc(0, -23.5 + bob * 0.4, 1, 0, Math.PI * 2);
+  ctx.arc(1.5 - 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
+  ctx.arc(1.5 + 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#e6c465';

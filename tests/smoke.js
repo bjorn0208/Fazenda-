@@ -234,6 +234,21 @@ vm.runInContext(`
   if (!collectAnimal(porky)) throw new Error('abate do porco falhou');
   if (game.animals.filter(a => a.kind === 'pig').length !== pigsBefore - 1) throw new Error('porco nao removido');
 
+  // recolher tudo: produtos de todos os animais de uma vez
+  game.coins = 999999;
+  game.animals.filter(a => a.kind === 'chicken').forEach(h => { h.product = 2; });
+  game.animals.filter(a => a.kind === 'cow').forEach(c => { c.product = 1; });
+  const ca = collectAllProducts();
+  if (ca.n < 100) throw new Error('collectAllProducts coletou ' + ca.n);
+  if (ca.coins <= 0) throw new Error('collectAllProducts sem moedas');
+  if (game.animals.some(a => a.kind !== 'pig' && a.product > 0)) throw new Error('produto nao recolhido');
+
+  // orientacao 360 graus: animais e fazendeiro ganham face
+  updateAnimals(0.016);
+  const walker = game.animals.find(a => a.face !== undefined);
+  if (!walker) throw new Error('face do animal ausente');
+  if (game.farmers.length && game.farmers[0].face === undefined) throw new Error('face do fazendeiro ausente');
+
   // fazendeiro coleta produtos e planta em fileiras adjacentes
   buyFarmer();
   const fm2 = game.farmers[game.farmers.length - 1];

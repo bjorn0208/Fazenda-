@@ -138,3 +138,10 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Fazendeiro automático**: além de plantar/regar/colher, agora ele também **coleta ovos, leite e abate porcos** prontos automaticamente.
 - **Plantio em fileiras**: o fazendeiro planta **um ao lado do outro** (vizinhos de plantações existentes), preferindo formar **clusters da mesma cultura** em vez de espalhar pelo mapa.
 - Testes: coleta de ovo/leite, recusa de abate de porco jovem, abate com 5min, e verificação de que todo plantio do fazendeiro fica adjacente a outra plantação.
+
+## Revisão 7 — Orientação 360°, recolher tudo e HUD nas laterais
+
+- **Rabo corrigido**: rabo da vaca, do porco e da cauda da galinha agora viram junto com o corpo (antes ficavam do lado errado ao virar).
+- **Orientação 360°**: animais e fazendeiro agora **viram na direção em que caminham** (qualquer ângulo do mapa), com virada suave — não andam mais sempre de lado.
+- **Botão Recolher 🥚**: recolhe e vende de uma vez todos os ovos e leites prontos (e abate porcos de 5 min).
+- **HUD reorganizado**: ações (Construir, Arar, Plantar, Regar, Colher Tudo, Recolher, Mover, Remover, Girar, Comprar) ficam na **coluna direita**; menus (Missões, Loja, Conquistas, Amigos) na **coluna esquerda**. Em telefone deitado a barra volta ao rodapé.

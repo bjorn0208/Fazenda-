@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v13';
+const GAME_VERSION = 'v14';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -526,6 +526,17 @@ const uiHandlers = {
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
+    }
+  },
+  collectAll() {
+    playSound('click');
+    const r = collectAllProducts();
+    if (r.n > 0) {
+      showToast(t('toast.collectAll', { n: r.n, c: r.coins }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.nothingToCollect'));
     }
   }
 };

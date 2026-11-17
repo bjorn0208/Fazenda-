@@ -124,14 +124,19 @@ html, body {
 .side-btn.active { background: #ffe0b2; border-color: var(--wood); }
 .side-icon { font-size: 24px; }
 
-/* ---------- Barra de construção ---------- */
+/* ---------- Barra de ações (coluna direita) ---------- */
 #build-bar {
   position: absolute;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; z-index: 15;
-  flex-wrap: wrap; justify-content: center; max-width: 96vw;
+  top: calc(74px + env(safe-area-inset-top, 0px));
+  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; justify-content: flex-start;
+  gap: 10px; z-index: 15;
+  overflow-y: auto; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
 }
+#build-bar::-webkit-scrollbar { display: none; }
 
 #seed-bar {
   position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
@@ -315,6 +320,14 @@ html, body {
 @media (max-width: 480px) {
   #zoom-controls { bottom: 88px; right: 8px; }
   #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
+  #build-bar {
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+    right: calc(6px + env(safe-area-inset-right, 0px));
+    gap: 7px; padding: 3px 2px;
+  }
+  .build-btn { width: 52px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+  .build-icon { font-size: 16px; }
 }
 
 /* Telefone em pé: HUD compacto em duas linhas, barras roláveis */
@@ -337,16 +350,6 @@ html, body {
   .side-btn { width: 48px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; }
   .side-icon { font-size: 16px; }
 
-  #build-bar {
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-    max-width: 94vw; padding: 3px; gap: 7px;
-    scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-  }
-  #build-bar::-webkit-scrollbar { display: none; }
-  .build-btn { flex: 0 0 auto; width: 56px; padding: 7px 2px; font-size: 9px; border-width: 2px; border-radius: 12px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
-  .build-icon { font-size: 17px; }
 
   #seed-bar { bottom: 84px; padding: 6px 8px; gap: 6px; max-width: 94vw; }
   .seed-item { min-width: 58px; padding: 5px 6px; }
@@ -371,6 +374,15 @@ html, body {
 
 /* Telefone deitado: compacta o HUD para sobrar tela */
 @media (max-height: 480px) {
+  #build-bar {
+    flex-direction: row; justify-content: center;
+    top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    left: 50%; transform: translateX(-50%); right: auto;
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    max-width: 94vw; padding: 3px; gap: 7px;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
+  }
   #avatar { width: 34px; height: 34px; font-size: 18px; }
   #farm-name { font-size: 10px; }
   #xp-bar { width: 50px; height: 8px; }
@@ -448,6 +460,7 @@ html, body {
   <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
   <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
   <button class="build-btn" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
+  <button class="build-btn" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
@@ -462,7 +475,7 @@ html, body {
 </div>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v13</div>
+<div id="debug-badge">v14</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1152,6 +1165,15 @@ function collectAnimal(a) {
   a.product = 0;
   playSound('harvest');
   return true;
+}
+
+function collectAllProducts() {
+  const before = game.coins;
+  let n = 0;
+  for (let i = game.animals.length - 1; i >= 0; i--) {
+    if (collectAnimal(game.animals[i])) n++;
+  }
+  return { n, coins: game.coins - before };
 }
 
 /* ---------- Fazendeiro (ajudante automatico) ---------- */
@@ -2354,6 +2376,13 @@ const MAX_PRODUCT = 3;
 
 const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
+function lerpAngle(a, b, t) {
+  let d = b - a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
+
 function randomFreeTile() {
   const a = game.ownedArea;
   for (let tries = 0; tries < 60; tries++) {
@@ -2387,6 +2416,8 @@ function makeAnimal(kind, spot) {
     speedMul: 0.85 + Math.random() * 0.3,
     grazing: false,
     dirCur: Math.random() < 0.5 ? -1 : 1,
+    face: 0,
+    lastDir: 1,
     bornAt: Date.now(),
     product: 0,
     prodT: 0
@@ -2402,12 +2433,16 @@ function animalUpdateOne(a, dt) {
       if (a.product < MAX_PRODUCT) a.product++;
     }
   }
-  const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
-  a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
   if (a.walking) {
     a.grazing = false;
     const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
     const dx = a.tx - a.gx, dy = a.ty - a.gy;
+    const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+    if (sdx * sdx + sdy * sdy > 1e-6) {
+      a.face = lerpAngle(a.face, Math.atan2(sdy, sdx), Math.min(1, dt * 6));
+      const fx = Math.cos(a.face);
+      if (Math.abs(fx) >= 0.15) a.lastDir = fx >= 0 ? 1 : -1;
+    }
     const dist = Math.hypot(dx, dy);
     const step = speed * dt;
     if (dist <= step) {
@@ -2449,6 +2484,8 @@ function updateAnimals(dt) {
       a.grazing = false;
       a.dirCur = 1;
     }
+    if (a.face === undefined) a.face = (a.dirCur || 1) >= 0 ? 0 : Math.PI;
+    if (a.lastDir === undefined) a.lastDir = (a.dirCur || 1) >= 0 ? 1 : -1;
     if (a.bornAt === undefined) a.bornAt = Date.now();
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
@@ -2463,11 +2500,14 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
   const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
-  const dir = a.dirCur !== undefined ? a.dirCur : 1;
+  const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
+  const fx = Math.cos(face);
+  const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const squash = Math.max(0.5, Math.abs(fx));
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z * k.scale, z * k.scale);
+  ctx.scale(z * k.scale * squash, z * k.scale);
   if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
@@ -2511,9 +2551,9 @@ function drawChicken(ctx, bob, dir, walking, phase) {
 
   ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
-  ctx.moveTo(-8, -10 + bob * 0.5);
-  ctx.lineTo(-14, -14 + bob * 0.5);
-  ctx.lineTo(-8, -6 + bob * 0.5);
+  ctx.moveTo(dir * -8, -10 + bob * 0.5);
+  ctx.lineTo(dir * -14, -14 + bob * 0.5);
+  ctx.lineTo(dir * -8, -6 + bob * 0.5);
   ctx.closePath();
   ctx.fill();
 
@@ -2569,12 +2609,12 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.strokeStyle = '#e8e4dc';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-16, -16 + bob * 0.4);
-  ctx.quadraticCurveTo(-21, -14 + bob * 0.4, -20, -8 + bob * 0.4);
+  ctx.moveTo(dir * -16, -16 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * -21, -14 + bob * 0.4, dir * -20, -8 + bob * 0.4);
   ctx.stroke();
   ctx.fillStyle = '#6d4c41';
   ctx.beginPath();
-  ctx.arc(-20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
+  ctx.arc(dir * -20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f1e8';
@@ -2632,7 +2672,7 @@ function drawPig(ctx, bob, dir, walking, phase) {
   ctx.strokeStyle = '#e28ba0';
   ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.arc(-13, -11 + bob * 0.5, 3, 0.5, 4.5);
+  ctx.arc(dir * -13, -11 + bob * 0.5, 3, 0.5, 4.5);
   ctx.stroke();
 
   ctx.fillStyle = '#f4a9bc';
@@ -2738,6 +2778,12 @@ function updateFarmers(dt) {
 
     if (f.walking) {
       const dx = f.tx - f.gx, dy = f.ty - f.gy;
+      const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+      if (sdx * sdx + sdy * sdy > 1e-6) {
+        f.face = lerpAngle(f.face || 0, Math.atan2(sdy, sdx), Math.min(1, dt * 6));
+        const fx = Math.cos(f.face);
+        if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
+      }
       const dist = Math.hypot(dx, dy);
       const step = FARMER_SPEED * dt;
       if (dist <= step) {
@@ -2828,10 +2874,14 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   const bob = f.walking ? Math.abs(Math.sin(f.phase * 8)) * 2.5 * z : Math.sin(f.phase * 2) * 0.6 * z;
   const legSwing = f.walking ? Math.sin(f.phase * 8) * 3 : 0;
   const armSwing = f.walking ? Math.sin(f.phase * 8 + Math.PI) * 2 : 0;
+  const face = f.face || 0;
+  const fx = Math.cos(face);
+  const flip = Math.abs(fx) < 0.15 ? (f.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const squash = Math.max(0.5, Math.abs(fx));
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z, z);
+  ctx.scale(z * flip * squash, z);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
   ctx.beginPath();
@@ -2867,7 +2917,8 @@ function drawFarmer(ctx, cam, cw, ch, f) {
 
   ctx.fillStyle = '#5d4037';
   ctx.beginPath();
-  ctx.arc(0, -23.5 + bob * 0.4, 1, 0, Math.PI * 2);
+  ctx.arc(1.5 - 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
+  ctx.arc(1.5 + 1.2, -23.5 + bob * 0.4, 0.8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#e6c465';
@@ -2982,6 +3033,9 @@ const I18N = {
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
     'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'build.collectAll': 'Recolher',
+    'toast.collectAll': '🥚 {n} coletados e vendidos (+{c} 🪙)',
+    'toast.nothingToCollect': 'Nenhum ovo, leite ou porco pronto ainda.',
     'toast.tillHint': '⛏️ Toque no chão para arar (plantio 25% mais rápido)',
     'toast.tilled': '⛏️ Terra arada!',
     'toast.harvestAll': '🧺 {n} plantações colhidas (+{c} 🪙)',
@@ -3089,6 +3143,9 @@ const I18N = {
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'build.collectAll': 'Collect',
+    'toast.collectAll': '🥚 {n} collected and sold (+{c} 🪙)',
+    'toast.nothingToCollect': 'No eggs, milk or pig ready yet.',
     'toast.tillHint': '⛏️ Tap the ground to till (planting 25% faster)',
     'toast.tilled': '⛏️ Soil tilled!',
     'toast.harvestAll': '🧺 {n} crops harvested (+{c} 🪙)',
@@ -3617,6 +3674,7 @@ function bindUi(handlers) {
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
   $('btn-harvestall').onclick = () => handlers.harvestAll();
+  $('btn-collectall').onclick = () => handlers.collectAll();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
@@ -3709,7 +3767,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v13';
+const GAME_VERSION = 'v14';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -4184,6 +4242,17 @@ const uiHandlers = {
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
+    }
+  },
+  collectAll() {
+    playSound('click');
+    const r = collectAllProducts();
+    if (r.n > 0) {
+      showToast(t('toast.collectAll', { n: r.n, c: r.coins }));
+      refreshHud();
+      autoClaimReady();
+    } else {
+      showToast(t('toast.nothingToCollect'));
     }
   }
 };

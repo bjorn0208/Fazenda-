@@ -12,6 +12,13 @@ const MAX_PRODUCT = 3;
 
 const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
+function lerpAngle(a, b, t) {
+  let d = b - a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
+
 function randomFreeTile() {
   const a = game.ownedArea;
   for (let tries = 0; tries < 60; tries++) {
@@ -45,6 +52,8 @@ function makeAnimal(kind, spot) {
     speedMul: 0.85 + Math.random() * 0.3,
     grazing: false,
     dirCur: Math.random() < 0.5 ? -1 : 1,
+    face: 0,
+    lastDir: 1,
     bornAt: Date.now(),
     product: 0,
     prodT: 0
@@ -60,12 +69,16 @@ function animalUpdateOne(a, dt) {
       if (a.product < MAX_PRODUCT) a.product++;
     }
   }
-  const targetDir = a.walking ? (a.tx >= a.gx ? 1 : -1) : a.dirCur;
-  a.dirCur += (targetDir - a.dirCur) * Math.min(1, dt * 8);
   if (a.walking) {
     a.grazing = false;
     const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
     const dx = a.tx - a.gx, dy = a.ty - a.gy;
+    const sdx = dx - dy, sdy = (dx + dy) * 0.5;
+    if (sdx * sdx + sdy * sdy > 1e-6) {
+      a.face = lerpAngle(a.face, Math.atan2(sdy, sdx), Math.min(1, dt * 6));
+      const fx = Math.cos(a.face);
+      if (Math.abs(fx) >= 0.15) a.lastDir = fx >= 0 ? 1 : -1;
+    }
     const dist = Math.hypot(dx, dy);
     const step = speed * dt;
     if (dist <= step) {
@@ -107,6 +120,8 @@ function updateAnimals(dt) {
       a.grazing = false;
       a.dirCur = 1;
     }
+    if (a.face === undefined) a.face = (a.dirCur || 1) >= 0 ? 0 : Math.PI;
+    if (a.lastDir === undefined) a.lastDir = (a.dirCur || 1) >= 0 ? 1 : -1;
     if (a.bornAt === undefined) a.bornAt = Date.now();
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
@@ -121,11 +136,14 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
   const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
-  const dir = a.dirCur !== undefined ? a.dirCur : 1;
+  const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
+  const fx = Math.cos(face);
+  const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
+  const squash = Math.max(0.5, Math.abs(fx));
 
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(z * k.scale, z * k.scale);
+  ctx.scale(z * k.scale * squash, z * k.scale);
   if (grazing) ctx.rotate(dir * 0.14);
 
   ctx.fillStyle = 'rgba(20,40,10,0.2)';
@@ -169,9 +187,9 @@ function drawChicken(ctx, bob, dir, walking, phase) {
 
   ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
-  ctx.moveTo(-8, -10 + bob * 0.5);
-  ctx.lineTo(-14, -14 + bob * 0.5);
-  ctx.lineTo(-8, -6 + bob * 0.5);
+  ctx.moveTo(dir * -8, -10 + bob * 0.5);
+  ctx.lineTo(dir * -14, -14 + bob * 0.5);
+  ctx.lineTo(dir * -8, -6 + bob * 0.5);
   ctx.closePath();
   ctx.fill();
 
@@ -227,12 +245,12 @@ function drawCow(ctx, bob, dir, walking, phase) {
   ctx.strokeStyle = '#e8e4dc';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-16, -16 + bob * 0.4);
-  ctx.quadraticCurveTo(-21, -14 + bob * 0.4, -20, -8 + bob * 0.4);
+  ctx.moveTo(dir * -16, -16 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * -21, -14 + bob * 0.4, dir * -20, -8 + bob * 0.4);
   ctx.stroke();
   ctx.fillStyle = '#6d4c41';
   ctx.beginPath();
-  ctx.arc(-20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
+  ctx.arc(dir * -20, -7 + bob * 0.4, 1.5, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f1e8';
@@ -290,7 +308,7 @@ function drawPig(ctx, bob, dir, walking, phase) {
   ctx.strokeStyle = '#e28ba0';
   ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.arc(-13, -11 + bob * 0.5, 3, 0.5, 4.5);
+  ctx.arc(dir * -13, -11 + bob * 0.5, 3, 0.5, 4.5);
   ctx.stroke();
 
   ctx.fillStyle = '#f4a9bc';

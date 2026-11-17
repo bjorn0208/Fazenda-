@@ -238,6 +238,15 @@ function collectAnimal(a) {
   return true;
 }
 
+function collectAllProducts() {
+  const before = game.coins;
+  let n = 0;
+  for (let i = game.animals.length - 1; i >= 0; i--) {
+    if (collectAnimal(game.animals[i])) n++;
+  }
+  return { n, coins: game.coins - before };
+}
+
 /* ---------- Fazendeiro (ajudante automatico) ---------- */
 function farmerPrice() {
   return HELPERS.farmer.price * Math.pow(2, game.farmers.length);

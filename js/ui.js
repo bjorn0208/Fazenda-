@@ -96,6 +96,9 @@ const I18N = {
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
     'build.till': 'Arar', 'build.harvestAll': 'Colher Tudo',
+    'build.collectAll': 'Recolher',
+    'toast.collectAll': '🥚 {n} coletados e vendidos (+{c} 🪙)',
+    'toast.nothingToCollect': 'Nenhum ovo, leite ou porco pronto ainda.',
     'toast.tillHint': '⛏️ Toque no chão para arar (plantio 25% mais rápido)',
     'toast.tilled': '⛏️ Terra arada!',
     'toast.harvestAll': '🧺 {n} plantações colhidas (+{c} 🪙)',
@@ -203,6 +206,9 @@ const I18N = {
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.till': 'Till', 'build.harvestAll': 'Harvest All',
+    'build.collectAll': 'Collect',
+    'toast.collectAll': '🥚 {n} collected and sold (+{c} 🪙)',
+    'toast.nothingToCollect': 'No eggs, milk or pig ready yet.',
     'toast.tillHint': '⛏️ Tap the ground to till (planting 25% faster)',
     'toast.tilled': '⛏️ Soil tilled!',
     'toast.harvestAll': '🧺 {n} crops harvested (+{c} 🪙)',
@@ -731,6 +737,7 @@ function bindUi(handlers) {
   $('btn-plant').onclick = () => handlers.plant();
   $('btn-water').onclick = () => handlers.water();
   $('btn-harvestall').onclick = () => handlers.harvestAll();
+  $('btn-collectall').onclick = () => handlers.collectAll();
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
