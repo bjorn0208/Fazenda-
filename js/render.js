@@ -59,24 +59,76 @@ function tileHash(x, y) {
   return ((h ^ (h >> 16)) >>> 0) / 4294967295;
 }
 
+/* Hash com boa distribuição para as células do ruído. */
+function noiseHash(x, y) {
+  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967295;
+}
+
+/* Ruído suave (value noise) para variação orgânica da grama. */
+function smoothNoise(x, y) {
+  const x0 = Math.floor(x), y0 = Math.floor(y);
+  const fx = x - x0, fy = y - y0;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const n00 = noiseHash(x0, y0), n10 = noiseHash(x0 + 1, y0);
+  const n01 = noiseHash(x0, y0 + 1), n11 = noiseHash(x0 + 1, y0 + 1);
+  const top = n00 + (n10 - n00) * sx;
+  const bot = n01 + (n11 - n01) * sx;
+  return top + (bot - top) * sy;
+}
+
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+}
+
+const GRASS_OWNED_RAMP = ['#93d768', '#7ec850', '#72bd48', '#66b23f'].map(hexToRgb);
+const GRASS_LOCKED_RAMP = ['#65aa46', '#5da03f', '#549438', '#4a8831'].map(hexToRgb);
+const SUN_TINT = [172, 216, 108];
+const SHADE_TINT = [82, 152, 54];
+
 function drawTerrain(ctx, cam, cw, ch, view) {
   const a = game.ownedArea;
   const q = game.settings.quality;
+  const tNow = performance.now() / 1000;
   for (let x = view.x0; x < view.x1; x++) {
     for (let y = view.y0; y < view.y1; y++) {
       const corners = tileCorners(cam, cw, ch, x, y);
       const owned = inOwnedArea(x, y);
       const h = tileHash(x, y);
-      const alt = (x + y) % 2 === 0;
-      let fill;
-      if (owned) {
-        fill = h > 0.93 ? COLORS.grassOwnedDeep : (alt ? COLORS.grassOwned : COLORS.grassOwnedAlt);
-      } else {
-        fill = h > 0.93 ? COLORS.grassLockedDeep : (alt ? COLORS.grassLocked : COLORS.grassLockedAlt);
+
+      // cor base: rampa de verdes escolhida por ruído suave em 2 oitavas
+      const n1 = 0.65 * smoothNoise(x / 7, y / 7) + 0.35 * smoothNoise(x / 2.6 + 31, y / 2.6 + 17);
+      const ramp = owned ? GRASS_OWNED_RAMP : GRASS_LOCKED_RAMP;
+      let [r, g, b] = ramp[Math.min(3, Math.floor(n1 * 4))];
+
+      // manchas de sol e de sombra sobrepostas ao ruído
+      const n2 = smoothNoise(x / 4.5 + 97, y / 4.5 + 53);
+      if (n2 > 0.74) {
+        const k = Math.min(1, (n2 - 0.74) * 3) * 0.45;
+        r += (SUN_TINT[0] - r) * k; g += (SUN_TINT[1] - g) * k; b += (SUN_TINT[2] - b) * k;
+      } else if (n2 < 0.2) {
+        const k = Math.min(1, (0.2 - n2) * 3) * 0.4;
+        r += (SHADE_TINT[0] - r) * k; g += (SHADE_TINT[1] - g) * k; b += (SHADE_TINT[2] - b) * k;
       }
-      drawTileDiamond(ctx, corners, fill, 'rgba(0,0,0,0.05)');
+      drawTileDiamond(ctx, corners, 'rgb(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ')', 'rgba(0,0,0,0.04)');
 
       if (q === 'baixa') continue;
+
+      // textura: pontilhados finos de grama (longe demais fica ruído inútil)
+      if (q === 'alta' && cam.zoom > 0.7) {
+        for (let i = 0; i < 2; i++) {
+          const sx1 = tileHash(x * 5 + i * 9, y * 7 + i);
+          const sy1 = tileHash(x * 11 + i, y * 3 + i * 5);
+          const pp = projectPoint(x + 0.1 + sx1 * 0.8, y + 0.1 + sy1 * 0.8, 0);
+          const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+          ctx.fillStyle = sx1 > 0.5 ? 'rgba(46,105,28,0.20)' : 'rgba(255,255,255,0.07)';
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 1.1 * cam.zoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
 
       const occupied = !!occupancy[occIndex(x, y)];
       if (owned && !occupied) {
@@ -84,8 +136,8 @@ function drawTerrain(ctx, cam, cw, ch, view) {
           drawDirtPatch(ctx, cam, cw, ch, x, y, h);
         } else if (h > 0.9) {
           drawWildflowers(ctx, cam, cw, ch, x, y, h);
-        } else if (h > 0.8) {
-          drawGrassTuft(ctx, cam, cw, ch, x, y, h);
+        } else if (h > 0.78) {
+          drawGrassTuft(ctx, cam, cw, ch, x, y, h, tNow);
         }
       }
 
@@ -122,17 +174,26 @@ function drawTerrain(ctx, cam, cw, ch, view) {
   }
 }
 
-function drawGrassTuft(ctx, cam, cw, ch, x, y, h) {
-  ctx.fillStyle = 'rgba(52,120,35,0.5)';
-  for (let i = 0; i < 3; i++) {
+function drawGrassTuft(ctx, cam, cw, ch, x, y, h, tNow) {
+  const count = 4 + Math.floor(h * 4);
+  const shades = ['#3e8a2a', '#4c9c33', '#59a83b', '#67b545'];
+  ctx.lineCap = 'round';
+  for (let i = 0; i < count; i++) {
     const hx = tileHash(x * 7 + i, y * 13 + 1);
     const hy = tileHash(x * 3 + 2, y * 5 + i);
-    const pp = projectPoint(x + 0.2 + hx * 0.6, y + 0.2 + hy * 0.6, 0);
+    const pp = projectPoint(x + 0.12 + hx * 0.76, y + 0.12 + hy * 0.76, 0);
     const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const sway = Math.sin(tNow * 1.7 + x * 1.9 + y * 2.3 + i * 1.1) * 2.2;
+    const lean = (hx - 0.5) * 7 + sway;
+    const len = (6 + hy * 8) * cam.zoom;
+    ctx.strokeStyle = shades[Math.floor(hx * shades.length)];
+    ctx.lineWidth = Math.max(1, 1.3 * cam.zoom);
     ctx.beginPath();
-    ctx.ellipse(pt.x, pt.y, 2.2 * cam.zoom, 1.4 * cam.zoom, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(pt.x, pt.y);
+    ctx.quadraticCurveTo(pt.x + lean * 0.35, pt.y - len * 0.55, pt.x + lean, pt.y - len);
+    ctx.stroke();
   }
+  ctx.lineCap = 'butt';
 }
 
 function drawWildflowers(ctx, cam, cw, ch, x, y, h) {
@@ -140,15 +201,22 @@ function drawWildflowers(ctx, cam, cw, ch, x, y, h) {
   for (let i = 0; i < 3; i++) {
     const hx = tileHash(x * 11 + i, y * 17 + 3);
     const hy = tileHash(x * 5 + 4, y * 9 + i);
-    const pp = projectPoint(x + 0.15 + hx * 0.7, y + 0.15 + hy * 0.7, 0.06);
+    const pp = projectPoint(x + 0.15 + hx * 0.7, y + 0.15 + hy * 0.7, 0);
     const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const stemH = (4 + hy * 4) * cam.zoom;
+    ctx.strokeStyle = '#4c9c33';
+    ctx.lineWidth = Math.max(1, 1.1 * cam.zoom);
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+    ctx.lineTo(pt.x + (hx - 0.5) * 2 * cam.zoom, pt.y - stemH);
+    ctx.stroke();
     ctx.fillStyle = palette[Math.floor(hx * palette.length)];
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 2 * cam.zoom, 0, Math.PI * 2);
+    ctx.arc(pt.x + (hx - 0.5) * 2 * cam.zoom, pt.y - stemH, 2 * cam.zoom, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#fffde7';
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 0.8 * cam.zoom, 0, Math.PI * 2);
+    ctx.arc(pt.x + (hx - 0.5) * 2 * cam.zoom, pt.y - stemH, 0.8 * cam.zoom, 0, Math.PI * 2);
     ctx.fill();
   }
 }
