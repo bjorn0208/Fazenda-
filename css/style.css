@@ -447,3 +447,10 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
   .side-btn { width: 82px; }
   .build-btn { width: 92px; }
 }
+
+/* Ciclo do dia */
+#day-chip {
+  font-size: 18px;
+  padding: 8px 10px;
+  line-height: 1;
+}

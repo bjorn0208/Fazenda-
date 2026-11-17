@@ -91,6 +91,14 @@ const I18N = {
     'an_chicken': 'Galinha', 'an_chicken_desc': 'Ciscando feliz (põe ovos na fase 3).',
     'an_pig': 'Porco', 'an_pig_desc': 'Adora um banho de lama.',
     'an_cow': 'Vaca', 'an_cow_desc': 'Produz leite (fase 3).',
+    'an_horse': 'Cavalo', 'an_horse_desc': 'Os fazendeiros montam nele para colher mais rápido.',
+    'phase.dawn': 'Amanhecer', 'phase.day': 'Dia', 'phase.afternoon': 'Tarde', 'phase.night': 'Noite',
+    'bld.house': 'Casa da Fazenda', 'bld.barn': 'Celeiro', 'bld.stable': 'Estábulo', 'bld.coop': 'Galinheiro',
+    'bld.coins': 'Moedas', 'bld.level': 'Nível', 'bld.total': 'Animais na fazenda', 'bld.farmers': 'Fazendeiros', 'bld.phase': 'Período',
+    'bld.count': 'Animais aqui',
+    'bld.eggInfo': 'Ovo: 🥚 🪙15 · a cada 40s',
+    'bld.milkInfo': 'Leite: 🥛 🪙25 · a cada 60s',
+    'bld.baconInfo': 'Bacon: 🥩 🪙300 · a cada 5 min',
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
@@ -228,6 +236,14 @@ const I18N = {
     'an_chicken': 'Chicken', 'an_chicken_desc': 'Happily pecking (lays eggs in phase 3).',
     'an_pig': 'Pig', 'an_pig_desc': 'Loves a mud bath.',
     'an_cow': 'Cow', 'an_cow_desc': 'Produces milk (phase 3).',
+    'an_horse': 'Horse', 'an_horse_desc': 'Farmhands sometimes ride him to harvest faster.',
+    'phase.dawn': 'Dawn', 'phase.day': 'Day', 'phase.afternoon': 'Afternoon', 'phase.night': 'Night',
+    'bld.house': 'Farmhouse', 'bld.barn': 'Barn', 'bld.stable': 'Stable', 'bld.coop': 'Coop',
+    'bld.coins': 'Coins', 'bld.level': 'Level', 'bld.total': 'Animals on farm', 'bld.farmers': 'Farmhands', 'bld.phase': 'Period',
+    'bld.count': 'Animals here',
+    'bld.eggInfo': 'Egg: 🥚 🪙15 · every 40s',
+    'bld.milkInfo': 'Milk: 🥛 🪙25 · every 60s',
+    'bld.baconInfo': 'Bacon: 🥩 🪙300 · every 5 min',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
@@ -385,7 +401,16 @@ function showToast(msg) {
 }
 
 /* ---------- HUD ---------- */
+let lastDayPhase = null;
+const PHASE_ICONS = { dawn: '🌅', day: '☀', afternoon: '🌤', night: '🌙' };
+
 function refreshHud() {
+  const phase = dayPhase();
+  if (phase !== lastDayPhase) {
+    lastDayPhase = phase;
+    const chip = $('day-chip');
+    if (chip) chip.textContent = PHASE_ICONS[phase];
+  }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
     dogBtn.classList.toggle('hidden', !game.dog);
@@ -413,6 +438,47 @@ function openModal(title, bodyBuilder) {
 }
 
 function closeModal() { $('modal-overlay').classList.add('hidden'); }
+
+/* ---------- Painel de gestao dos predios ---------- */
+const COIN_ICON = '\u{1FA99}';
+function openBuildingPanel(type) {
+  openModal(t('bld.' + type), body => {
+    const mkRow = (label, value) => {
+      const row = document.createElement('div');
+      row.className = 'bld-row';
+      const l = document.createElement('span');
+      l.textContent = label;
+      const v = document.createElement('strong');
+      v.textContent = value;
+      row.appendChild(l);
+      row.appendChild(v);
+      body.appendChild(row);
+    };
+    if (type === 'house') {
+      const phase = dayPhase();
+      mkRow(t('bld.coins'), COIN_ICON + ' ' + game.coins.toLocaleString('pt-BR'));
+      mkRow(t('bld.level'), String(game.level));
+      mkRow(t('bld.total'), String(game.animals.length));
+      mkRow(t('bld.farmers'), String(game.farmers.length));
+      mkRow(t('bld.phase'), PHASE_ICONS[phase] + ' ' + t('phase.' + phase));
+    } else {
+      const kinds = { coop: ['chicken'], stable: ['cow'], barn: ['pig'] }[type];
+      let n = 0;
+      for (const k of kinds) n += game.animals.filter(a => a.kind === k).length;
+      mkRow(t('bld.count'), String(n));
+      if (type === 'coop') body.appendChild(mkInfo(t('bld.eggInfo')));
+      if (type === 'stable') body.appendChild(mkInfo(t('bld.milkInfo')));
+      if (type === 'barn') body.appendChild(mkInfo(t('bld.baconInfo')));
+    }
+  });
+}
+
+function mkInfo(text) {
+  const d = document.createElement('div');
+  d.className = 'bld-info';
+  d.textContent = text;
+  return d;
+}
 
 /* ---------- Loja ---------- */
 let currentShopTab = 'construcoes';

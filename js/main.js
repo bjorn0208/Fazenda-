@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v17';
+const GAME_VERSION = 'v18';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -395,6 +395,11 @@ function handleClick(e) {
       }
       return;
     }
+    const bld = buildingAt(g.gx, g.gy);
+    if (bld && ['house', 'barn', 'stable', 'coop'].includes(bld.type)) {
+      openBuildingPanel(bld.type);
+      return;
+    }
   }
 
   // modo normal: colher plantação pronta ou destacar construção
@@ -622,6 +627,7 @@ function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   try {
+    game.time = (game.time + dt / DAY_LENGTH) % 1;
     updateAnimals(dt);
     updateFarmers(dt);
     updateDog(dt);

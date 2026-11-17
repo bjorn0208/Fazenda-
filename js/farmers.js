@@ -8,17 +8,64 @@ function farmerWalkable(x, y) {
   return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
 }
 
-/* Escolhe o próximo trabalho: colher pronto > plantar do baú > passear. */
+/* Agenda pelo ciclo do dia: de dia arar/plantar/regar; a tarde colher; noite descansam. */
+function farmerFindTillSpot(f) {
+  const candidates = new Set();
+  for (const c of game.crops) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = c.gx + dx, y = c.gy + dy;
+      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)] && !isTilled(x, y)) {
+        candidates.add(x + ',' + y);
+      }
+    }
+  }
+  let best = null, bestD = Infinity;
+  for (const key of candidates) {
+    const [x, y] = key.split(',').map(Number);
+    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
+    if (d < bestD) { bestD = d; best = { x, y }; }
+  }
+  return best;
+}
+
+function farmerFindWaterTarget(f) {
+  let best = null, bestD = Infinity;
+  for (const c of game.crops) {
+    if (c.watered || cropProgress(c) >= 1) continue;
+    const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+function hasHorse() {
+  return game.animals.some(a => a.kind === 'horse');
+}
+
+/* Escolhe o proximo trabalho respeitando a fase do dia e a funcao do fazendeiro. */
 function farmerFindJob(f) {
   const role = f.role || 'all';
+  const phase = dayPhase();
+  if (phase === 'night') return null;
   if (role !== 'animal') {
-    let best = null, bestD = Infinity;
-    for (const c of game.crops) {
-      if (cropProgress(c) < 1) continue;
-      const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
-      if (d < bestD) { bestD = d; best = c; }
+    if (phase === 'day') {
+      for (const type of Object.keys(f.chest)) {
+        if (f.chest[type] > 0) return { kind: 'plant', type };
+      }
+      const till = farmerFindTillSpot(f);
+      if (till) return { kind: 'till', target: till };
+      const dry = farmerFindWaterTarget(f);
+      if (dry) return { kind: 'water', target: dry };
     }
-    if (best) return { kind: 'harvest', target: best };
+    if (phase === 'afternoon') {
+      let best = null, bestD = Infinity;
+      for (const c of game.crops) {
+        if (cropProgress(c) < 1) continue;
+        const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
+        if (d < bestD) { bestD = d; best = c; }
+      }
+      if (best) return { kind: 'harvest', target: best };
+    }
   }
   if (role !== 'plant') {
     let an = null;
@@ -30,11 +77,6 @@ function farmerFindJob(f) {
       if (d < bestD) { bestD = d; an = a; }
     }
     if (an) return { kind: 'animal', target: an };
-  }
-  if (role !== 'animal') {
-    for (const type of Object.keys(f.chest)) {
-      if (f.chest[type] > 0) return { kind: 'plant', type };
-    }
   }
   return null;
 }
@@ -84,7 +126,7 @@ function updateFarmers(dt) {
         if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
       }
       const dist = Math.hypot(dx, dy);
-      const step = FARMER_SPEED * dt;
+      const step = FARMER_SPEED * (f.riding ? 2.5 : 1) * dt;
       if (dist <= step) {
         f.gx = f.tx; f.gy = f.ty;
         f.walking = false;
@@ -101,13 +143,41 @@ function updateFarmers(dt) {
 
     const job = farmerFindJob(f);
 
+    if (job && job.kind === 'till') {
+      const s = job.target;
+      if (Math.hypot(s.x + 0.5 - f.gx, s.y + 0.5 - f.gy) < 0.9) {
+        if (tillSoil(s.x, s.y)) spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f');
+        f.wait = 0.4;
+      } else {
+        f.riding = false;
+        f.tx = s.x + 0.5; f.ty = s.y + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'water') {
+      const c = job.target;
+      if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
+        if (waterCrop(c)) spawnFloater(c.gx, c.gy, '💧', '#4fc3f7');
+        f.wait = 0.4;
+      } else {
+        f.riding = false;
+        f.tx = c.gx + 0.5; f.ty = c.gy + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
     if (job && job.kind === 'harvest') {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
         const r = harvestCrop(c);
         if (r) spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+        f.riding = false;
         f.wait = 0.4;
       } else {
+        f.riding = hasHorse() && Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) > 5;
         f.tx = c.gx + 0.5; f.ty = c.gy + 0.5;
         f.walking = true;
       }
@@ -120,6 +190,7 @@ function updateFarmers(dt) {
         collectAnimal(a);
         f.wait = 0.5;
       } else {
+        f.riding = false;
         f.tx = a.gx; f.ty = a.gy;
         f.walking = true;
       }
@@ -145,6 +216,7 @@ function updateFarmers(dt) {
         }
         f.wait = 0.5;
       } else {
+        f.riding = false;
         f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
         f.walking = true;
       }

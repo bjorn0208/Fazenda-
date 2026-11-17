@@ -5,7 +5,8 @@
 const ANIMAL_KINDS = {
   chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
   cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
-  pig:     { speed: 0.6, scale: 0.8 }
+  pig:     { speed: 0.6, scale: 0.8 },
+  horse:   { speed: 1.4, scale: 1.05 }
 };
 
 const MAX_PRODUCT = 3;
@@ -65,10 +66,33 @@ function herdAnimal(a) {
   a.scaredT = 8;
   a.grazing = false;
   a.herdStage = 1;
+  a.herdOut = false;
   a.tx = pen.gateX + 0.5;
   a.ty = pen.gateY + 0.5;
   a.walking = true;
   return true;
+}
+
+/* Ao amanhecer: cachorro espanta os animais do curral para pastarem. */
+function releaseAnimal(a) {
+  const pen = game.pen;
+  if (!pen || !inPen(a)) return false;
+  a.scaredT = 8;
+  a.grazing = false;
+  a.herdStage = 1;
+  a.herdOut = true;
+  a.tx = pen.gateX + 0.5;
+  a.ty = pen.gateY + 0.5;
+  a.walking = true;
+  return true;
+}
+
+function outsideGateTile() {
+  const pen = game.pen;
+  if (!pen) return randomFreeTile();
+  const x = pen.gateX, y = pen.gateY + 1;
+  if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) return { x, y };
+  return randomFreeTile();
 }
 
 function spawnAnimals() {
@@ -102,7 +126,7 @@ function makeAnimal(kind, spot) {
 
 function animalUpdateOne(a, dt) {
   a.phase += dt;
-  if (a.kind !== 'pig') {
+  if (a.kind !== 'pig' && ANIMAL_KINDS[a.kind].cycle) {
     a.prodT += dt;
     if (a.prodT >= ANIMAL_KINDS[a.kind].cycle) {
       a.prodT = 0;
@@ -126,11 +150,12 @@ function animalUpdateOne(a, dt) {
       a.gx = a.tx; a.gy = a.ty;
       if (a.herdStage === 1) {
         a.herdStage = 2;
-        const spot = randomPenTile();
+        const spot = a.herdOut ? outsideGateTile() : randomPenTile();
         if (spot) { a.tx = spot.x + 0.5; a.ty = spot.y + 0.5; }
         else { a.herdStage = 0; a.walking = false; a.wait = 1; }
       } else if (a.herdStage === 2) {
         a.herdStage = 0;
+        a.herdOut = false;
         a.walking = false;
         a.grazing = true;
         a.wait = 2 + Math.random() * 3;
@@ -177,6 +202,7 @@ function updateAnimals(dt) {
     if (a.lastDir === undefined) a.lastDir = (a.dirCur || 1) >= 0 ? 1 : -1;
     if (a.herdStage === undefined) a.herdStage = 0;
     if (a.scaredT === undefined) a.scaredT = 0;
+    if (a.herdOut === undefined) a.herdOut = false;
     if (a.bornAt === undefined) a.bornAt = Date.now();
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
@@ -208,6 +234,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'cow') drawCow(ctx, bob, dir, a.walking, a.phase);
+  else if (a.kind === 'horse') drawHorse(ctx, bob, dir, a.walking, a.phase);
   else drawPig(ctx, bob, dir, a.walking, a.phase);
 
   ctx.restore();
@@ -215,7 +242,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   let icon = null;
   if (a.kind === 'pig') {
     if (a.bornAt !== undefined && Date.now() - a.bornAt >= 300000) icon = '🥓';
-  } else if (a.product > 0) {
+  } else if (a.product > 0 && ANIMALS[a.kind] && ANIMALS[a.kind].product) {
     icon = ANIMALS[a.kind].product;
   }
   if (icon) {
@@ -505,22 +532,33 @@ function updateDog(dt) {
   }
   d.wait -= dt;
   if (d.wait > 0) return;
-  if (d.active && game.pen) {
-    let best = null, bestD = Infinity;
-    for (const a of game.animals) {
-      if (inPen(a)) continue;
-      const dist = Math.hypot(a.gx - d.gx, a.gy - d.gy);
-      if (dist < bestD) { bestD = dist; best = a; }
-    }
-    if (best) {
-      if (bestD < 1.3) {
-        herdAnimal(best);
-        d.wait = 0.5;
-      } else {
-        d.tx = best.gx; d.ty = best.gy;
-        d.walking = true;
+  if (game.pen) {
+    const phase = dayPhase();
+    const mode = d.active ? 'herd' : (phase === 'night' ? 'herd' : ((phase === 'dawn' || phase === 'day') ? 'release' : null));
+    if (mode) {
+      const wantInside = mode === 'herd';
+      d.barkT = (d.barkT === undefined ? 0 : d.barkT) - dt;
+      let best = null, bestD = Infinity;
+      for (const a of game.animals) {
+        if (a.herdStage) continue;
+        if (inPen(a) === wantInside) continue;
+        const dist = Math.hypot(a.gx - d.gx, a.gy - d.gy);
+        if (dist <= 5 && d.barkT <= 0) {
+          if (wantInside) herdAnimal(a); else releaseAnimal(a);
+        }
+        if (dist < bestD) { bestD = dist; best = a; }
       }
-      return;
+      if (d.barkT <= 0) d.barkT = 1.2;
+      if (best) {
+        if (bestD < 1.3) {
+          if (wantInside) herdAnimal(best); else releaseAnimal(best);
+          d.wait = 0.4;
+        } else {
+          d.tx = best.gx; d.ty = best.gy;
+          d.walking = true;
+        }
+        return;
+      }
     }
   }
   const cx = Math.floor(d.gx), cy = Math.floor(d.gy);
@@ -626,4 +664,100 @@ function drawDog(ctx, cam, cw, ch, d) {
   ctx.stroke();
 
   ctx.restore();
+}
+
+
+/* ================= CAVALO ================= */
+
+/* Corpo do cavalo reutilizado pelo fazendeiro montado. */
+function drawHorseBody(ctx, bob, dir, walking, phase) {
+  const legSwing = walking ? Math.sin(phase * 7) * 3.5 : 0;
+  ctx.strokeStyle = '#6d4c41';
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-12, -12); ctx.lineTo(-12 + legSwing, 1);
+  ctx.moveTo(12, -12); ctx.lineTo(12 - legSwing, 1);
+  ctx.moveTo(-5, -12); ctx.lineTo(-5 - legSwing, 1);
+  ctx.moveTo(5, -12); ctx.lineTo(5 + legSwing, 1);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  ctx.fillStyle = '#5d4037';
+  ctx.beginPath();
+  ctx.ellipse(-12 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(12 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(-5 - legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(5 + legSwing, 1, 2.2, 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#8d6e63';
+  ctx.beginPath();
+  ctx.ellipse(0, -18 + bob * 0.4, 17, 9.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(80,60,45,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, -12 + bob * 0.4, 13, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#795548';
+  ctx.beginPath();
+  ctx.ellipse(-4, -20 + bob * 0.4, 6, 4, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tailWag = walking ? Math.sin(phase * 7) * 3 : Math.sin(phase * 2) * 1.5;
+  ctx.strokeStyle = '#4e342e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(dir * -16, -21 + bob * 0.4);
+  ctx.quadraticCurveTo(dir * -22, -18 + bob * 0.4 + tailWag, dir * -23, -11 + bob * 0.4 + tailWag);
+  ctx.stroke();
+
+  ctx.fillStyle = '#8d6e63';
+  ctx.beginPath();
+  ctx.ellipse(dir * 17, -25 + bob, 6.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#a1887f';
+  ctx.beginPath();
+  ctx.ellipse(dir * 22, -23.5 + bob, 3.2, 2.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.arc(dir * 23.5, -24 + bob, 0.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#4e342e';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(dir * 20.5, -24 + bob);
+  ctx.lineTo(dir * 21.5, -20 + bob);
+  ctx.stroke();
+
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(dir * 17.5, -27 + bob, 1.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#5d4037';
+  ctx.beginPath();
+  ctx.moveTo(dir * 13, -29 + bob);
+  ctx.quadraticCurveTo(dir * 15, -36 + bob, dir * 18, -30 + bob);
+  ctx.quadraticCurveTo(dir * 15.5, -31.5 + bob, dir * 13, -29 + bob);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#e91e63';
+  ctx.beginPath();
+  ctx.ellipse(dir * 11, -20 + bob, 1.6, 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawHorse(ctx, bob, dir, walking, phase) {
+  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 18, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  drawHorseBody(ctx, bob, dir, walking, phase);
 }

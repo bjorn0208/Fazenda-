@@ -33,6 +33,11 @@ function render(ctx, cam, cw, ch, state) {
   if (state.mode === 'pen') drawPenPreview(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
+  const na = nightAlpha(game.time);
+  if (na > 0.01) {
+    ctx.fillStyle = 'rgba(10,15,50,' + na + ')';
+    ctx.fillRect(0, 0, cw, ch);
+  }
   drawFloaters(ctx, cam, cw, ch, performance.now());
 }
 

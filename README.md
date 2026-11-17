@@ -162,6 +162,14 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 11 — Ciclo dia/noite, gestão dos prédios e cavalos
+
+- **Ciclo dia/noite** (240s por dia completo): chip ☀️/🌙 no topo mostra o período (amanhecer, dia, tarde, noite) e o mapa escurece à noite.
+- **Rotina dos fazendeiros**: de dia aram a terra, plantam e regam; à tarde colhem tudo; à noite descansam. As funções (plantio/animais) continuam sendo respeitadas.
+- **Cachorro no automático**: à noite ele sozinho junta todos os animais no curral; ao amanhecer ele os solta para pastar pela fazenda.
+- **Gestão dos prédios**: toque na casa, celeiro, estábulo ou galinheiro para abrir o painel — quantos animais daquele tipo você tem e quanto vale o ovo 🥚, o leite 🥛 e o bacon 🥩. A casa mostra o resumo geral (moedas, nível, animais, fazendeiros, período).
+- **Cavalo 🐎** na loja (Ajudantes → animais, 🪙5000, nível 6): os fazendeiros montam nele nas colheitas distantes e andam 2,5× mais rápido.
+
 ## Revisão 10 — Curral com porteiro e cachorro pastor
 
 - **Botão Curral 🚧** (coluna de ações): escolha o tamanho — **8×8** (🪙420), **16×16** (🪙900) ou **36×36** (🪙2100) — e toque no mapa. Prévia verde/vermelha mostra se dá para montar. Cerca de verdade, com **portão** de um lado.

@@ -100,6 +100,10 @@ const ANIMALS = {
     id: 'cow', name: 'Vaca', icon: '🐄',
     price: 600, level: 3, desc: 'Dá leite a cada 60s (toque para coletar e vender).',
     product: '🥛', cycle: 60, value: 25
+  },
+  horse: {
+    id: 'horse', name: 'Cavalo', icon: '🐎',
+    price: 5000, level: 6, desc: 'Os fazendeiros montam nele para colher mais rápido.'
   }
 };
 

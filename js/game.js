@@ -19,6 +19,7 @@ const game = {
   tilled: {},             // "gx,gy" -> 1 (terra arada: plantio 25% mais rapido)
   farmers: [],            // {id, gx, gy, tx, ty, walking, wait, phase, chest}
   pen: null,              // {x0, y0, x1, y1, gateX, gateY, paid}
+  time: 0.1,              // fracao do dia (0..1): ciclo dia/noite
   dog: null,              // {gx, gy, tx, ty, walking, wait, phase, active, face, lastDir}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
@@ -209,6 +210,24 @@ function harvestAllCrops() {
     if (r) { n++; coins += r.sell; xp += r.xp; }
   }
   return { n, coins, xp };
+}
+
+/* ---------- Ciclo dia/noite ---------- */
+const DAY_LENGTH = 240; // segundos reais por dia completo
+
+function dayPhase() {
+  const t = game.time;
+  if (t < 0.05) return 'dawn';
+  if (t < 0.45) return 'day';
+  if (t < 0.65) return 'afternoon';
+  return 'night';
+}
+
+function nightAlpha(t) {
+  if (t < 0.05) return 0.45 * (1 - t / 0.05);
+  if (t < 0.55) return 0;
+  if (t < 0.65) return 0.45 * ((t - 0.55) / 0.10);
+  return 0.45;
 }
 
 /* ---------- Curral (cerca automatica com porteiro) ---------- */
@@ -510,7 +529,7 @@ function saveGame(showToastMsg) {
       farmName: game.farmName, ownedArea: game.ownedArea,
       buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
       tilled: game.tilled, farmers: game.farmers,
-      pen: game.pen, dog: game.dog,
+      pen: game.pen, dog: game.dog, time: game.time,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -536,7 +555,7 @@ function loadGame() {
       ownedArea: data.ownedArea ?? { ...START_AREA },
       buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
       tilled: data.tilled ?? {}, farmers: data.farmers ?? [],
-      pen: data.pen ?? null, dog: data.dog ?? null,
+      pen: data.pen ?? null, dog: data.dog ?? null, time: data.time ?? 0.1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },

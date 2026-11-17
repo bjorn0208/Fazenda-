@@ -200,9 +200,13 @@ vm.runInContext(`
   if (fm.chest.corn !== 5) throw new Error('bau com contagem errada');
   const plantedBefore = game.stats.planted || 0;
   const harvestedBefore = game.stats.harvested || 0;
+  game.time = 0.1;
   for (let i = 0; i < 900; i++) updateFarmers(0.1);
   if ((game.stats.planted || 0) <= plantedBefore) throw new Error('fazendeiro nao plantou');
+  game.time = 0.5;
+  for (let i = 0; i < 900; i++) updateFarmers(0.1);
   if ((game.stats.harvested || 0) <= harvestedBefore) throw new Error('fazendeiro nao colheu/vendeu');
+  game.time = 0.1;
   render(ctx, cam, 800, 600, state);
 
   // teto de 100 por especie
@@ -250,6 +254,7 @@ vm.runInContext(`
   if (game.farmers.length && game.farmers[0].face === undefined) throw new Error('face do fazendeiro ausente');
 
   // funcoes dos fazendeiros: role filtra os trabalhos
+  game.time = 0.1;
   const fRole = game.farmers[0];
   const henR = game.animals.find(a => a.kind === 'chicken');
   if (henR) henR.product = 2;
@@ -286,6 +291,7 @@ vm.runInContext(`
   if (refund <= 0) throw new Error('reembolso zerado');
 
   // fazendeiro coleta produtos e planta em fileiras adjacentes
+  game.time = 0.1;
   buyFarmer();
   const fm2 = game.farmers[game.farmers.length - 1];
   depositSeed(fm2, 'wheat', 6);
@@ -309,6 +315,46 @@ vm.runInContext(`
   const total = game.crops.length;
   const ha = harvestAllCrops();
   if (ha.n !== total) throw new Error('harvestAllCrops colheu ' + ha.n + ' de ' + total);
+  render(ctx, cam, 800, 600, state);
+
+  // ciclo dia/noite: fases e alpha
+  game.time = 0.02; if (dayPhase() !== 'dawn') throw new Error('fase 0.02 deveria ser dawn');
+  game.time = 0.2;  if (dayPhase() !== 'day') throw new Error('fase 0.2 deveria ser day');
+  game.time = 0.5;  if (dayPhase() !== 'afternoon') throw new Error('fase 0.5 deveria ser afternoon');
+  game.time = 0.9;  if (dayPhase() !== 'night') throw new Error('fase 0.9 deveria ser night');
+  if (Math.abs(nightAlpha(0.3)) > 1e-9) throw new Error('alpha de dia deveria ser 0');
+  if (Math.abs(nightAlpha(0.9) - 0.45) > 1e-9) throw new Error('alpha de noite deveria ser 0.45');
+
+  // cachorro automatico: a noite junta todos no curral
+  game.coins = 999999;
+  let pen2 = false;
+  for (let cy = 4; cy < 44 && !pen2; cy++) {
+    for (let cx = 4; cx < 44 && !pen2; cx++) {
+      if (penValid(penRect(cx, cy, 8)) && placePen(cx, cy, 8)) pen2 = true;
+    }
+  }
+  if (!pen2) throw new Error('nenhum lugar livre para o curral 2');
+  game.dog.active = false;
+  for (const a of game.animals) { a.herdStage = 0; a.scaredT = 0; }
+  game.time = 0.9;
+  for (let i = 0; i < 8000; i++) { updateDog(0.05); updateAnimals(0.05); }
+  const foraNoite = game.animals.filter(a => !inPen(a)).length;
+  if (foraNoite > 0) throw new Error('cachorro nao juntou os animais a noite: ' + foraNoite);
+
+  // ao amanhecer o cachorro solta os animais para pastar
+  game.time = 0.02;
+  for (const a of game.animals) { a.herdStage = 0; a.scaredT = 0; }
+  for (let i = 0; i < 8000; i++) { updateDog(0.05); updateAnimals(0.05); }
+  if (!game.animals.some(a => !inPen(a))) throw new Error('cachorro nao soltou os animais ao amanhecer');
+  removePen();
+
+  // cavalo: compra e fazendeiro pode montar
+  game.coins = 999999;
+  game.level = 6;
+  if (!buyAnimal('horse')) throw new Error('buyAnimal horse falhou');
+  if (!game.animals.some(a => a.kind === 'horse')) throw new Error('cavalo nao criado');
+  if (!hasHorse()) throw new Error('hasHorse falso com cavalo comprado');
+  updateAnimals(0.016);
   render(ctx, cam, 800, 600, state);
 
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
