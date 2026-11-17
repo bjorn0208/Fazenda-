@@ -66,9 +66,14 @@ python3 -m http.server 8000
 - Missões: "Primeira horta" (5 sementes) e "Primeira colheita" (10 colheitas).
 - Conquistas: "Colheitadeira" (25) e "Granjeiro" (100 colheitas).
 
-### Polimento visual
-- Tufos de grama determinísticos nos tiles vazios (desativados na qualidade baixa).
-- Textos flutuantes de moedas/XP ao plantar e colher.
+### Polimento visual (revisão 3)
+- Mapa ampliado: grid 48×48 e expansões de +3 tiles por compra (até 12 expansões — área máxima 36× a original).
+- Animais ambientes: galinhas, vacas e porcos caminham livremente pelos tiles livres, com animação de passos e pausas.
+- Terreno rico: variação de tons por tile, manchas de terra, flores silvestres e tufos de grama.
+- Céu com nuvens à deriva e fundo em gradiente.
+- Casa com chaminé soltando fumaça, fundação de pedra, janelas com moldura e arbustos.
+- Celeiro com fardos de feno e catavento girando; poço com balde balançando na corda.
+- Árvores em camadas com frutas; cercas que se conectam automaticamente às vizinhas; sombras sob todos os objetos.
 
 ## Roadmap
 

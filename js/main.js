@@ -474,6 +474,7 @@ let autosaveAcc = 0;
 function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
+  updateAnimals(dt);
   render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
   autosaveAcc += dt;
   if (autosaveAcc > 15) { autosaveAcc = 0; saveGame(false); }
@@ -492,6 +493,7 @@ function init() {
   }
   game.stats.level = game.level;
   game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
+  spawnAnimals();
   applyLang();
   centerCamera();
   bindUi(uiHandlers);

@@ -141,8 +141,8 @@ const ACHIEVEMENTS = [
 /* Expansão de terreno: cada compra adiciona um anel de tiles ao redor da área atual. */
 const LAND_EXPANSION = {
   basePrice: 250,
-  priceGrowth: 1.6,
-  maxExpansions: 6
+  priceGrowth: 1.45,
+  maxExpansions: 12
 };
 
 /* XP necessário por nível (nível 1 → 100, cresce 50% por nível). */

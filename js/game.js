@@ -2,9 +2,9 @@
    Estado, grade de ocupação, economia, XP/nível, missões,
    conquistas e salvamento. */
 
-const GRID_SIZE = 30;
+const GRID_SIZE = 48;
 const SAVE_KEY = 'fazenda3d_save_v1';
-const START_AREA = { x0: 11, y0: 11, x1: 18, y1: 18 }; // 8x8 inicial
+const START_AREA = { x0: 20, y0: 20, x1: 27, y1: 27 }; // 8x8 inicial, centralizada no mapa 48x48
 
 const game = {
   coins: 750,
@@ -15,6 +15,7 @@ const game = {
   ownedArea: { ...START_AREA },
   buildings: [],          // {id, type, gx, gy, rot}
   crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
+  animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
   nextId: 1,
   stats: {},              // contadores p/ missões e conquistas
   missionsClaimed: [],
@@ -233,9 +234,9 @@ function buyLand() {
   game.landExpansions++;
   game.stats.land_expansions = game.landExpansions;
 
-  // adiciona um anel de 2 tiles ao redor da área atual
+  // adiciona um anel de 3 tiles ao redor da área atual
   const a = game.ownedArea;
-  const ring = 2;
+  const ring = 3;
   a.x0 = Math.max(0, a.x0 - ring);
   a.y0 = Math.max(0, a.y0 - ring);
   a.x1 = Math.min(GRID_SIZE - 1, a.x1 + ring);
@@ -292,7 +293,7 @@ function saveGame(showToastMsg) {
     const data = {
       coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
       farmName: game.farmName, ownedArea: game.ownedArea,
-      buildings: game.buildings, crops: game.crops, nextId: game.nextId,
+      buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
       stats: game.stats, missionsClaimed: game.missionsClaimed,
       achievementsClaimed: game.achievementsClaimed,
       settings: game.settings, landExpansions: game.landExpansions
@@ -316,7 +317,7 @@ function loadGame() {
       xp: data.xp ?? 0, level: data.level ?? 1,
       farmName: data.farmName ?? 'Fazenda do Jogador',
       ownedArea: data.ownedArea ?? { ...START_AREA },
-      buildings: data.buildings ?? [], crops: data.crops ?? [], nextId: data.nextId ?? 1,
+      buildings: data.buildings ?? [], crops: data.crops ?? [], animals: data.animals ?? [], nextId: data.nextId ?? 1,
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
