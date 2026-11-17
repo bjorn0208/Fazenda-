@@ -36,6 +36,16 @@ html, body {
   display: block; cursor: grab;
   touch-action: none;
 }
+#debug-badge {
+  position: fixed; left: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0,0,0,.45); color: #fff;
+  font: 10px/1.4 monospace; padding: 2px 8px;
+  border-radius: 8px; z-index: 300; pointer-events: none;
+  max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#debug-badge.dbg-error { background: #b71c1c; }
+
 #game-canvas.dragging { cursor: grabbing; }
 #game-canvas.mode-build, #game-canvas.mode-move { cursor: crosshair; }
 #game-canvas.mode-remove { cursor: not-allowed; }
@@ -448,6 +458,9 @@ html, body {
   <button id="btn-zoom-out" title="Afastar">－</button>
   <button id="btn-zoom-reset" title="Centralizar fazenda">⌖</button>
 </div>
+
+<!-- Diagnostico: versao + zoom ao vivo -->
+<div id="debug-badge">v8</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -2935,7 +2948,22 @@ function zoomAt(sx, sy, factor) {
   cam.x += before.x - after.x;
   cam.y += before.y - after.y;
   clampCamera();
+  dbgShowZoom();
 }
+
+/* ---------- Diagnostico na tela ---------- */
+const GAME_VERSION = 'v8';
+const dbgBadge = $('debug-badge');
+function dbgShowZoom() {
+  if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
+    dbgBadge.textContent = GAME_VERSION + ' \u00b7 zoom ' + cam.zoom.toFixed(2) + 'x';
+  }
+}
+window.addEventListener('error', e => {
+  if (!dbgBadge) return;
+  dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + (e.message || 'desconhecido');
+  dbgBadge.classList.add('dbg-error');
+});
 
 /* ---------- Entrada: gestos unificados (Pointer Events + fallback touch) ---------- */
 const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0 };
@@ -3410,8 +3438,15 @@ let autosaveAcc = 0;
 function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
-  updateAnimals(dt);
-  render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+  try {
+    updateAnimals(dt);
+    render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+  } catch (err) {
+    if (dbgBadge) {
+      dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + err.message;
+      dbgBadge.classList.add('dbg-error');
+    }
+  }
   autosaveAcc += dt;
   if (autosaveAcc > 15) { autosaveAcc = 0; saveGame(false); }
   requestAnimationFrame(loop);
@@ -3433,6 +3468,7 @@ function init() {
   applyLang();
   centerCamera();
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
+  dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
   requestAnimationFrame(loop);

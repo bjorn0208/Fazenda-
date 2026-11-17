@@ -47,7 +47,22 @@ function zoomAt(sx, sy, factor) {
   cam.x += before.x - after.x;
   cam.y += before.y - after.y;
   clampCamera();
+  dbgShowZoom();
 }
+
+/* ---------- Diagnostico na tela ---------- */
+const GAME_VERSION = 'v8';
+const dbgBadge = $('debug-badge');
+function dbgShowZoom() {
+  if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
+    dbgBadge.textContent = GAME_VERSION + ' \u00b7 zoom ' + cam.zoom.toFixed(2) + 'x';
+  }
+}
+window.addEventListener('error', e => {
+  if (!dbgBadge) return;
+  dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + (e.message || 'desconhecido');
+  dbgBadge.classList.add('dbg-error');
+});
 
 /* ---------- Entrada: gestos unificados (Pointer Events + fallback touch) ---------- */
 const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0 };
@@ -522,8 +537,15 @@ let autosaveAcc = 0;
 function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
-  updateAnimals(dt);
-  render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+  try {
+    updateAnimals(dt);
+    render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
+  } catch (err) {
+    if (dbgBadge) {
+      dbgBadge.textContent = 'ERRO ' + GAME_VERSION + ': ' + err.message;
+      dbgBadge.classList.add('dbg-error');
+    }
+  }
   autosaveAcc += dt;
   if (autosaveAcc > 15) { autosaveAcc = 0; saveGame(false); }
   requestAnimationFrame(loop);
@@ -545,6 +567,7 @@ function init() {
   applyLang();
   centerCamera();
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
+  dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
   requestAnimationFrame(loop);
