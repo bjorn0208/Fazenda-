@@ -30,6 +30,46 @@ function randomFreeTile() {
   return null;
 }
 
+function herdPassable(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+}
+
+/* BFS no grid: devolve a lista de tiles do caminho (sem o inicio) ou null. */
+function gridPath(sx, sy, tx, ty, walkFn) {
+  if (sx === tx && sy === ty) return [];
+  const N = GRID_SIZE;
+  const prev = new Int32Array(N * N).fill(-1);
+  const seen = new Uint8Array(N * N);
+  const q = [sy * N + sx];
+  seen[sy * N + sx] = 1;
+  let found = -1;
+  for (let qi = 0; qi < q.length && found < 0; qi++) {
+    const cur = q[qi];
+    const cxx = cur % N, cyy = (cur - cxx) / N;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cxx + dx, ny = cyy + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const ni = ny * N + nx;
+      if (seen[ni]) continue;
+      const isTarget = nx === tx && ny === ty;
+      if (!isTarget && !walkFn(nx, ny)) continue;
+      seen[ni] = 1;
+      prev[ni] = cur;
+      q.push(ni);
+      if (isTarget) { found = ni; break; }
+    }
+  }
+  if (found < 0) return null;
+  const path = [];
+  let cur = found;
+  while (cur !== sy * N + sx) {
+    const cxx = cur % N, cyy = (cur - cxx) / N;
+    path.push({ x: cxx, y: cyy });
+    cur = prev[cur];
+  }
+  return path.reverse();
+}
+
 function animalWalkable(a, x, y) {
   if (!inBounds(x, y) || !inOwnedArea(x, y) || occupancy[occIndex(x, y)]) return false;
   const pen = game.pen;
@@ -60,6 +100,18 @@ function randomPenTile() {
 }
 
 /* Cachorro assusta: o animal corre para o portao e entra no curral. */
+function startHerdPath(a, tx, ty) {
+  a.path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable) || [];
+  a.tx = tx + 0.5;
+  a.ty = ty + 0.5;
+  if (a.path.length) {
+    const w = a.path.shift();
+    a.tx = w.x + 0.5;
+    a.ty = w.y + 0.5;
+  }
+  a.walking = true;
+}
+
 function herdAnimal(a) {
   const pen = game.pen;
   if (!pen || inPen(a)) return false;
@@ -67,9 +119,7 @@ function herdAnimal(a) {
   a.grazing = false;
   a.herdStage = 1;
   a.herdOut = false;
-  a.tx = pen.gateX + 0.5;
-  a.ty = pen.gateY + 0.5;
-  a.walking = true;
+  startHerdPath(a, pen.gateX, pen.gateY);
   return true;
 }
 
@@ -81,9 +131,7 @@ function releaseAnimal(a) {
   a.grazing = false;
   a.herdStage = 1;
   a.herdOut = true;
-  a.tx = pen.gateX + 0.5;
-  a.ty = pen.gateY + 0.5;
-  a.walking = true;
+  startHerdPath(a, pen.gateX, pen.gateY);
   return true;
 }
 
@@ -136,7 +184,8 @@ function animalUpdateOne(a, dt) {
   if (a.walking) {
     a.grazing = false;
     if (a.scaredT > 0) a.scaredT -= dt;
-    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1) * (a.scaredT > 0 ? 1.8 : 1);
+    const base = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
+    const speed = (a.scaredT > 0 || a.herdStage > 0) ? Math.max(base, ANIMAL_KINDS.horse.speed) : base;
     const dx = a.tx - a.gx, dy = a.ty - a.gy;
     const sdx = dx - dy, sdy = (dx + dy) * 0.5;
     if (sdx * sdx + sdy * sdy > 1e-6) {
@@ -148,10 +197,13 @@ function animalUpdateOne(a, dt) {
     const step = speed * dt;
     if (dist <= step) {
       a.gx = a.tx; a.gy = a.ty;
-      if (a.herdStage === 1) {
+      if (a.path && a.path.length) {
+        const w = a.path.shift();
+        a.tx = w.x + 0.5; a.ty = w.y + 0.5;
+      } else if (a.herdStage === 1) {
         a.herdStage = 2;
         const spot = a.herdOut ? outsideGateTile() : randomPenTile();
-        if (spot) { a.tx = spot.x + 0.5; a.ty = spot.y + 0.5; }
+        if (spot) startHerdPath(a, spot.x, spot.y);
         else { a.herdStage = 0; a.walking = false; a.wait = 1; }
       } else if (a.herdStage === 2) {
         a.herdStage = 0;
@@ -506,6 +558,18 @@ function dogWalkable(x, y) {
   return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
 }
 
+function dogWalkTo(d, tx, ty) {
+  d.path = gridPath(Math.floor(d.gx), Math.floor(d.gy), tx, ty, dogWalkable) || [];
+  d.tx = tx + 0.5;
+  d.ty = ty + 0.5;
+  if (d.path.length) {
+    const w = d.path.shift();
+    d.tx = w.x + 0.5;
+    d.ty = w.y + 0.5;
+  }
+  d.walking = true;
+}
+
 function updateDog(dt) {
   const d = game.dog;
   if (!d) return;
@@ -522,8 +586,13 @@ function updateDog(dt) {
     const step = 1.7 * dt;
     if (dist <= step) {
       d.gx = d.tx; d.gy = d.ty;
-      d.walking = false;
-      d.wait = 0.2;
+      if (d.path && d.path.length) {
+        const w = d.path.shift();
+        d.tx = w.x + 0.5; d.ty = w.y + 0.5;
+      } else {
+        d.walking = false;
+        d.wait = 0.2;
+      }
     } else {
       d.gx += dx / dist * step;
       d.gy += dy / dist * step;
@@ -543,7 +612,7 @@ function updateDog(dt) {
         if (a.herdStage) continue;
         if (inPen(a) === wantInside) continue;
         const dist = Math.hypot(a.gx - d.gx, a.gy - d.gy);
-        if (dist <= 5 && d.barkT <= 0) {
+        if (dist <= 10 && d.barkT <= 0) {
           if (wantInside) herdAnimal(a); else releaseAnimal(a);
         }
         if (dist < bestD) { bestD = dist; best = a; }
@@ -554,8 +623,7 @@ function updateDog(dt) {
           if (wantInside) herdAnimal(best); else releaseAnimal(best);
           d.wait = 0.4;
         } else {
-          d.tx = best.gx; d.ty = best.gy;
-          d.walking = true;
+          dogWalkTo(d, Math.floor(best.gx), Math.floor(best.gy));
         }
         return;
       }
@@ -568,8 +636,7 @@ function updateDog(dt) {
   }
   if (opts.length) {
     const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-    d.tx = nx + 0.5; d.ty = ny + 0.5;
-    d.walking = true;
+    dogWalkTo(d, nx, ny);
   } else {
     d.wait = 2;
   }

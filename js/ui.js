@@ -402,14 +402,17 @@ function showToast(msg) {
 
 /* ---------- HUD ---------- */
 let lastDayPhase = null;
+let lastClockStr = '';
 const PHASE_ICONS = { dawn: '🌅', day: '☀', afternoon: '🌤', night: '🌙' };
 
 function refreshHud() {
   const phase = dayPhase();
-  if (phase !== lastDayPhase) {
+  const clock = clockString(game.time);
+  if (phase !== lastDayPhase || clock !== lastClockStr) {
     lastDayPhase = phase;
+    lastClockStr = clock;
     const chip = $('day-chip');
-    if (chip) chip.textContent = PHASE_ICONS[phase];
+    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock;
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {

@@ -401,7 +401,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
-  for (const fm of game.farmers) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
+  for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   if (game.dog) items.push({ key: game.dog.gx + game.dog.gy, kind: 'd', ref: game.dog });
   items.sort((x, y) => x.key - y.key);
 

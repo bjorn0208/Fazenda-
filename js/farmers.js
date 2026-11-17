@@ -113,9 +113,24 @@ function farmerFindPlantSpot(f, type) {
   return null;
 }
 
+function houseDoorTile() {
+  const b = game.buildings.find(x => x.type === 'house');
+  if (!b) return null;
+  const cands = [[b.gx + 1, b.gy + 3], [b.gx, b.gy + 3], [b.gx + 2, b.gy + 3], [b.gx + 3, b.gy + 1], [b.gx - 1, b.gy + 1]];
+  for (const [x, y] of cands) {
+    if (farmerWalkable(x, y)) return { x, y };
+  }
+  return null;
+}
+
 function updateFarmers(dt) {
   for (const f of game.farmers) {
     f.phase += dt;
+
+    if (f.inside) {
+      if (dayPhase() !== 'night') { f.inside = false; f.wait = 0.5; }
+      continue;
+    }
 
     if (f.walking) {
       const dx = f.tx - f.gx, dy = f.ty - f.gy;
@@ -141,6 +156,22 @@ function updateFarmers(dt) {
     f.wait -= dt;
     if (f.wait > 0) continue;
 
+    if (dayPhase() === 'night') {
+      const door = houseDoorTile();
+      if (door) {
+        if (Math.hypot(door.x + 0.5 - f.gx, door.y + 0.5 - f.gy) < 0.9) {
+          f.inside = true;
+          f.walking = false;
+          f.riding = false;
+        } else {
+          f.riding = false;
+          f.tx = door.x + 0.5;
+          f.ty = door.y + 0.5;
+          f.walking = true;
+        }
+        continue;
+      }
+    }
     const job = farmerFindJob(f);
 
     if (job && job.kind === 'till') {

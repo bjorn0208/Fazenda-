@@ -450,7 +450,9 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 
 /* Ciclo do dia */
 #day-chip {
-  font-size: 18px;
+  font-size: 13px;
+  font-weight: 700;
   padding: 8px 10px;
   line-height: 1;
+  white-space: nowrap;
 }

@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v18';
+const GAME_VERSION = 'v19';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -374,6 +374,7 @@ function handleClick(e) {
 
   if (state.mode === 'idle') {
     for (const f of game.farmers) {
+      if (f.inside) continue;
       if (Math.hypot(f.gx - (g.gx + 0.5), f.gy - (g.gy + 0.5)) < 0.9) {
         openFarmerChest(f);
         return;

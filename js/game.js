@@ -213,7 +213,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 240; // segundos reais por dia completo
+const DAY_LENGTH = 180; // segundos reais por dia completo (3 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -221,6 +221,13 @@ function dayPhase() {
   if (t < 0.45) return 'day';
   if (t < 0.65) return 'afternoon';
   return 'night';
+}
+
+function clockString(t) {
+  const total = (6 + t * 24) % 24;
+  const h = Math.floor(total);
+  const m = Math.floor((total - h) * 60);
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
 }
 
 function nightAlpha(t) {

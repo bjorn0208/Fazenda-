@@ -162,6 +162,14 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 12 — Relógio, caminho pelo portão e fazendeiros dormem na casa
+
+- **Relógio no mapa**: o chip do topo agora mostra a hora (ex.: ☀️ 14:30). Cada ciclo completo dura **3 minutos** (06:00 → 06:00).
+- **Latido mais forte**: o cachorro assusta animais num raio de **10 blocos**.
+- **Corrida de cavalo**: animais assustados correm na mesma velocidade do cavalo até entrarem no curral.
+- **Caminho de verdade**: animais (e o cachorro) não atravessam mais cercas, casas ou plantação — eles **dão a volta pela cerca e entram pelo portão** (busca de caminho no grid).
+- **Fazendeiros dormem**: à noite eles entram na casa e só voltam a trabalhar ao amanhecer.
+
 ## Revisão 11 — Ciclo dia/noite, gestão dos prédios e cavalos
 
 - **Ciclo dia/noite** (240s por dia completo): chip ☀️/🌙 no topo mostra o período (amanhecer, dia, tarde, noite) e o mapa escurece à noite.

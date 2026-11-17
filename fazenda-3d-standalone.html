@@ -457,9 +457,11 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 
 /* Ciclo do dia */
 #day-chip {
-  font-size: 18px;
+  font-size: 13px;
+  font-weight: 700;
   padding: 8px 10px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 </style>
@@ -534,7 +536,7 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v18</div>
+<div id="debug-badge">v19</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1210,7 +1212,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 240; // segundos reais por dia completo
+const DAY_LENGTH = 180; // segundos reais por dia completo (3 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -1218,6 +1220,13 @@ function dayPhase() {
   if (t < 0.45) return 'day';
   if (t < 0.65) return 'afternoon';
   return 'night';
+}
+
+function clockString(t) {
+  const total = (6 + t * 24) % 24;
+  const h = Math.floor(total);
+  const m = Math.floor((total - h) * 60);
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
 }
 
 function nightAlpha(t) {
@@ -1980,7 +1989,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
-  for (const fm of game.farmers) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
+  for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   if (game.dog) items.push({ key: game.dog.gx + game.dog.gy, kind: 'd', ref: game.dog });
   items.sort((x, y) => x.key - y.key);
 
@@ -2636,6 +2645,46 @@ function randomFreeTile() {
   return null;
 }
 
+function herdPassable(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
+}
+
+/* BFS no grid: devolve a lista de tiles do caminho (sem o inicio) ou null. */
+function gridPath(sx, sy, tx, ty, walkFn) {
+  if (sx === tx && sy === ty) return [];
+  const N = GRID_SIZE;
+  const prev = new Int32Array(N * N).fill(-1);
+  const seen = new Uint8Array(N * N);
+  const q = [sy * N + sx];
+  seen[sy * N + sx] = 1;
+  let found = -1;
+  for (let qi = 0; qi < q.length && found < 0; qi++) {
+    const cur = q[qi];
+    const cxx = cur % N, cyy = (cur - cxx) / N;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cxx + dx, ny = cyy + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const ni = ny * N + nx;
+      if (seen[ni]) continue;
+      const isTarget = nx === tx && ny === ty;
+      if (!isTarget && !walkFn(nx, ny)) continue;
+      seen[ni] = 1;
+      prev[ni] = cur;
+      q.push(ni);
+      if (isTarget) { found = ni; break; }
+    }
+  }
+  if (found < 0) return null;
+  const path = [];
+  let cur = found;
+  while (cur !== sy * N + sx) {
+    const cxx = cur % N, cyy = (cur - cxx) / N;
+    path.push({ x: cxx, y: cyy });
+    cur = prev[cur];
+  }
+  return path.reverse();
+}
+
 function animalWalkable(a, x, y) {
   if (!inBounds(x, y) || !inOwnedArea(x, y) || occupancy[occIndex(x, y)]) return false;
   const pen = game.pen;
@@ -2666,6 +2715,18 @@ function randomPenTile() {
 }
 
 /* Cachorro assusta: o animal corre para o portao e entra no curral. */
+function startHerdPath(a, tx, ty) {
+  a.path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable) || [];
+  a.tx = tx + 0.5;
+  a.ty = ty + 0.5;
+  if (a.path.length) {
+    const w = a.path.shift();
+    a.tx = w.x + 0.5;
+    a.ty = w.y + 0.5;
+  }
+  a.walking = true;
+}
+
 function herdAnimal(a) {
   const pen = game.pen;
   if (!pen || inPen(a)) return false;
@@ -2673,9 +2734,7 @@ function herdAnimal(a) {
   a.grazing = false;
   a.herdStage = 1;
   a.herdOut = false;
-  a.tx = pen.gateX + 0.5;
-  a.ty = pen.gateY + 0.5;
-  a.walking = true;
+  startHerdPath(a, pen.gateX, pen.gateY);
   return true;
 }
 
@@ -2687,9 +2746,7 @@ function releaseAnimal(a) {
   a.grazing = false;
   a.herdStage = 1;
   a.herdOut = true;
-  a.tx = pen.gateX + 0.5;
-  a.ty = pen.gateY + 0.5;
-  a.walking = true;
+  startHerdPath(a, pen.gateX, pen.gateY);
   return true;
 }
 
@@ -2742,7 +2799,8 @@ function animalUpdateOne(a, dt) {
   if (a.walking) {
     a.grazing = false;
     if (a.scaredT > 0) a.scaredT -= dt;
-    const speed = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1) * (a.scaredT > 0 ? 1.8 : 1);
+    const base = ANIMAL_KINDS[a.kind].speed * (a.speedMul || 1);
+    const speed = (a.scaredT > 0 || a.herdStage > 0) ? Math.max(base, ANIMAL_KINDS.horse.speed) : base;
     const dx = a.tx - a.gx, dy = a.ty - a.gy;
     const sdx = dx - dy, sdy = (dx + dy) * 0.5;
     if (sdx * sdx + sdy * sdy > 1e-6) {
@@ -2754,10 +2812,13 @@ function animalUpdateOne(a, dt) {
     const step = speed * dt;
     if (dist <= step) {
       a.gx = a.tx; a.gy = a.ty;
-      if (a.herdStage === 1) {
+      if (a.path && a.path.length) {
+        const w = a.path.shift();
+        a.tx = w.x + 0.5; a.ty = w.y + 0.5;
+      } else if (a.herdStage === 1) {
         a.herdStage = 2;
         const spot = a.herdOut ? outsideGateTile() : randomPenTile();
-        if (spot) { a.tx = spot.x + 0.5; a.ty = spot.y + 0.5; }
+        if (spot) startHerdPath(a, spot.x, spot.y);
         else { a.herdStage = 0; a.walking = false; a.wait = 1; }
       } else if (a.herdStage === 2) {
         a.herdStage = 0;
@@ -3112,6 +3173,18 @@ function dogWalkable(x, y) {
   return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
 }
 
+function dogWalkTo(d, tx, ty) {
+  d.path = gridPath(Math.floor(d.gx), Math.floor(d.gy), tx, ty, dogWalkable) || [];
+  d.tx = tx + 0.5;
+  d.ty = ty + 0.5;
+  if (d.path.length) {
+    const w = d.path.shift();
+    d.tx = w.x + 0.5;
+    d.ty = w.y + 0.5;
+  }
+  d.walking = true;
+}
+
 function updateDog(dt) {
   const d = game.dog;
   if (!d) return;
@@ -3128,8 +3201,13 @@ function updateDog(dt) {
     const step = 1.7 * dt;
     if (dist <= step) {
       d.gx = d.tx; d.gy = d.ty;
-      d.walking = false;
-      d.wait = 0.2;
+      if (d.path && d.path.length) {
+        const w = d.path.shift();
+        d.tx = w.x + 0.5; d.ty = w.y + 0.5;
+      } else {
+        d.walking = false;
+        d.wait = 0.2;
+      }
     } else {
       d.gx += dx / dist * step;
       d.gy += dy / dist * step;
@@ -3149,7 +3227,7 @@ function updateDog(dt) {
         if (a.herdStage) continue;
         if (inPen(a) === wantInside) continue;
         const dist = Math.hypot(a.gx - d.gx, a.gy - d.gy);
-        if (dist <= 5 && d.barkT <= 0) {
+        if (dist <= 10 && d.barkT <= 0) {
           if (wantInside) herdAnimal(a); else releaseAnimal(a);
         }
         if (dist < bestD) { bestD = dist; best = a; }
@@ -3160,8 +3238,7 @@ function updateDog(dt) {
           if (wantInside) herdAnimal(best); else releaseAnimal(best);
           d.wait = 0.4;
         } else {
-          d.tx = best.gx; d.ty = best.gy;
-          d.walking = true;
+          dogWalkTo(d, Math.floor(best.gx), Math.floor(best.gy));
         }
         return;
       }
@@ -3174,8 +3251,7 @@ function updateDog(dt) {
   }
   if (opts.length) {
     const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-    d.tx = nx + 0.5; d.ty = ny + 0.5;
-    d.walking = true;
+    dogWalkTo(d, nx, ny);
   } else {
     d.wait = 2;
   }
@@ -3485,9 +3561,24 @@ function farmerFindPlantSpot(f, type) {
   return null;
 }
 
+function houseDoorTile() {
+  const b = game.buildings.find(x => x.type === 'house');
+  if (!b) return null;
+  const cands = [[b.gx + 1, b.gy + 3], [b.gx, b.gy + 3], [b.gx + 2, b.gy + 3], [b.gx + 3, b.gy + 1], [b.gx - 1, b.gy + 1]];
+  for (const [x, y] of cands) {
+    if (farmerWalkable(x, y)) return { x, y };
+  }
+  return null;
+}
+
 function updateFarmers(dt) {
   for (const f of game.farmers) {
     f.phase += dt;
+
+    if (f.inside) {
+      if (dayPhase() !== 'night') { f.inside = false; f.wait = 0.5; }
+      continue;
+    }
 
     if (f.walking) {
       const dx = f.tx - f.gx, dy = f.ty - f.gy;
@@ -3513,6 +3604,22 @@ function updateFarmers(dt) {
     f.wait -= dt;
     if (f.wait > 0) continue;
 
+    if (dayPhase() === 'night') {
+      const door = houseDoorTile();
+      if (door) {
+        if (Math.hypot(door.x + 0.5 - f.gx, door.y + 0.5 - f.gy) < 0.9) {
+          f.inside = true;
+          f.walking = false;
+          f.riding = false;
+        } else {
+          f.riding = false;
+          f.tx = door.x + 0.5;
+          f.ty = door.y + 0.5;
+          f.walking = true;
+        }
+        continue;
+      }
+    }
     const job = farmerFindJob(f);
 
     if (job && job.kind === 'till') {
@@ -4112,14 +4219,17 @@ function showToast(msg) {
 
 /* ---------- HUD ---------- */
 let lastDayPhase = null;
+let lastClockStr = '';
 const PHASE_ICONS = { dawn: '🌅', day: '☀', afternoon: '🌤', night: '🌙' };
 
 function refreshHud() {
   const phase = dayPhase();
-  if (phase !== lastDayPhase) {
+  const clock = clockString(game.time);
+  if (phase !== lastDayPhase || clock !== lastClockStr) {
     lastDayPhase = phase;
+    lastClockStr = clock;
     const chip = $('day-chip');
-    if (chip) chip.textContent = PHASE_ICONS[phase];
+    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock;
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
@@ -4790,7 +4900,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v18';
+const GAME_VERSION = 'v19';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -5113,6 +5223,7 @@ function handleClick(e) {
 
   if (state.mode === 'idle') {
     for (const f of game.farmers) {
+      if (f.inside) continue;
       if (Math.hypot(f.gx - (g.gx + 0.5), f.gy - (g.gy + 0.5)) < 0.9) {
         openFarmerChest(f);
         return;

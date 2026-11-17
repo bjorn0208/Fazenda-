@@ -357,6 +357,62 @@ vm.runInContext(`
   updateAnimals(0.016);
   render(ctx, cam, 800, 600, state);
 
+  // relogio: 06:00 ao amanhecer, 18:00 as 18h do ciclo
+  if (clockString(0) !== '06:00') throw new Error('clockString(0) deveria ser 06:00');
+  if (clockString(0.5) !== '18:00') throw new Error('clockString(0.5) deveria ser 18:00');
+
+  // pathfinding: caminho ate o portao nao atravessa cerca nem construcao
+  game.coins = 999999;
+  let pen3 = false;
+  for (let cy = 4; cy < 44 && !pen3; cy++) {
+    for (let cx = 4; cx < 44 && !pen3; cx++) {
+      if (penValid(penRect(cx, cy, 8)) && placePen(cx, cy, 8)) pen3 = true;
+    }
+  }
+  if (!pen3) throw new Error('nenhum lugar livre para o curral 3');
+  const far = randomFreeTile();
+  const path = gridPath(far.x, far.y, game.pen.gateX, game.pen.gateY, herdPassable);
+  if (!path) throw new Error('gridPath nao achou caminho ate o portao');
+  for (const w of path.slice(0, -1)) {
+    if (occupancy[occIndex(w.x, w.y)]) throw new Error('caminho atravessa obstaculo em ' + w.x + ',' + w.y);
+  }
+
+  // animais assustados correm na velocidade do cavalo
+  const runner = game.animals.find(a => !inPen(a));
+  if (runner) {
+    herdAnimal(runner);
+    const base = ANIMAL_KINDS[runner.kind].speed * (runner.speedMul || 1);
+    if (base < ANIMAL_KINDS.horse.speed && runner.herdStage === 1) {
+      const d0 = Math.hypot(runner.tx - runner.gx, runner.ty - runner.gy);
+      runner.gx -= 0.3;
+      updateAnimals(0.1);
+      const moved = Math.hypot(runner.tx - runner.gx, runner.ty - runner.gy);
+      const traveled = d0 + 0.3 - moved;
+      if (traveled < ANIMAL_KINDS.horse.speed * 0.1 * 0.9) throw new Error('animal assustado mais lento que o cavalo');
+    }
+  }
+
+  // fazendeiros dormem na casa a noite e voltam ao amanhecer
+  if (!game.buildings.some(b => b.type === 'house')) {
+    game.ownedArea = { x0: 0, y0: 0, x1: 47, y1: 47 };
+    let hs = false;
+    for (let cy = 2; cy < 42 && !hs; cy++) {
+      for (let cx = 2; cx < 42 && !hs; cx++) {
+        if (canPlace('house', cx, cy, 0)) { placeBuilding('house', cx, cy, 0, true); hs = true; }
+      }
+    }
+    if (!hs) throw new Error('sem lugar para a casa no teste');
+  }
+  game.time = 0.9;
+  for (let i = 0; i < 600; i++) updateFarmers(0.1);
+  if (!game.farmers.length || !game.farmers.every(f => f.inside)) throw new Error('fazendeiro nao entrou na casa a noite');
+  render(ctx, cam, 800, 600, state);
+  game.time = 0.02;
+  for (let i = 0; i < 60; i++) updateFarmers(0.1);
+  if (!game.farmers.every(f => !f.inside)) throw new Error('fazendeiro nao voltou ao amanhecer');
+  game.time = 0.1;
+  removePen();
+
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');
