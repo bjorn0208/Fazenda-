@@ -9,7 +9,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const SCRIPTS = ['data.js', 'iso.js', 'game.js', 'render.js', 'animals.js', 'farmers.js', 'ui.js', 'main.js'];
+const SCRIPTS = ['data.js', 'iso.js', 'game.js', 'render.js', 'animals.js', 'farmers.js', 'ui.js', 'multiplayer.js', 'main.js'];
 
 let failures = 0;
 const fail = msg => { failures++; console.error('FALHOU: ' + msg); };
@@ -412,6 +412,30 @@ vm.runInContext(`
   if (!game.farmers.every(f => !f.inside)) throw new Error('fazendeiro nao voltou ao amanhecer');
   game.time = 0.1;
   removePen();
+
+  // multiplayer: codigo da fazenda, snapshot/apply e presentes
+  const code = ensureFarmCode();
+  if (!/^F3D-[A-Z2-9]{4}$/.test(code)) throw new Error('codigo de fazenda invalido: ' + code);
+  if (ensureFarmCode() !== code) throw new Error('codigo mudou entre chamadas');
+  const snapBefore = JSON.stringify(snapshotData());
+  if (!applySaveData(JSON.parse(snapBefore))) throw new Error('applySaveData falhou');
+  if (JSON.stringify(snapshotData()) !== snapBefore) throw new Error('snapshot/applySaveData divergiu');
+  updateMultiplayer(0.016);
+  const coinsG = game.coins;
+  const g1 = receiveGift({ kind: 'coins', n: 500 });
+  if (!g1 || game.coins !== coinsG + 500) throw new Error('presente de moedas falhou');
+  game.coins = 999999; game.level = 9;
+  const cowsG = game.animals.filter(a => a.kind === 'cow').length;
+  const g2 = receiveGift({ kind: 'animal', id: 'cow', n: 2 });
+  if (!g2 || game.animals.filter(a => a.kind === 'cow').length !== cowsG + 2) throw new Error('presente de animal falhou');
+  const g3 = receiveGift({ kind: 'seed', id: 'wheat', n: 5 });
+  if (g3) {
+    if (!game.farmers.length || !(game.farmers[0].chest.wheat >= 5)) throw new Error('presente de sementes falhou');
+  } else if (game.farmers.length) throw new Error('presente de sementes recusado sem motivo');
+  game.visiting = true;
+  if (receiveGift({ kind: 'coins', n: 500 })) throw new Error('presente aceito em modo visita');
+  game.visiting = false;
+  render(ctx, cam, 800, 600, state);
 
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');

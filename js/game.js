@@ -26,7 +26,9 @@ const game = {
   missionsClaimed: [],
   achievementsClaimed: [],
   settings: { sound: true, music: false, quality: 'alta', language: 'pt-BR' },
-  landExpansions: 0
+  landExpansions: 0,
+  farmCode: null,         // codigo da sala multiplayer (ex.: F3D-AB12)
+  visiting: false         // modo visita: somente leitura
 };
 
 /* ---------- Grade de ocupação ---------- */
@@ -529,19 +531,23 @@ function autoClaimReady() {
 }
 
 /* ---------- Salvamento ---------- */
+function snapshotData() {
+  return {
+    coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
+    farmName: game.farmName, ownedArea: game.ownedArea,
+    buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
+    tilled: game.tilled, farmers: game.farmers,
+    pen: game.pen, dog: game.dog, time: game.time,
+    stats: game.stats, missionsClaimed: game.missionsClaimed,
+    achievementsClaimed: game.achievementsClaimed,
+    settings: game.settings, landExpansions: game.landExpansions,
+    farmCode: game.farmCode
+  };
+}
+
 function saveGame(showToastMsg) {
   try {
-    const data = {
-      coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
-      farmName: game.farmName, ownedArea: game.ownedArea,
-      buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
-      tilled: game.tilled, farmers: game.farmers,
-      pen: game.pen, dog: game.dog, time: game.time,
-      stats: game.stats, missionsClaimed: game.missionsClaimed,
-      achievementsClaimed: game.achievementsClaimed,
-      settings: game.settings, landExpansions: game.landExpansions
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));
     return true;
   } catch (e) {
@@ -555,6 +561,15 @@ function loadGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
+    return applySaveData(data);
+  } catch (e) {
+    console.error('Falha ao carregar', e);
+    return false;
+  }
+}
+
+function applySaveData(data) {
+  try {
     Object.assign(game, {
       coins: data.coins ?? 750, gems: data.gems ?? 5,
       xp: data.xp ?? 0, level: data.level ?? 1,
@@ -566,7 +581,8 @@ function loadGame() {
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
-      landExpansions: data.landExpansions ?? 0
+      landExpansions: data.landExpansions ?? 0,
+      farmCode: data.farmCode ?? null
     });
     game.stats.level = game.level;
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
@@ -575,9 +591,55 @@ function loadGame() {
     for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
     return true;
   } catch (e) {
-    console.error('Falha ao carregar', e);
+    console.error('Falha ao aplicar estado', e);
     return false;
   }
+}
+
+const FARM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genFarmCode() {
+  let c = 'F3D-';
+  for (let i = 0; i < 4; i++) c += FARM_CODE_ALPHABET[Math.floor(Math.random() * FARM_CODE_ALPHABET.length)];
+  return c;
+}
+
+function ensureFarmCode() {
+  if (!game.farmCode) game.farmCode = genFarmCode();
+  return game.farmCode;
+}
+
+/* ---------- Presentes de visitantes ---------- */
+function receiveGift(gift) {
+  if (!gift || game.visiting) return null;
+  if (gift.kind === 'coins') {
+    const n = Math.max(1, Math.min(MP_GIFT_LIMITS.coins, Math.floor(gift.n || 0)));
+    addCoins(n);
+    spawnFloater(game.ownedArea.x0 + 6, game.ownedArea.y0 + 6, '+' + n, '#ffd54f');
+    return { msg: '+' + n + ' moedas' };
+  }
+  if (gift.kind === 'seed' && CROPS[gift.id]) {
+    const n = Math.max(1, Math.min(MP_GIFT_LIMITS.seeds, Math.floor(gift.n || 0)));
+    const target = game.farmers[0];
+    if (!target) return null;
+    depositSeed(target, gift.id, n);
+    return { msg: n + 'x ' + t('c_' + gift.id) };
+  }
+  if (gift.kind === 'animal' && ANIMALS[gift.id]) {
+    const kind = gift.id;
+    const room = MAX_PER_KIND - game.animals.filter(a => a.kind === kind).length;
+    if (room <= 0) return null;
+    const howMany = Math.max(1, Math.min(MP_GIFT_LIMITS.animals, Math.min(room, Math.floor(gift.n || 1))));
+    let added = 0;
+    for (let i = 0; i < howMany; i++) {
+      const spot = randomFreeTile();
+      if (!spot) break;
+      game.animals.push(makeAnimal(kind, spot));
+      added++;
+    }
+    if (!added) return null;
+    return { msg: added + 'x ' + t('an_' + kind) };
+  }
+  return null;
 }
 
 function resetGame() {

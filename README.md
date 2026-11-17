@@ -162,6 +162,14 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 13 — Multiplayer: salas por código, visitas e presentes
+
+- **Botão 🌐 Multiplayer** no menu lateral: cada fazenda tem um **código único** (ex.: F3D-AB12). Toque nele para copiar.
+- **Abrir minha fazenda**: sua fazenda vira uma sala — amigos entram com o código e veem tudo em tempo real.
+- **Visitar**: digite o código de um amigo e veja a fazenda dele ao vivo (animais andando, fazendeiros trabalhando, ciclo do dia). Modo **somente leitura** — nada do seu save é alterado, e o botão 🏡 Voltar traz tudo de volta.
+- **Presentes**: visitando uma fazenda, envie 🪙 moedas, 🌱 sementes (vão para o baú do fazendeiro) ou 🐘 animais — o dono recebe na hora com aviso.
+- Conexão direta entre navegadores (WebRTC/PeerJS), sem servidor.
+
 ## Revisão 12 — Relógio, caminho pelo portão e fazendeiros dormem na casa
 
 - **Relógio no mapa**: o chip do topo agora mostra a hora (ex.: ☀️ 14:30). Cada ciclo completo dura **3 minutos** (06:00 → 06:00).

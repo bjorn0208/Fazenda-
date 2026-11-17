@@ -464,6 +464,75 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
   white-space: nowrap;
 }
 
+/* Multiplayer */
+#visit-banner {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(38, 50, 56, 0.92);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+#visit-banner.hidden { display: none; }
+#btn-leave-visit {
+  border: none;
+  border-radius: 999px;
+  background: #ffb300;
+  color: #3e2723;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.mp-code-row { margin-bottom: 10px; }
+.mp-label { font-size: 12px; font-weight: 700; color: #6d4c41; margin: 8px 0 6px; }
+.mp-code {
+  width: 100%;
+  border: 2px dashed #a1887f;
+  border-radius: 10px;
+  background: #fff8e1;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 10px;
+  cursor: pointer;
+  color: #4e342e;
+}
+.mp-big-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #43a047;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 12px;
+  cursor: pointer;
+  margin: 6px 0;
+}
+.mp-big-btn:disabled { opacity: 0.6; }
+.mp-big-btn.mp-danger { background: #e53935; }
+.mp-hr { border: none; border-top: 1px solid #d7ccc8; margin: 12px 0; }
+.mp-visit-row { display: flex; gap: 8px; }
+.mp-input {
+  flex: 1;
+  border: 2px solid #a1887f;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  min-width: 0;
+}
+.mp-status { font-size: 12px; color: #5d4037; margin-top: 8px; text-align: center; }
+
 </style>
 </head>
 <body>
@@ -500,12 +569,14 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 </div>
 
 <!-- ================= MENU LATERAL ================= -->
+<div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
   <button class="side-btn" data-panel="achievements"><span class="side-icon">🏆</span><span class="side-label" data-i18n="menu.achievements">Conquistas</span></button>
   <button class="side-btn" data-panel="friends"><span class="side-icon">👥</span><span class="side-label" data-i18n="menu.friends">Amigos</span></button>
   <button class="side-btn" data-panel="farmers"><span class="side-icon">🧑‍🌾</span><span class="side-label" data-i18n="menu.farmers">Fazendeiros</span></button>
+  <button class="side-btn" data-panel="multiplayer"><span class="side-icon">🌐</span><span class="side-label" data-i18n="menu.multiplayer">Multiplayer</span></button>
 </div>
 
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
@@ -536,7 +607,7 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v19</div>
+<div id="debug-badge">v20</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1025,7 +1096,9 @@ const game = {
   missionsClaimed: [],
   achievementsClaimed: [],
   settings: { sound: true, music: false, quality: 'alta', language: 'pt-BR' },
-  landExpansions: 0
+  landExpansions: 0,
+  farmCode: null,         // codigo da sala multiplayer (ex.: F3D-AB12)
+  visiting: false         // modo visita: somente leitura
 };
 
 /* ---------- Grade de ocupação ---------- */
@@ -1528,19 +1601,23 @@ function autoClaimReady() {
 }
 
 /* ---------- Salvamento ---------- */
+function snapshotData() {
+  return {
+    coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
+    farmName: game.farmName, ownedArea: game.ownedArea,
+    buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
+    tilled: game.tilled, farmers: game.farmers,
+    pen: game.pen, dog: game.dog, time: game.time,
+    stats: game.stats, missionsClaimed: game.missionsClaimed,
+    achievementsClaimed: game.achievementsClaimed,
+    settings: game.settings, landExpansions: game.landExpansions,
+    farmCode: game.farmCode
+  };
+}
+
 function saveGame(showToastMsg) {
   try {
-    const data = {
-      coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
-      farmName: game.farmName, ownedArea: game.ownedArea,
-      buildings: game.buildings, crops: game.crops, animals: game.animals, nextId: game.nextId,
-      tilled: game.tilled, farmers: game.farmers,
-      pen: game.pen, dog: game.dog, time: game.time,
-      stats: game.stats, missionsClaimed: game.missionsClaimed,
-      achievementsClaimed: game.achievementsClaimed,
-      settings: game.settings, landExpansions: game.landExpansions
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshotData()));
     if (showToastMsg) showToast(t('toast.saved'));
     return true;
   } catch (e) {
@@ -1554,6 +1631,15 @@ function loadGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
+    return applySaveData(data);
+  } catch (e) {
+    console.error('Falha ao carregar', e);
+    return false;
+  }
+}
+
+function applySaveData(data) {
+  try {
     Object.assign(game, {
       coins: data.coins ?? 750, gems: data.gems ?? 5,
       xp: data.xp ?? 0, level: data.level ?? 1,
@@ -1565,7 +1651,8 @@ function loadGame() {
       stats: data.stats ?? {}, missionsClaimed: data.missionsClaimed ?? [],
       achievementsClaimed: data.achievementsClaimed ?? [],
       settings: { ...game.settings, ...(data.settings ?? {}) },
-      landExpansions: data.landExpansions ?? 0
+      landExpansions: data.landExpansions ?? 0,
+      farmCode: data.farmCode ?? null
     });
     game.stats.level = game.level;
     game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
@@ -1574,9 +1661,55 @@ function loadGame() {
     for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
     return true;
   } catch (e) {
-    console.error('Falha ao carregar', e);
+    console.error('Falha ao aplicar estado', e);
     return false;
   }
+}
+
+const FARM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genFarmCode() {
+  let c = 'F3D-';
+  for (let i = 0; i < 4; i++) c += FARM_CODE_ALPHABET[Math.floor(Math.random() * FARM_CODE_ALPHABET.length)];
+  return c;
+}
+
+function ensureFarmCode() {
+  if (!game.farmCode) game.farmCode = genFarmCode();
+  return game.farmCode;
+}
+
+/* ---------- Presentes de visitantes ---------- */
+function receiveGift(gift) {
+  if (!gift || game.visiting) return null;
+  if (gift.kind === 'coins') {
+    const n = Math.max(1, Math.min(MP_GIFT_LIMITS.coins, Math.floor(gift.n || 0)));
+    addCoins(n);
+    spawnFloater(game.ownedArea.x0 + 6, game.ownedArea.y0 + 6, '+' + n, '#ffd54f');
+    return { msg: '+' + n + ' moedas' };
+  }
+  if (gift.kind === 'seed' && CROPS[gift.id]) {
+    const n = Math.max(1, Math.min(MP_GIFT_LIMITS.seeds, Math.floor(gift.n || 0)));
+    const target = game.farmers[0];
+    if (!target) return null;
+    depositSeed(target, gift.id, n);
+    return { msg: n + 'x ' + t('c_' + gift.id) };
+  }
+  if (gift.kind === 'animal' && ANIMALS[gift.id]) {
+    const kind = gift.id;
+    const room = MAX_PER_KIND - game.animals.filter(a => a.kind === kind).length;
+    if (room <= 0) return null;
+    const howMany = Math.max(1, Math.min(MP_GIFT_LIMITS.animals, Math.min(room, Math.floor(gift.n || 1))));
+    let added = 0;
+    for (let i = 0; i < howMany; i++) {
+      const spot = randomFreeTile();
+      if (!spot) break;
+      game.animals.push(makeAnimal(kind, spot));
+      added++;
+    }
+    if (!added) return null;
+    return { msg: added + 'x ' + t('an_' + kind) };
+  }
+  return null;
 }
 
 function resetGame() {
@@ -3916,6 +4049,32 @@ const I18N = {
     'bld.eggInfo': 'Ovo: 🥚 🪙15 · a cada 40s',
     'bld.milkInfo': 'Leite: 🥛 🪙25 · a cada 60s',
     'bld.baconInfo': 'Bacon: 🥩 🪙300 · a cada 5 min',
+    'menu.multiplayer': 'Multiplayer',
+    'mp.title': '🌐 Multiplayer',
+    'mp.myCode': 'Código da sua fazenda',
+    'mp.host': 'Abrir minha fazenda para visitas',
+    'mp.stop': 'Fechar minha fazenda',
+    'mp.hosting': '✅ Fazenda aberta! Amigos entram com o código.',
+    'mp.visit': 'Visitar uma fazenda',
+    'mp.visitBtn': 'Visitar',
+    'mp.hint': 'A visita vê a fazenda em tempo real (só leitura) e pode presentear com moedas, sementes e animais.',
+    'mp.gift': '🎁 Presentear esta fazenda',
+    'mp.giftCoins': 'Moedas',
+    'mp.giftSeeds': 'Sementes',
+    'mp.giftAnimal': 'Animal',
+    'mp.giftSend': 'Enviar presente',
+    'mp.leave': '🏡 Voltar para minha fazenda',
+    'mp.qty': 'Quantidade',
+    'toast.giftReceived': '🎁 Presente recebido: {msg}',
+    'toast.giftSent': '🎁 Presente enviado',
+    'toast.giftFailed': 'O presente não pôde ser entregue.',
+    'toast.visiting': '👀 Modo visita — você está na fazenda de outro jogador.',
+    'toast.backHome': '🏡 Você voltou para a sua fazenda.',
+    'toast.visitingBlock': 'Modo visita: somente leitura.',
+    'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpCodeCopied': 'Código copiado!',
+    'visit.banner': '👀 Visitando: {name}',
+    'visit.back': '🏡 Voltar',
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
@@ -4061,6 +4220,32 @@ const I18N = {
     'bld.eggInfo': 'Egg: 🥚 🪙15 · every 40s',
     'bld.milkInfo': 'Milk: 🥛 🪙25 · every 60s',
     'bld.baconInfo': 'Bacon: 🥩 🪙300 · every 5 min',
+    'menu.multiplayer': 'Multiplayer',
+    'mp.title': '🌐 Multiplayer',
+    'mp.myCode': 'Your farm code',
+    'mp.host': 'Open my farm for visits',
+    'mp.stop': 'Close my farm',
+    'mp.hosting': '✅ Farm open! Friends join with the code.',
+    'mp.visit': 'Visit a farm',
+    'mp.visitBtn': 'Visit',
+    'mp.hint': 'Visitors see the farm in real time (read only) and can gift coins, seeds and animals.',
+    'mp.gift': '🎁 Gift this farm',
+    'mp.giftCoins': 'Coins',
+    'mp.giftSeeds': 'Seeds',
+    'mp.giftAnimal': 'Animal',
+    'mp.giftSend': 'Send gift',
+    'mp.leave': '🏡 Back to my farm',
+    'mp.qty': 'Quantity',
+    'toast.giftReceived': '🎁 Gift received: {msg}',
+    'toast.giftSent': '🎁 Gift sent',
+    'toast.giftFailed': 'The gift could not be delivered.',
+    'toast.visiting': '👀 Visit mode — you are on another player\'s farm.',
+    'toast.backHome': '🏡 You are back at your farm.',
+    'toast.visitingBlock': 'Visit mode: read only.',
+    'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpCodeCopied': 'Code copied!',
+    'visit.banner': '👀 Visiting: {name}',
+    'visit.back': '🏡 Back',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
@@ -4787,6 +4972,166 @@ function buildSeedBar() {
 function hideSeedBar() { $('seed-bar').classList.add('hidden'); }
 
 /* ---------- Ligação dos botões ---------- */
+/* ---------- Multiplayer ---------- */
+function updateVisitBanner() {
+  const banner = $('visit-banner');
+  if (!banner) return;
+  if (game.visiting) {
+    banner.classList.remove('hidden');
+    $('visit-label').textContent = t('visit.banner', { name: game.farmName });
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function openMultiplayer() {
+  openModal(t('mp.title'), body => {
+    const code = ensureFarmCode();
+    const codeRow = document.createElement('div');
+    codeRow.className = 'mp-code-row';
+    const codeLbl = document.createElement('div');
+    codeLbl.className = 'mp-label';
+    codeLbl.textContent = t('mp.myCode');
+    const codeBtn = document.createElement('button');
+    codeBtn.className = 'mp-code';
+    codeBtn.textContent = code;
+    codeBtn.onclick = () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+      showToast(t('toast.mpCodeCopied'));
+    };
+    codeRow.appendChild(codeLbl);
+    codeRow.appendChild(codeBtn);
+    body.appendChild(codeRow);
+
+    const hostBtn = document.createElement('button');
+    hostBtn.className = 'mp-big-btn';
+    hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
+    hostBtn.onclick = () => {
+      if (mpStatus === 'hosting') { stopHosting(); closeModal(); return; }
+      hostBtn.disabled = true;
+      hostFarm(err => {
+        hostBtn.disabled = false;
+        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
+        openMultiplayer();
+      });
+    };
+    body.appendChild(hostBtn);
+    if (mpStatus === 'hosting') {
+      const st = document.createElement('div');
+      st.className = 'mp-status';
+      st.textContent = t('mp.hosting');
+      body.appendChild(st);
+    }
+
+    const hr = document.createElement('hr');
+    hr.className = 'mp-hr';
+    body.appendChild(hr);
+
+    if (game.visiting) {
+      const leave = document.createElement('button');
+      leave.className = 'mp-big-btn mp-danger';
+      leave.textContent = t('mp.leave');
+      leave.onclick = () => { closeModal(); leaveVisitMode(); };
+      body.appendChild(leave);
+      const gt = document.createElement('div');
+      gt.className = 'mp-label';
+      gt.textContent = t('mp.gift');
+      body.appendChild(gt);
+      buildGiftUi(body);
+      return;
+    }
+
+    const visitLbl = document.createElement('div');
+    visitLbl.className = 'mp-label';
+    visitLbl.textContent = t('mp.visit');
+    body.appendChild(visitLbl);
+    const visitRow = document.createElement('div');
+    visitRow.className = 'mp-visit-row';
+    const input = document.createElement('input');
+    input.className = 'mp-input';
+    input.placeholder = 'F3D-AB12';
+    input.maxLength = 8;
+    const go = document.createElement('button');
+    go.className = 'mp-big-btn';
+    go.textContent = t('mp.visitBtn');
+    go.onclick = () => {
+      const code2 = input.value.trim().toUpperCase();
+      if (!/^F3D-[A-Z2-9]{4}$/.test(code2)) { showToast(t('toast.mpError', { err: code2 })); return; }
+      go.disabled = true;
+      visitFarm(code2, err => {
+        go.disabled = false;
+        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
+        closeModal();
+      });
+    };
+    visitRow.appendChild(input);
+    visitRow.appendChild(go);
+    body.appendChild(visitRow);
+
+    const hint = document.createElement('div');
+    hint.className = 'mp-status';
+    hint.textContent = t('mp.hint');
+    body.appendChild(hint);
+  });
+}
+
+function buildGiftUi(body) {
+  const kindRow = document.createElement('div');
+  kindRow.className = 'farmer-roles';
+  let kind = 'coins';
+  for (const k of ['coins', 'seed', 'animal']) {
+    const b = document.createElement('button');
+    b.className = 'farmer-role-btn' + (k === kind ? ' active' : '');
+    b.textContent = t('mp.gift' + (k === 'coins' ? 'Coins' : k === 'seed' ? 'Seeds' : 'Animal'));
+    b.onclick = () => { kind = k; buildGiftUiRefresh(body); };
+    kindRow.appendChild(b);
+  }
+  body.appendChild(kindRow);
+  buildGiftPicker(body, kind);
+}
+
+function buildGiftUiRefresh(body) {
+  while (body.lastChild) body.removeChild(body.lastChild);
+  buildGiftUi(body);
+}
+
+function buildGiftPicker(body, kind) {
+  const qtyLbl = document.createElement('div');
+  qtyLbl.className = 'mp-label';
+  qtyLbl.textContent = t('mp.qty');
+  body.appendChild(qtyLbl);
+  const qty = document.createElement('input');
+  qty.className = 'mp-input';
+  qty.type = 'number';
+  qty.min = '1';
+  qty.value = kind === 'coins' ? '100' : '1';
+  body.appendChild(qty);
+  let itemId = null;
+  if (kind !== 'coins') {
+    const sel = document.createElement('select');
+    sel.className = 'mp-input';
+    const src = kind === 'seed' ? CROPS : ANIMALS;
+    for (const id of Object.keys(src)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = (src[id].icon || '') + ' ' + t((kind === 'seed' ? 'c_' : 'an_') + id);
+      sel.appendChild(opt);
+    }
+    itemId = sel.value;
+    sel.onchange = () => { itemId = sel.value; };
+    body.appendChild(sel);
+  }
+  const send = document.createElement('button');
+  send.className = 'mp-big-btn';
+  send.textContent = t('mp.giftSend');
+  send.onclick = () => {
+    const gift = { kind, id: itemId, n: Math.max(1, Math.floor(Number(qty.value) || 1)) };
+    if (!sendGift(gift)) { showToast(t('toast.giftFailed')); return; }
+    closeModal();
+  };
+  body.appendChild(send);
+}
+
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
@@ -4806,6 +5151,8 @@ function bindUi(handlers) {
   $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
   $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
+  $('btn-leave-visit').onclick = () => { if (mpStatus === 'visiting') leaveVisitMode(); };
+
   $('btn-collapse-left').onclick = () => {
     document.body.classList.toggle('tools-left-hidden');
     playSound('click');
@@ -4823,6 +5170,7 @@ function bindUi(handlers) {
       else if (panel === 'achievements') openAchievements();
       else if (panel === 'friends') openFriends();
       else if (panel === 'farmers') openFarmersPanel();
+      else if (panel === 'multiplayer') openMultiplayer();
     };
   }
 
@@ -4843,6 +5191,163 @@ function bindUi(handlers) {
   document.addEventListener('pointerdown', () => {
     if (game.settings.music) startMusic();
   }, { once: true });
+}
+
+</script>
+<script>
+/* ============================================================
+   MULTIPLAYER P2P (PeerJS) — salas por codigo de fazenda
+   O dono abre a sala (peer id = codigo); visitantes conectam,
+   recebem o estado da fazenda (somente leitura) e podem
+   presentear com moedas, sementes e animais.
+   ============================================================ */
+
+const MP_PREFIX = 'fazenda3d-v1-';
+const MP_SYNC_INTERVAL = 10;
+const MP_GIFT_LIMITS = { coins: 10000, seeds: 20, animals: 2 };
+
+let mpPeer = null;
+let mpConns = [];
+let mpVisitConn = null;
+let mpSyncT = 0;
+let mpStatus = 'off'; /* off | connecting | hosting | visiting */
+
+function mpPeerId(code) {
+  return MP_PREFIX + String(code || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+}
+
+function loadPeerJs(cb) {
+  if (typeof Peer !== 'undefined') { cb(null); return; }
+  const s = document.createElement('script');
+  s.src = ['https:', '', 'unpkg.com', 'peerjs@1.5.4', 'dist', 'peerjs.min.js'].join('/');
+  s.onload = () => cb(null);
+  s.onerror = () => cb(new Error('cdn'));
+  document.head.appendChild(s);
+}
+
+function mpSnapshot() {
+  return snapshotData();
+}
+
+function mpClosePeer() {
+  for (const c of mpConns) { try { c.close(); } catch (e) {} }
+  mpConns = [];
+  if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
+  if (mpPeer) { try { mpPeer.destroy(); } catch (e) {} mpPeer = null; }
+  mpStatus = 'off';
+}
+
+function stopHosting() {
+  mpClosePeer();
+}
+
+function hostFarm(onReady) {
+  if (mpStatus === 'hosting') { onReady(null); return; }
+  loadPeerJs(err => {
+    if (err) { onReady(err); return; }
+    mpClosePeer();
+    const code = ensureFarmCode();
+    mpPeer = new Peer(mpPeerId(code));
+    mpStatus = 'connecting';
+    mpPeer.on('open', () => { mpStatus = 'hosting'; onReady(null); });
+    mpPeer.on('connection', conn => {
+      mpConns.push(conn);
+      conn.on('open', () => { try { conn.send({ type: 'state', data: mpSnapshot() }); } catch (e) {} });
+      conn.on('data', msg => {
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'hello') {
+          try { conn.send({ type: 'state', data: mpSnapshot() }); } catch (e) {}
+        } else if (msg.type === 'gift') {
+          const res = receiveGift(msg.gift);
+          try { conn.send({ type: 'gift-ack', ok: !!res, msg: res ? res.msg : null }); } catch (e) {}
+          if (res) showToast(t('toast.giftReceived', { msg: res.msg }));
+        }
+      });
+      const drop = () => { mpConns = mpConns.filter(c => c !== conn); };
+      conn.on('close', drop);
+      conn.on('error', drop);
+    });
+    mpPeer.on('error', e => {
+      if (mpStatus === 'connecting') { mpStatus = 'off'; onReady(e); }
+    });
+  });
+}
+
+function visitFarm(code, onReady) {
+  loadPeerJs(err => {
+    if (err) { onReady(err); return; }
+    mpClosePeer();
+    mpPeer = new Peer();
+    mpStatus = 'connecting';
+    mpPeer.on('open', () => {
+      const conn = mpPeer.connect(mpPeerId(code), { reliable: true });
+      mpVisitConn = conn;
+      const timer = setTimeout(() => {
+        if (mpStatus === 'connecting') { mpStatus = 'off'; onReady(new Error('timeout')); }
+      }, 12000);
+      conn.on('open', () => {
+        clearTimeout(timer);
+        try { conn.send({ type: 'hello' }); } catch (e) {}
+      });
+      conn.on('data', msg => {
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'state') {
+          const first = mpStatus !== 'visiting';
+          clearTimeout(timer);
+          if (first) {
+            enterVisitMode(msg.data);
+            onReady(null);
+          } else {
+            applySaveData(msg.data);
+          }
+        } else if (msg.type === 'gift-ack') {
+          showToast(msg.ok ? (t('toast.giftSent') + (msg.msg ? ': ' + msg.msg : '')) : t('toast.giftFailed'));
+        }
+      });
+      conn.on('close', () => { if (mpStatus === 'visiting') leaveVisitMode(); });
+    });
+    mpPeer.on('error', e => {
+      if (mpStatus === 'connecting') { mpStatus = 'off'; onReady(e); }
+    });
+  });
+}
+
+function enterVisitMode(data) {
+  saveGame(false);
+  applySaveData(data);
+  game.visiting = true;
+  mpStatus = 'visiting';
+  state.mode = 'idle';
+  state.ghost = null;
+  state.highlightTile = null;
+  updateVisitBanner();
+  showToast(t('toast.visiting'));
+}
+
+function leaveVisitMode() {
+  if (mpVisitConn) { try { mpVisitConn.close(); } catch (e) {} mpVisitConn = null; }
+  game.visiting = false;
+  mpStatus = 'off';
+  loadGame();
+  updateVisitBanner();
+  showToast(t('toast.backHome'));
+}
+
+function sendGift(gift) {
+  if (mpStatus !== 'visiting' || !mpVisitConn) return false;
+  try { mpVisitConn.send({ type: 'gift', gift }); return true; } catch (e) { return false; }
+}
+
+function updateMultiplayer(dt) {
+  if (mpStatus !== 'hosting') return;
+  mpSyncT -= dt;
+  if (mpSyncT <= 0) {
+    mpSyncT = MP_SYNC_INTERVAL;
+    const snap = mpSnapshot();
+    for (const c of mpConns) {
+      try { if (c.open) c.send({ type: 'state', data: snap }); } catch (e) {}
+    }
+  }
 }
 
 </script>
@@ -4900,7 +5405,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v19';
+const GAME_VERSION = 'v20';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -5062,6 +5567,7 @@ canvas.addEventListener('wheel', e => {
 
 /* ---------- Clique no mundo ---------- */
 function handleClick(e) {
+  if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
   const g = gridFromEvent(e);
 
   if (state.mode === 'build' && state.ghost) {
@@ -5460,6 +5966,14 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
+  for (const k of ['build', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+    const orig = uiHandlers[k];
+    uiHandlers[k] = (...a) => {
+      if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+      orig(...a);
+    };
+  }
+
   if (e.key === 'Enter' && state.ghostPinned) uiHandlers.confirmOk();
 });
 
@@ -5481,6 +5995,7 @@ function loop(ts) {
     updateAnimals(dt);
     updateFarmers(dt);
     updateDog(dt);
+    updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();
   } catch (err) {
@@ -5498,6 +6013,7 @@ function loop(ts) {
 function init() {
   resize();
   const loaded = loadGame();
+  ensureFarmCode();
   if (!loaded) {
     // propriedade inicial: casa e poço já construídos
     placeBuilding('house', 12, 12, 0, true);

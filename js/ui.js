@@ -99,6 +99,32 @@ const I18N = {
     'bld.eggInfo': 'Ovo: 🥚 🪙15 · a cada 40s',
     'bld.milkInfo': 'Leite: 🥛 🪙25 · a cada 60s',
     'bld.baconInfo': 'Bacon: 🥩 🪙300 · a cada 5 min',
+    'menu.multiplayer': 'Multiplayer',
+    'mp.title': '🌐 Multiplayer',
+    'mp.myCode': 'Código da sua fazenda',
+    'mp.host': 'Abrir minha fazenda para visitas',
+    'mp.stop': 'Fechar minha fazenda',
+    'mp.hosting': '✅ Fazenda aberta! Amigos entram com o código.',
+    'mp.visit': 'Visitar uma fazenda',
+    'mp.visitBtn': 'Visitar',
+    'mp.hint': 'A visita vê a fazenda em tempo real (só leitura) e pode presentear com moedas, sementes e animais.',
+    'mp.gift': '🎁 Presentear esta fazenda',
+    'mp.giftCoins': 'Moedas',
+    'mp.giftSeeds': 'Sementes',
+    'mp.giftAnimal': 'Animal',
+    'mp.giftSend': 'Enviar presente',
+    'mp.leave': '🏡 Voltar para minha fazenda',
+    'mp.qty': 'Quantidade',
+    'toast.giftReceived': '🎁 Presente recebido: {msg}',
+    'toast.giftSent': '🎁 Presente enviado',
+    'toast.giftFailed': 'O presente não pôde ser entregue.',
+    'toast.visiting': '👀 Modo visita — você está na fazenda de outro jogador.',
+    'toast.backHome': '🏡 Você voltou para a sua fazenda.',
+    'toast.visitingBlock': 'Modo visita: somente leitura.',
+    'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpCodeCopied': 'Código copiado!',
+    'visit.banner': '👀 Visitando: {name}',
+    'visit.back': '🏡 Voltar',
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
@@ -244,6 +270,32 @@ const I18N = {
     'bld.eggInfo': 'Egg: 🥚 🪙15 · every 40s',
     'bld.milkInfo': 'Milk: 🥛 🪙25 · every 60s',
     'bld.baconInfo': 'Bacon: 🥩 🪙300 · every 5 min',
+    'menu.multiplayer': 'Multiplayer',
+    'mp.title': '🌐 Multiplayer',
+    'mp.myCode': 'Your farm code',
+    'mp.host': 'Open my farm for visits',
+    'mp.stop': 'Close my farm',
+    'mp.hosting': '✅ Farm open! Friends join with the code.',
+    'mp.visit': 'Visit a farm',
+    'mp.visitBtn': 'Visit',
+    'mp.hint': 'Visitors see the farm in real time (read only) and can gift coins, seeds and animals.',
+    'mp.gift': '🎁 Gift this farm',
+    'mp.giftCoins': 'Coins',
+    'mp.giftSeeds': 'Seeds',
+    'mp.giftAnimal': 'Animal',
+    'mp.giftSend': 'Send gift',
+    'mp.leave': '🏡 Back to my farm',
+    'mp.qty': 'Quantity',
+    'toast.giftReceived': '🎁 Gift received: {msg}',
+    'toast.giftSent': '🎁 Gift sent',
+    'toast.giftFailed': 'The gift could not be delivered.',
+    'toast.visiting': '👀 Visit mode — you are on another player\'s farm.',
+    'toast.backHome': '🏡 You are back at your farm.',
+    'toast.visitingBlock': 'Visit mode: read only.',
+    'toast.mpError': 'Multiplayer: {err}',
+    'toast.mpCodeCopied': 'Code copied!',
+    'visit.banner': '👀 Visiting: {name}',
+    'visit.back': '🏡 Back',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
@@ -970,6 +1022,166 @@ function buildSeedBar() {
 function hideSeedBar() { $('seed-bar').classList.add('hidden'); }
 
 /* ---------- Ligação dos botões ---------- */
+/* ---------- Multiplayer ---------- */
+function updateVisitBanner() {
+  const banner = $('visit-banner');
+  if (!banner) return;
+  if (game.visiting) {
+    banner.classList.remove('hidden');
+    $('visit-label').textContent = t('visit.banner', { name: game.farmName });
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function openMultiplayer() {
+  openModal(t('mp.title'), body => {
+    const code = ensureFarmCode();
+    const codeRow = document.createElement('div');
+    codeRow.className = 'mp-code-row';
+    const codeLbl = document.createElement('div');
+    codeLbl.className = 'mp-label';
+    codeLbl.textContent = t('mp.myCode');
+    const codeBtn = document.createElement('button');
+    codeBtn.className = 'mp-code';
+    codeBtn.textContent = code;
+    codeBtn.onclick = () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+      showToast(t('toast.mpCodeCopied'));
+    };
+    codeRow.appendChild(codeLbl);
+    codeRow.appendChild(codeBtn);
+    body.appendChild(codeRow);
+
+    const hostBtn = document.createElement('button');
+    hostBtn.className = 'mp-big-btn';
+    hostBtn.textContent = mpStatus === 'hosting' ? t('mp.stop') : t('mp.host');
+    hostBtn.onclick = () => {
+      if (mpStatus === 'hosting') { stopHosting(); closeModal(); return; }
+      hostBtn.disabled = true;
+      hostFarm(err => {
+        hostBtn.disabled = false;
+        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
+        openMultiplayer();
+      });
+    };
+    body.appendChild(hostBtn);
+    if (mpStatus === 'hosting') {
+      const st = document.createElement('div');
+      st.className = 'mp-status';
+      st.textContent = t('mp.hosting');
+      body.appendChild(st);
+    }
+
+    const hr = document.createElement('hr');
+    hr.className = 'mp-hr';
+    body.appendChild(hr);
+
+    if (game.visiting) {
+      const leave = document.createElement('button');
+      leave.className = 'mp-big-btn mp-danger';
+      leave.textContent = t('mp.leave');
+      leave.onclick = () => { closeModal(); leaveVisitMode(); };
+      body.appendChild(leave);
+      const gt = document.createElement('div');
+      gt.className = 'mp-label';
+      gt.textContent = t('mp.gift');
+      body.appendChild(gt);
+      buildGiftUi(body);
+      return;
+    }
+
+    const visitLbl = document.createElement('div');
+    visitLbl.className = 'mp-label';
+    visitLbl.textContent = t('mp.visit');
+    body.appendChild(visitLbl);
+    const visitRow = document.createElement('div');
+    visitRow.className = 'mp-visit-row';
+    const input = document.createElement('input');
+    input.className = 'mp-input';
+    input.placeholder = 'F3D-AB12';
+    input.maxLength = 8;
+    const go = document.createElement('button');
+    go.className = 'mp-big-btn';
+    go.textContent = t('mp.visitBtn');
+    go.onclick = () => {
+      const code2 = input.value.trim().toUpperCase();
+      if (!/^F3D-[A-Z2-9]{4}$/.test(code2)) { showToast(t('toast.mpError', { err: code2 })); return; }
+      go.disabled = true;
+      visitFarm(code2, err => {
+        go.disabled = false;
+        if (err) { showToast(t('toast.mpError', { err: err.message || err.type || 'erro' })); return; }
+        closeModal();
+      });
+    };
+    visitRow.appendChild(input);
+    visitRow.appendChild(go);
+    body.appendChild(visitRow);
+
+    const hint = document.createElement('div');
+    hint.className = 'mp-status';
+    hint.textContent = t('mp.hint');
+    body.appendChild(hint);
+  });
+}
+
+function buildGiftUi(body) {
+  const kindRow = document.createElement('div');
+  kindRow.className = 'farmer-roles';
+  let kind = 'coins';
+  for (const k of ['coins', 'seed', 'animal']) {
+    const b = document.createElement('button');
+    b.className = 'farmer-role-btn' + (k === kind ? ' active' : '');
+    b.textContent = t('mp.gift' + (k === 'coins' ? 'Coins' : k === 'seed' ? 'Seeds' : 'Animal'));
+    b.onclick = () => { kind = k; buildGiftUiRefresh(body); };
+    kindRow.appendChild(b);
+  }
+  body.appendChild(kindRow);
+  buildGiftPicker(body, kind);
+}
+
+function buildGiftUiRefresh(body) {
+  while (body.lastChild) body.removeChild(body.lastChild);
+  buildGiftUi(body);
+}
+
+function buildGiftPicker(body, kind) {
+  const qtyLbl = document.createElement('div');
+  qtyLbl.className = 'mp-label';
+  qtyLbl.textContent = t('mp.qty');
+  body.appendChild(qtyLbl);
+  const qty = document.createElement('input');
+  qty.className = 'mp-input';
+  qty.type = 'number';
+  qty.min = '1';
+  qty.value = kind === 'coins' ? '100' : '1';
+  body.appendChild(qty);
+  let itemId = null;
+  if (kind !== 'coins') {
+    const sel = document.createElement('select');
+    sel.className = 'mp-input';
+    const src = kind === 'seed' ? CROPS : ANIMALS;
+    for (const id of Object.keys(src)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = (src[id].icon || '') + ' ' + t((kind === 'seed' ? 'c_' : 'an_') + id);
+      sel.appendChild(opt);
+    }
+    itemId = sel.value;
+    sel.onchange = () => { itemId = sel.value; };
+    body.appendChild(sel);
+  }
+  const send = document.createElement('button');
+  send.className = 'mp-big-btn';
+  send.textContent = t('mp.giftSend');
+  send.onclick = () => {
+    const gift = { kind, id: itemId, n: Math.max(1, Math.floor(Number(qty.value) || 1)) };
+    if (!sendGift(gift)) { showToast(t('toast.giftFailed')); return; }
+    closeModal();
+  };
+  body.appendChild(send);
+}
+
 function bindUi(handlers) {
   $('btn-settings').onclick = openSettings;
   $('btn-add-coins').onclick = openCoinShop;
@@ -989,6 +1201,8 @@ function bindUi(handlers) {
   $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
   $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
+  $('btn-leave-visit').onclick = () => { if (mpStatus === 'visiting') leaveVisitMode(); };
+
   $('btn-collapse-left').onclick = () => {
     document.body.classList.toggle('tools-left-hidden');
     playSound('click');
@@ -1006,6 +1220,7 @@ function bindUi(handlers) {
       else if (panel === 'achievements') openAchievements();
       else if (panel === 'friends') openFriends();
       else if (panel === 'farmers') openFarmersPanel();
+      else if (panel === 'multiplayer') openMultiplayer();
     };
   }
 

@@ -456,3 +456,72 @@ body.tools-right-hidden #zoom-controls { transform: translateX(140%); opacity: 0
   line-height: 1;
   white-space: nowrap;
 }
+
+/* Multiplayer */
+#visit-banner {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(38, 50, 56, 0.92);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+#visit-banner.hidden { display: none; }
+#btn-leave-visit {
+  border: none;
+  border-radius: 999px;
+  background: #ffb300;
+  color: #3e2723;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.mp-code-row { margin-bottom: 10px; }
+.mp-label { font-size: 12px; font-weight: 700; color: #6d4c41; margin: 8px 0 6px; }
+.mp-code {
+  width: 100%;
+  border: 2px dashed #a1887f;
+  border-radius: 10px;
+  background: #fff8e1;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 10px;
+  cursor: pointer;
+  color: #4e342e;
+}
+.mp-big-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #43a047;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 12px;
+  cursor: pointer;
+  margin: 6px 0;
+}
+.mp-big-btn:disabled { opacity: 0.6; }
+.mp-big-btn.mp-danger { background: #e53935; }
+.mp-hr { border: none; border-top: 1px solid #d7ccc8; margin: 12px 0; }
+.mp-visit-row { display: flex; gap: 8px; }
+.mp-input {
+  flex: 1;
+  border: 2px solid #a1887f;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  min-width: 0;
+}
+.mp-status { font-size: 12px; color: #5d4037; margin-top: 8px; text-align: center; }

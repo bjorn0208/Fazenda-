@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v19';
+const GAME_VERSION = 'v20';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -213,6 +213,7 @@ canvas.addEventListener('wheel', e => {
 
 /* ---------- Clique no mundo ---------- */
 function handleClick(e) {
+  if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
   const g = gridFromEvent(e);
 
   if (state.mode === 'build' && state.ghost) {
@@ -611,6 +612,14 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
+  for (const k of ['build', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+    const orig = uiHandlers[k];
+    uiHandlers[k] = (...a) => {
+      if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+      orig(...a);
+    };
+  }
+
   if (e.key === 'Enter' && state.ghostPinned) uiHandlers.confirmOk();
 });
 
@@ -632,6 +641,7 @@ function loop(ts) {
     updateAnimals(dt);
     updateFarmers(dt);
     updateDog(dt);
+    updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
     refreshHud();
   } catch (err) {
@@ -649,6 +659,7 @@ function loop(ts) {
 function init() {
   resize();
   const loaded = loadGame();
+  ensureFarmCode();
   if (!loaded) {
     // propriedade inicial: casa e poço já construídos
     placeBuilding('house', 12, 12, 0, true);

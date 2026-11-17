@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fazenda 3D — Simulador Isométrico</title>
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -40,12 +40,14 @@
 </div>
 
 <!-- ================= MENU LATERAL ================= -->
+<div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
   <button class="side-btn" data-panel="achievements"><span class="side-icon">🏆</span><span class="side-label" data-i18n="menu.achievements">Conquistas</span></button>
   <button class="side-btn" data-panel="friends"><span class="side-icon">👥</span><span class="side-label" data-i18n="menu.friends">Amigos</span></button>
   <button class="side-btn" data-panel="farmers"><span class="side-icon">🧑‍🌾</span><span class="side-label" data-i18n="menu.farmers">Fazendeiros</span></button>
+  <button class="side-btn" data-panel="multiplayer"><span class="side-icon">🌐</span><span class="side-label" data-i18n="menu.multiplayer">Multiplayer</span></button>
 </div>
 
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
@@ -76,7 +78,7 @@
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v19</div>
+<div id="debug-badge">v20</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -113,13 +115,14 @@
   </div>
 </div>
 
-<script src="js/data.js?v=19"></script>
-<script src="js/iso.js?v=19"></script>
-<script src="js/game.js?v=19"></script>
-<script src="js/render.js?v=19"></script>
-<script src="js/animals.js?v=19"></script>
-<script src="js/farmers.js?v=19"></script>
-<script src="js/ui.js?v=19"></script>
-<script src="js/main.js?v=19"></script>
+<script src="js/data.js?v=20"></script>
+<script src="js/iso.js?v=20"></script>
+<script src="js/game.js?v=20"></script>
+<script src="js/render.js?v=20"></script>
+<script src="js/animals.js?v=20"></script>
+<script src="js/farmers.js?v=20"></script>
+<script src="js/ui.js?v=20"></script>
+<script src="js/multiplayer.js?v=20"></script>
+<script src="js/main.js?v=20"></script>
 </body>
 </html>
