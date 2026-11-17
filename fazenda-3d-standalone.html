@@ -417,6 +417,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 /* Telefone deitado: compacta o HUD para sobrar tela */
 @media (max-height: 480px) {
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
+  #zoom-controls { bottom: auto; top: 42%; transform: translateY(-50%); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
   #build-bar {
@@ -620,7 +621,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v24</div>
+<div id="debug-badge">v25</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1329,6 +1330,11 @@ function nightAlpha(t) {
   return 0.45;
 }
 
+/* Luz do dia (1 = meio-dia, 0 = noite mais escura) para sombras e ceu. */
+function dayLight(t) {
+  return 1 - nightAlpha(t === undefined ? game.time : t) / 0.45;
+}
+
 /* ---------- Curral (cerca automatica com porteiro) ---------- */
 function penSegments(n) { return 4 * n - 4; }
 
@@ -1738,7 +1744,7 @@ function receiveGift(gift) {
     const n = Math.max(1, Math.min(MP_GIFT_LIMITS.seeds, Math.floor(gift.n || 0)));
     const target = game.farmers[0];
     if (!target) return null;
-    depositSeed(target, gift.id, n);
+    target.chest[gift.id] = (target.chest[gift.id] || 0) + n;
     return { msg: n + 'x ' + t('c_' + gift.id) };
   }
   if (gift.kind === 'animal' && ANIMALS[gift.id]) {
@@ -1788,9 +1794,27 @@ const COLORS = {
 
 function render(ctx, cam, cw, ch, state) {
   ctx.clearRect(0, 0, cw, ch);
+  const na = nightAlpha(game.time);
+  const nightK = na / 0.45;
+  const mix = (c1, c2, k) => [
+    Math.round(c1[0] + (c2[0] - c1[0]) * k),
+    Math.round(c1[1] + (c2[1] - c1[1]) * k),
+    Math.round(c1[2] + (c2[2] - c1[2]) * k)
+  ];
+  let top = mix([135, 206, 235], [13, 27, 61], nightK);
+  let bot = mix([106, 176, 74], [26, 42, 46], nightK);
+  if (game.time < 0.05) {
+    const dk = (1 - game.time / 0.05) * 0.55;
+    top = mix(top, [247, 178, 103], dk);
+    bot = mix(bot, [130, 165, 92], dk);
+  } else if (game.time >= 0.55 && game.time < 0.65) {
+    const dk = (game.time - 0.55) / 0.10 * 0.4;
+    top = mix(top, [240, 150, 90], dk);
+    bot = mix(bot, [150, 120, 70], dk);
+  }
   const sky = ctx.createLinearGradient(0, 0, 0, ch);
-  sky.addColorStop(0, '#87ceeb');
-  sky.addColorStop(1, '#6ab04a');
+  sky.addColorStop(0, 'rgb(' + top[0] + ',' + top[1] + ',' + top[2] + ')');
+  sky.addColorStop(1, 'rgb(' + bot[0] + ',' + bot[1] + ',' + bot[2] + ')');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -1801,11 +1825,11 @@ function render(ctx, cam, cw, ch, state) {
   if (state.mode === 'pen') drawPenPreview(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
-  const na = nightAlpha(game.time);
   if (na > 0.01) {
     ctx.fillStyle = 'rgba(10,15,50,' + na + ')';
     ctx.fillRect(0, 0, cw, ch);
   }
+  if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
 }
@@ -2155,7 +2179,8 @@ function drawTileHighlight(ctx, cam, cw, ch, tile) {
 function drawShadow(ctx, cam, cw, ch, gx, gy, w, d, strength) {
   const c = projectPoint(gx + w / 2, gy + d / 2, 0);
   const s = worldToScreen(cam, c.x, c.y, cw, ch);
-  ctx.fillStyle = `rgba(20,40,10,${strength || 0.18})`;
+  const k = (strength || 0.18) * (0.35 + 0.65 * dayLight());
+  ctx.fillStyle = `rgba(20,40,10,${k.toFixed(3)})`;
   ctx.beginPath();
   ctx.ellipse(s.x, s.y + 3 * cam.zoom, w * 22 * cam.zoom, d * 11 * cam.zoom, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -2268,8 +2293,20 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
   drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + d * 0.45 + 0.1, 0.18, 0.7, 0.12, '#bcaaa4');
 
-  // janelas com moldura e brilho
-  ctx.fillStyle = '#7ec8e3';
+  // janelas com moldura e brilho (acendem a noite)
+  const na2 = nightAlpha(game.time);
+  const lit = na2 > 0.15;
+  if (lit && q !== 'baixa') {
+    for (const wy of [0.2, 0.65]) {
+      const gp = projectPoint(gx + w * wy + 0.2, gy + d - 0.15, 0.5);
+      const gc = worldToScreen(cam, gp.x, gp.y, cw, ch);
+      ctx.fillStyle = 'rgba(255,213,79,' + (na2 * 0.5).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(gc.x, gc.y, 16 * cam.zoom, 12 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = lit ? '#ffd76b' : '#7ec8e3';
   for (const wy of [0.2, 0.65]) {
     const win = [projectPoint(gx + w * wy, gy + d - 0.15, 0.35), projectPoint(gx + w * wy + 0.4, gy + d - 0.15, 0.35),
                  projectPoint(gx + w * wy + 0.4, gy + d - 0.15, 0.7), projectPoint(gx + w * wy, gy + d - 0.15, 0.7)]
@@ -2692,13 +2729,33 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
 }
 
-/* ---------- Nuvens à deriva ---------- */
-const CLOUDS = [
-  { x: 0.15, y: 0.12, s: 1.0, v: 8 },
-  { x: 0.55, y: 0.2, s: 0.7, v: 12 },
-  { x: 0.85, y: 0.08, s: 1.3, v: 6 },
-  { x: 0.35, y: 0.3, s: 0.55, v: 15 }
-];
+/* ---------- Vagalumes (noite) ---------- */
+function drawFireflies(ctx, cam, cw, ch, na) {
+  const t = performance.now() / 1000;
+  const a = game.ownedArea;
+  ctx.save();
+  for (let i = 0; i < 14; i++) {
+    const hx = noiseHash(i * 13 + 1, 7);
+    const hy = noiseHash(5, i * 29 + 3);
+    const gx = a.x0 + hx * (a.x1 - a.x0) + Math.sin(t * 0.7 + i * 2.1) * 1.3;
+    const gy = a.y0 + hy * (a.y1 - a.y0) + Math.cos(t * 0.5 + i * 1.7) * 1.3;
+    const gz = 0.5 + Math.sin(t * 1.1 + i) * 0.3;
+    const p = projectPoint(gx, gy, gz);
+    const pt = worldToScreen(cam, p.x, p.y, cw, ch);
+    const blink = Math.max(0, Math.sin(t * 2.2 + i * 2.7));
+    const al = na * (0.25 + 0.75 * blink);
+    ctx.globalAlpha = al * 0.3;
+    ctx.fillStyle = '#e4ff6b';
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 4.5 * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = al;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 1.7 * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 
 /* ---------- Textos flutuantes (ganhos, XP, água) ---------- */
 const floaters = [];
@@ -2725,23 +2782,6 @@ function drawFloaters(ctx, cam, cw, ch, now) {
     ctx.fillStyle = f.color;
     ctx.fillText(f.text, pt.x, pt.y);
     ctx.restore();
-  }
-}
-
-function drawClouds(ctx, cam, cw, ch) {
-  if (game.settings.quality === 'baixa') return;
-  const t = performance.now() / 1000;
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  for (const c of CLOUDS) {
-    const cx = ((c.x + t * c.v / cw) % 1.2 - 0.1) * cw;
-    const cy = c.y * ch;
-    const r = 26 * c.s;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.9, cy + r * 0.15, r * 0.75, 0, Math.PI * 2);
-    ctx.arc(cx - r * 0.85, cy + r * 0.2, r * 0.65, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.1, cy - r * 0.45, r * 0.6, 0, Math.PI * 2);
-    ctx.fill();
   }
 }
 
@@ -2950,13 +2990,27 @@ function randomPenTile() {
 
 /* Cachorro assusta: o animal corre para o portao e entra no curral. */
 function startHerdPath(a, tx, ty) {
-  a.path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable) || [];
-  a.tx = tx + 0.5;
-  a.ty = ty + 0.5;
-  if (a.path.length) {
-    const w = a.path.shift();
-    a.tx = w.x + 0.5;
-    a.ty = w.y + 0.5;
+  const path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable);
+  if (path) {
+    a.path = path;
+    a.tx = tx + 0.5;
+    a.ty = ty + 0.5;
+    if (a.path.length) {
+      const w = a.path.shift();
+      a.tx = w.x + 0.5;
+      a.ty = w.y + 0.5;
+    }
+  } else {
+    const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+    const opts = [];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+    }
+    if (!opts.length) { a.herdStage = 0; a.walking = false; return; }
+    const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+    a.path = [];
+    a.tx = nx + 0.5;
+    a.ty = ny + 0.5;
   }
   a.walking = true;
 }
@@ -3117,7 +3171,10 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
-  const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
+  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
+            : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
+            : Math.sin(a.phase * 2) * 0.8 * z;
+  const lightK = 0.35 + 0.65 * dayLight();
   const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
   const fx = Math.cos(face);
   const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
@@ -3128,7 +3185,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   ctx.scale(z * k.scale * squash, z * k.scale);
   if (grazing) ctx.rotate(dir * 0.14);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * lightK).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 16, 7, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -3142,7 +3199,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   let icon = null;
   if (a.kind === 'pig') {
-    if (a.bornAt !== undefined && Date.now() - a.bornAt >= 300000) icon = '🥓';
+    if (a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS) icon = '🥓';
   } else if (a.product > 0 && ANIMALS[a.kind] && ANIMALS[a.kind].product) {
     icon = ANIMALS[a.kind].product;
   }
@@ -3505,7 +3562,7 @@ function drawDog(ctx, cam, cw, ch, d) {
   ctx.translate(s.x, s.y);
   ctx.scale(z * 0.75 * squash, z * 0.75);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 13, 5.5, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -3671,7 +3728,7 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
 }
 
 function drawHorse(ctx, bob, dir, walking, phase) {
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 18, 7, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -4132,7 +4189,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'till') {
       const s = job.target;
       if (Math.hypot(s.x + 0.5 - f.gx, s.y + 0.5 - f.gy) < 0.9) {
-        if (tillSoil(s.x, s.y)) spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f');
+        if (tillSoil(s.x, s.y)) { spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f'); farmerWorkCost(f); }
         f.wait = 0.4;
       } else {
         f.riding = false;
@@ -4145,7 +4202,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'water') {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
-        if (waterCrop(c)) spawnFloater(c.gx, c.gy, '💧', '#4fc3f7');
+        if (waterCrop(c)) { spawnFloater(c.gx, c.gy, '💧', '#4fc3f7'); farmerWorkCost(f); }
         f.wait = 0.4;
       } else {
         f.riding = false;
@@ -4159,7 +4216,7 @@ function updateFarmers(dt) {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
         const r = harvestCrop(c);
-        if (r) spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+        if (r) { spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f'); farmerWorkCost(f); }
         f.riding = false;
         f.wait = 0.4;
       } else {
@@ -4173,7 +4230,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'animal') {
       const a = job.target;
       if (Math.hypot(a.gx - f.gx, a.gy - f.gy) < 1.4) {
-        collectAnimal(a);
+        if (collectAnimal(a)) farmerWorkCost(f);
         f.wait = 0.5;
       } else {
         f.riding = false;
@@ -4199,6 +4256,7 @@ function updateFarmers(dt) {
           if (f.chest[job.type] <= 0) delete f.chest[job.type];
           waterCrop(crop);
           spawnFloater(spot.x, spot.y, '🌱', '#aed581');
+          farmerWorkCost(f);
         }
         f.wait = 0.5;
       } else {
@@ -4240,10 +4298,15 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.translate(s.x, s.y);
   ctx.scale(z * flip * squash, z);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
-  ctx.ellipse(0, 1, 8, 3.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 1, f.riding ? 17 : 8, f.riding ? 7 : 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  if (f.riding) {
+    drawHorseBody(ctx, bob, 1, f.walking, f.phase);
+    ctx.translate(0, -13);
+  }
 
   ctx.strokeStyle = '#5d4037';
   ctx.lineWidth = 2.2;
@@ -5714,7 +5777,7 @@ function enterVisitMode(data) {
   applySaveData(data);
   game.visiting = true;
   mpStatus = 'visiting';
-  state.mode = 'idle';
+  if (typeof setMode === 'function') setMode('idle');
   state.ghost = null;
   state.highlightTile = null;
   updateVisitBanner();
@@ -5775,6 +5838,7 @@ function resize() {
   canvas.width = Math.floor(canvas.clientWidth * dpr);
   canvas.height = Math.floor(canvas.clientHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (typeof clampCamera === 'function') clampCamera();
 }
 window.addEventListener('resize', resize);
 
@@ -5802,7 +5866,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v24';
+const GAME_VERSION = 'v25';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -5909,14 +5973,16 @@ function onEnd(e) {
     if (wasTap) {
       const now = performance.now();
       const near = Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+      let didZoom = false;
       if (!wasMouse && now - lastTap.t < 320 && near) {
         const p = eventPos(e);
         zoomAt(p.x, p.y, 1.5);
         lastTap = { t: 0, x: 0, y: 0 };
+        didZoom = true;
       } else {
         lastTap = { t: now, x: e.clientX, y: e.clientY };
       }
-      handleClick(e);
+      if (!didZoom) handleClick(e);
     }
   } else if (activePointers.size === 1) {
     const [p] = [...activePointers.values()];
@@ -6381,16 +6447,18 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
-  for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
-    const orig = uiHandlers[k];
-    uiHandlers[k] = (...a) => {
-      if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
-      orig(...a);
-    };
-  }
 
   if (e.key === 'Enter' && state.ghostPinned) uiHandlers.confirmOk();
 });
+
+/* Guarda de visita: uma unica vez, fora do handler de teclado */
+for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+  const orig = uiHandlers[k];
+  uiHandlers[k] = (...a) => {
+    if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+    orig(...a);
+  };
+}
 
 /* ---------- Salvamento ao sair ---------- */
 window.addEventListener('beforeunload', () => saveGame(false));
@@ -6430,9 +6498,9 @@ function init() {
   const loaded = loadGame();
   ensureFarmCode();
   if (!loaded) {
-    // propriedade inicial: casa e poço já construídos
-    placeBuilding('house', 12, 12, 0, true);
-    placeBuilding('well', 16, 16, 0, true);
+    // propriedade inicial: casa e poço já construídos (dentro da área inicial)
+    placeBuilding('house', 21, 21, 0, true);
+    placeBuilding('well', 25, 25, 0, true);
     saveGame(false);
   }
   game.stats.level = game.level;

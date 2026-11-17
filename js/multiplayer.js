@@ -120,7 +120,7 @@ function enterVisitMode(data) {
   applySaveData(data);
   game.visiting = true;
   mpStatus = 'visiting';
-  state.mode = 'idle';
+  if (typeof setMode === 'function') setMode('idle');
   state.ghost = null;
   state.highlightTile = null;
   updateVisitBanner();

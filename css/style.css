@@ -410,6 +410,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 /* Telefone deitado: compacta o HUD para sobrar tela */
 @media (max-height: 480px) {
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
+  #zoom-controls { bottom: auto; top: 42%; transform: translateY(-50%); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
   #build-bar {

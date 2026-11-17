@@ -20,9 +20,27 @@ const COLORS = {
 
 function render(ctx, cam, cw, ch, state) {
   ctx.clearRect(0, 0, cw, ch);
+  const na = nightAlpha(game.time);
+  const nightK = na / 0.45;
+  const mix = (c1, c2, k) => [
+    Math.round(c1[0] + (c2[0] - c1[0]) * k),
+    Math.round(c1[1] + (c2[1] - c1[1]) * k),
+    Math.round(c1[2] + (c2[2] - c1[2]) * k)
+  ];
+  let top = mix([135, 206, 235], [13, 27, 61], nightK);
+  let bot = mix([106, 176, 74], [26, 42, 46], nightK);
+  if (game.time < 0.05) {
+    const dk = (1 - game.time / 0.05) * 0.55;
+    top = mix(top, [247, 178, 103], dk);
+    bot = mix(bot, [130, 165, 92], dk);
+  } else if (game.time >= 0.55 && game.time < 0.65) {
+    const dk = (game.time - 0.55) / 0.10 * 0.4;
+    top = mix(top, [240, 150, 90], dk);
+    bot = mix(bot, [150, 120, 70], dk);
+  }
   const sky = ctx.createLinearGradient(0, 0, 0, ch);
-  sky.addColorStop(0, '#87ceeb');
-  sky.addColorStop(1, '#6ab04a');
+  sky.addColorStop(0, 'rgb(' + top[0] + ',' + top[1] + ',' + top[2] + ')');
+  sky.addColorStop(1, 'rgb(' + bot[0] + ',' + bot[1] + ',' + bot[2] + ')');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -33,11 +51,11 @@ function render(ctx, cam, cw, ch, state) {
   if (state.mode === 'pen') drawPenPreview(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
-  const na = nightAlpha(game.time);
   if (na > 0.01) {
     ctx.fillStyle = 'rgba(10,15,50,' + na + ')';
     ctx.fillRect(0, 0, cw, ch);
   }
+  if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
 }
@@ -387,7 +405,8 @@ function drawTileHighlight(ctx, cam, cw, ch, tile) {
 function drawShadow(ctx, cam, cw, ch, gx, gy, w, d, strength) {
   const c = projectPoint(gx + w / 2, gy + d / 2, 0);
   const s = worldToScreen(cam, c.x, c.y, cw, ch);
-  ctx.fillStyle = `rgba(20,40,10,${strength || 0.18})`;
+  const k = (strength || 0.18) * (0.35 + 0.65 * dayLight());
+  ctx.fillStyle = `rgba(20,40,10,${k.toFixed(3)})`;
   ctx.beginPath();
   ctx.ellipse(s.x, s.y + 3 * cam.zoom, w * 22 * cam.zoom, d * 11 * cam.zoom, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -500,8 +519,20 @@ function drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
   drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + d * 0.45 + 0.1, 0.18, 0.7, 0.12, '#bcaaa4');
 
-  // janelas com moldura e brilho
-  ctx.fillStyle = '#7ec8e3';
+  // janelas com moldura e brilho (acendem a noite)
+  const na2 = nightAlpha(game.time);
+  const lit = na2 > 0.15;
+  if (lit && q !== 'baixa') {
+    for (const wy of [0.2, 0.65]) {
+      const gp = projectPoint(gx + w * wy + 0.2, gy + d - 0.15, 0.5);
+      const gc = worldToScreen(cam, gp.x, gp.y, cw, ch);
+      ctx.fillStyle = 'rgba(255,213,79,' + (na2 * 0.5).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(gc.x, gc.y, 16 * cam.zoom, 12 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = lit ? '#ffd76b' : '#7ec8e3';
   for (const wy of [0.2, 0.65]) {
     const win = [projectPoint(gx + w * wy, gy + d - 0.15, 0.35), projectPoint(gx + w * wy + 0.4, gy + d - 0.15, 0.35),
                  projectPoint(gx + w * wy + 0.4, gy + d - 0.15, 0.7), projectPoint(gx + w * wy, gy + d - 0.15, 0.7)]
@@ -924,13 +955,33 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   }
 }
 
-/* ---------- Nuvens à deriva ---------- */
-const CLOUDS = [
-  { x: 0.15, y: 0.12, s: 1.0, v: 8 },
-  { x: 0.55, y: 0.2, s: 0.7, v: 12 },
-  { x: 0.85, y: 0.08, s: 1.3, v: 6 },
-  { x: 0.35, y: 0.3, s: 0.55, v: 15 }
-];
+/* ---------- Vagalumes (noite) ---------- */
+function drawFireflies(ctx, cam, cw, ch, na) {
+  const t = performance.now() / 1000;
+  const a = game.ownedArea;
+  ctx.save();
+  for (let i = 0; i < 14; i++) {
+    const hx = noiseHash(i * 13 + 1, 7);
+    const hy = noiseHash(5, i * 29 + 3);
+    const gx = a.x0 + hx * (a.x1 - a.x0) + Math.sin(t * 0.7 + i * 2.1) * 1.3;
+    const gy = a.y0 + hy * (a.y1 - a.y0) + Math.cos(t * 0.5 + i * 1.7) * 1.3;
+    const gz = 0.5 + Math.sin(t * 1.1 + i) * 0.3;
+    const p = projectPoint(gx, gy, gz);
+    const pt = worldToScreen(cam, p.x, p.y, cw, ch);
+    const blink = Math.max(0, Math.sin(t * 2.2 + i * 2.7));
+    const al = na * (0.25 + 0.75 * blink);
+    ctx.globalAlpha = al * 0.3;
+    ctx.fillStyle = '#e4ff6b';
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 4.5 * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = al;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 1.7 * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 
 /* ---------- Textos flutuantes (ganhos, XP, água) ---------- */
 const floaters = [];
@@ -957,23 +1008,6 @@ function drawFloaters(ctx, cam, cw, ch, now) {
     ctx.fillStyle = f.color;
     ctx.fillText(f.text, pt.x, pt.y);
     ctx.restore();
-  }
-}
-
-function drawClouds(ctx, cam, cw, ch) {
-  if (game.settings.quality === 'baixa') return;
-  const t = performance.now() / 1000;
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  for (const c of CLOUDS) {
-    const cx = ((c.x + t * c.v / cw) % 1.2 - 0.1) * cw;
-    const cy = c.y * ch;
-    const r = 26 * c.s;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.9, cy + r * 0.15, r * 0.75, 0, Math.PI * 2);
-    ctx.arc(cx - r * 0.85, cy + r * 0.2, r * 0.65, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.1, cy - r * 0.45, r * 0.6, 0, Math.PI * 2);
-    ctx.fill();
   }
 }
 

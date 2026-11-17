@@ -24,6 +24,7 @@ function resize() {
   canvas.width = Math.floor(canvas.clientWidth * dpr);
   canvas.height = Math.floor(canvas.clientHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (typeof clampCamera === 'function') clampCamera();
 }
 window.addEventListener('resize', resize);
 
@@ -51,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v24';
+const GAME_VERSION = 'v25';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -158,14 +159,16 @@ function onEnd(e) {
     if (wasTap) {
       const now = performance.now();
       const near = Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+      let didZoom = false;
       if (!wasMouse && now - lastTap.t < 320 && near) {
         const p = eventPos(e);
         zoomAt(p.x, p.y, 1.5);
         lastTap = { t: 0, x: 0, y: 0 };
+        didZoom = true;
       } else {
         lastTap = { t: now, x: e.clientX, y: e.clientY };
       }
-      handleClick(e);
+      if (!didZoom) handleClick(e);
     }
   } else if (activePointers.size === 1) {
     const [p] = [...activePointers.values()];
@@ -630,16 +633,18 @@ window.addEventListener('keydown', e => {
     state.ghost.rot = (state.ghost.rot + 1) % 4;
     updateGhostPosition(state.ghost.gx, state.ghost.gy);
   }
-  for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
-    const orig = uiHandlers[k];
-    uiHandlers[k] = (...a) => {
-      if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
-      orig(...a);
-    };
-  }
 
   if (e.key === 'Enter' && state.ghostPinned) uiHandlers.confirmOk();
 });
+
+/* Guarda de visita: uma unica vez, fora do handler de teclado */
+for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+  const orig = uiHandlers[k];
+  uiHandlers[k] = (...a) => {
+    if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+    orig(...a);
+  };
+}
 
 /* ---------- Salvamento ao sair ---------- */
 window.addEventListener('beforeunload', () => saveGame(false));
@@ -679,9 +684,9 @@ function init() {
   const loaded = loadGame();
   ensureFarmCode();
   if (!loaded) {
-    // propriedade inicial: casa e poço já construídos
-    placeBuilding('house', 12, 12, 0, true);
-    placeBuilding('well', 16, 16, 0, true);
+    // propriedade inicial: casa e poço já construídos (dentro da área inicial)
+    placeBuilding('house', 21, 21, 0, true);
+    placeBuilding('well', 25, 25, 0, true);
     saveGame(false);
   }
   game.stats.level = game.level;

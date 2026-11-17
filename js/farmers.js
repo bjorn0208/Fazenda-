@@ -450,7 +450,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'till') {
       const s = job.target;
       if (Math.hypot(s.x + 0.5 - f.gx, s.y + 0.5 - f.gy) < 0.9) {
-        if (tillSoil(s.x, s.y)) spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f');
+        if (tillSoil(s.x, s.y)) { spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f'); farmerWorkCost(f); }
         f.wait = 0.4;
       } else {
         f.riding = false;
@@ -463,7 +463,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'water') {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
-        if (waterCrop(c)) spawnFloater(c.gx, c.gy, '💧', '#4fc3f7');
+        if (waterCrop(c)) { spawnFloater(c.gx, c.gy, '💧', '#4fc3f7'); farmerWorkCost(f); }
         f.wait = 0.4;
       } else {
         f.riding = false;
@@ -477,7 +477,7 @@ function updateFarmers(dt) {
       const c = job.target;
       if (Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy) < 0.9) {
         const r = harvestCrop(c);
-        if (r) spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f');
+        if (r) { spawnFloater(c.gx, c.gy, '+' + r.sell + ' 🪙', '#ffd54f'); farmerWorkCost(f); }
         f.riding = false;
         f.wait = 0.4;
       } else {
@@ -491,7 +491,7 @@ function updateFarmers(dt) {
     if (job && job.kind === 'animal') {
       const a = job.target;
       if (Math.hypot(a.gx - f.gx, a.gy - f.gy) < 1.4) {
-        collectAnimal(a);
+        if (collectAnimal(a)) farmerWorkCost(f);
         f.wait = 0.5;
       } else {
         f.riding = false;
@@ -517,6 +517,7 @@ function updateFarmers(dt) {
           if (f.chest[job.type] <= 0) delete f.chest[job.type];
           waterCrop(crop);
           spawnFloater(spot.x, spot.y, '🌱', '#aed581');
+          farmerWorkCost(f);
         }
         f.wait = 0.5;
       } else {
@@ -558,10 +559,15 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.translate(s.x, s.y);
   ctx.scale(z * flip * squash, z);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
-  ctx.ellipse(0, 1, 8, 3.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 1, f.riding ? 17 : 8, f.riding ? 7 : 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  if (f.riding) {
+    drawHorseBody(ctx, bob, 1, f.walking, f.phase);
+    ctx.translate(0, -13);
+  }
 
   ctx.strokeStyle = '#5d4037';
   ctx.lineWidth = 2.2;

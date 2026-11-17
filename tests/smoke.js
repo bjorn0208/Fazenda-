@@ -124,6 +124,10 @@ for (const f of SCRIPTS) {
 }
 
 vm.runInContext(`
+  // jogo novo: casa e poco iniciais dentro da area possuida
+  if (!game.buildings.some(b => b.type === 'house')) throw new Error('jogo novo sem casa (init)');
+  if (!game.buildings.some(b => b.type === 'well')) throw new Error('jogo novo sem poco (init)');
+
   // render base com todas as construcoes do catalogo
   game.coins = 999999;
   game.gems = 99;
@@ -514,6 +518,28 @@ vm.runInContext(`
   render(ctx, cam, 800, 600, state);
   cam.zoom = 1;
   game.time = 0.1;
+
+  // luz do dia e render noturno (ceu, vagalumes, janelas acesas)
+  if (dayLight(0.3) !== 1 || dayLight(0.9) !== 0) throw new Error('dayLight fora do esperado');
+  game.time = 0.9;
+  render(ctx, cam, 800, 600, state);
+  game.time = 0.02;
+  render(ctx, cam, 800, 600, state);
+  game.time = 0.1;
+
+  // fazendeiro montado no cavalo renderiza
+  const rf = game.farmers[0];
+  if (rf) { rf.riding = true; render(ctx, cam, 800, 600, state); rf.riding = false; }
+
+  // presente de sementes nao cobra moedas
+  const f0 = game.farmers[0];
+  if (f0) {
+    const coinsBeforeGift = game.coins;
+    f0.chest = {};
+    const g1 = receiveGift({ kind: 'seed', id: 'wheat', n: 5 });
+    if (!g1 || !(f0.chest.wheat >= 5)) throw new Error('presente de sementes nao chegou');
+    if (game.coins !== coinsBeforeGift) throw new Error('presente de sementes cobrou moedas');
+  }
 
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');

@@ -246,6 +246,11 @@ function nightAlpha(t) {
   return 0.45;
 }
 
+/* Luz do dia (1 = meio-dia, 0 = noite mais escura) para sombras e ceu. */
+function dayLight(t) {
+  return 1 - nightAlpha(t === undefined ? game.time : t) / 0.45;
+}
+
 /* ---------- Curral (cerca automatica com porteiro) ---------- */
 function penSegments(n) { return 4 * n - 4; }
 
@@ -655,7 +660,7 @@ function receiveGift(gift) {
     const n = Math.max(1, Math.min(MP_GIFT_LIMITS.seeds, Math.floor(gift.n || 0)));
     const target = game.farmers[0];
     if (!target) return null;
-    depositSeed(target, gift.id, n);
+    target.chest[gift.id] = (target.chest[gift.id] || 0) + n;
     return { msg: n + 'x ' + t('c_' + gift.id) };
   }
   if (gift.kind === 'animal' && ANIMALS[gift.id]) {

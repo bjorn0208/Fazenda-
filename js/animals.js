@@ -101,13 +101,27 @@ function randomPenTile() {
 
 /* Cachorro assusta: o animal corre para o portao e entra no curral. */
 function startHerdPath(a, tx, ty) {
-  a.path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable) || [];
-  a.tx = tx + 0.5;
-  a.ty = ty + 0.5;
-  if (a.path.length) {
-    const w = a.path.shift();
-    a.tx = w.x + 0.5;
-    a.ty = w.y + 0.5;
+  const path = gridPath(Math.floor(a.gx), Math.floor(a.gy), tx, ty, herdPassable);
+  if (path) {
+    a.path = path;
+    a.tx = tx + 0.5;
+    a.ty = ty + 0.5;
+    if (a.path.length) {
+      const w = a.path.shift();
+      a.tx = w.x + 0.5;
+      a.ty = w.y + 0.5;
+    }
+  } else {
+    const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+    const opts = [];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+    }
+    if (!opts.length) { a.herdStage = 0; a.walking = false; return; }
+    const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+    a.path = [];
+    a.tx = nx + 0.5;
+    a.ty = ny + 0.5;
   }
   a.walking = true;
 }
@@ -268,7 +282,10 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
-  const bob = grazing ? 0 : (a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z : Math.sin(a.phase * 2) * 0.8 * z);
+  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
+            : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
+            : Math.sin(a.phase * 2) * 0.8 * z;
+  const lightK = 0.35 + 0.65 * dayLight();
   const face = a.face !== undefined ? a.face : ((a.dirCur || 1) >= 0 ? 0 : Math.PI);
   const fx = Math.cos(face);
   const dir = Math.abs(fx) < 0.15 ? (a.lastDir || 1) : (fx >= 0 ? 1 : -1);
@@ -279,7 +296,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   ctx.scale(z * k.scale * squash, z * k.scale);
   if (grazing) ctx.rotate(dir * 0.14);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * lightK).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 16, 7, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -293,7 +310,7 @@ function drawAnimal(ctx, cam, cw, ch, a) {
 
   let icon = null;
   if (a.kind === 'pig') {
-    if (a.bornAt !== undefined && Date.now() - a.bornAt >= 300000) icon = '🥓';
+    if (a.bornAt !== undefined && Date.now() - a.bornAt >= PIG_SLAUGHTER_MS) icon = '🥓';
   } else if (a.product > 0 && ANIMALS[a.kind] && ANIMALS[a.kind].product) {
     icon = ANIMALS[a.kind].product;
   }
@@ -656,7 +673,7 @@ function drawDog(ctx, cam, cw, ch, d) {
   ctx.translate(s.x, s.y);
   ctx.scale(z * 0.75 * squash, z * 0.75);
 
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 13, 5.5, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -822,7 +839,7 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
 }
 
 function drawHorse(ctx, bob, dir, walking, phase) {
-  ctx.fillStyle = 'rgba(20,40,10,0.2)';
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.2 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(0, 2, 18, 7, 0, 0, Math.PI * 2);
   ctx.fill();

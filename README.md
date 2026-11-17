@@ -162,6 +162,26 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 18 — Check-up geral: bugs e polimento visual
+
+**Bugs corrigidos:**
+- **Jogo novo sem casa e sem poço**: a casa e o poço iniciais eram colocados fora da área possuída e a colocação falhava em silêncio — jogadores novos começavam sem casa (e os fazendeiros nunca dormiam). Agora nascem dentro da área inicial.
+- **Presente de sementes cobrava moedas**: receber sementes de presente no multiplayer debitava o valor do seu saldo (e falhava se você estivesse sem dinheiro). Agora o presente entra de graça no baú do fazendeiro.
+- **Cavalo invisível**: o fazendeiro montado andava 2,5× mais rápido mas o cavalo não aparecia. Agora o cavalo é desenhado sob ele, com sombra maior.
+- **Animais atravessavam cercas**: quando a busca de caminho falhava, o animal ia em linha reta pelo portão atravessando cerca/casa. Agora ele recua um passo para um tile livre e tenta de novo.
+- **Guarda de visita se acumulava**: cada tecla pressionada adicionava outra camada de verificação nos botões. Agora é registrada uma única vez.
+- **Toque duplo fazia duas coisas**: o zoom de toque duplo também acionava a ação do toque (colhia, arava...). Agora só dá zoom.
+- **Modo visita não limpava a UI**: entrar numa fazenda visitada não cancelava o modo ativo (plantar, regar...). Agora reseta tudo.
+
+**Melhorias de luz, sombra e vida:**
+- **Céu que acompanha o dia**: azul claro de dia, alaranjado no amanhecer e no fim da tarde, azul-escuro à noite.
+- **Sombras realistas**: todas as sombras (prédios, árvores, animais, fazendeiros) encolhem e suavizam quando o sol se põe.
+- **Janelas acesas à noite**: as janelas da casa brilham em amarelo quente quando escurece.
+- **Vagalumes**: à noite, vaga-lumes piscam e flutuam sobre a grama.
+- **Galinha bicando**: ao pastar, a galinha agora move a cabeça de verdade.
+- **Energia dos fazendeiros**: trabalhar agora cansa de verdade (arar, regar, colher, plantar, cuidar dos animais) — o humor "cansado" finalmente acontece.
+- **Responsividade em paisagem**: os controles de zoom não sobrepõem mais a barra de ferramentas em telas baixas; a câmera é reajustada ao girar o aparelho.
+
 ## Revisão 17 — Correções de robustez
 
 - **Porta da casa sempre encontrada**: se plantações ou cercas bloquearem todos os pontos de entrada, os fazendeiros agora usam o tile à frente da porta de qualquer forma — antes eles podiam ficar acordados a noite inteira.
