@@ -171,6 +171,23 @@ html, body {
 }
 .btn-cancel:hover { background: #90a4ae; }
 
+/* ---------- Controles de zoom ---------- */
+#zoom-controls {
+  position: absolute;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 8px; z-index: 15;
+}
+#zoom-controls button {
+  width: 46px; height: 46px;
+  background: var(--panel); color: var(--text);
+  border: 3px solid var(--panel-border); border-radius: 12px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+  font-size: 22px; font-weight: bold; cursor: pointer;
+  line-height: 1; padding: 0;
+}
+#zoom-controls button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+
 /* ---------- Toast ---------- */
 #toast {
   position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
@@ -276,6 +293,11 @@ html, body {
     font-size: 13px;
   }
   #modal { max-height: 88vh; max-height: 88dvh; }
+}
+
+@media (max-width: 480px) {
+  #zoom-controls { bottom: 88px; right: 8px; }
+  #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
 }
 
 /* Telefone em pé: HUD compacto em duas linhas, barras roláveis */

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fazenda 3D — Simulador Isométrico</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -57,6 +57,13 @@
   <button class="build-btn" id="btn-buy"><span class="build-icon">🛒</span><span class="build-label" data-i18n="build.buy">Comprar</span></button>
 </div>
 
+<!-- Controles de zoom -->
+<div id="zoom-controls">
+  <button id="btn-zoom-in" title="Aproximar">＋</button>
+  <button id="btn-zoom-out" title="Afastar">－</button>
+  <button id="btn-zoom-reset" title="Centralizar fazenda">⌖</button>
+</div>
+
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
 
@@ -92,12 +99,12 @@
   </div>
 </div>
 
-<script src="js/data.js"></script>
-<script src="js/iso.js"></script>
-<script src="js/game.js"></script>
-<script src="js/render.js"></script>
-<script src="js/animals.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
+<script src="js/data.js?v=6"></script>
+<script src="js/iso.js?v=6"></script>
+<script src="js/game.js?v=6"></script>
+<script src="js/render.js?v=6"></script>
+<script src="js/animals.js?v=6"></script>
+<script src="js/ui.js?v=6"></script>
+<script src="js/main.js?v=6"></script>
 </body>
 </html>

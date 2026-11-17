@@ -178,6 +178,23 @@ html, body {
 }
 .btn-cancel:hover { background: #90a4ae; }
 
+/* ---------- Controles de zoom ---------- */
+#zoom-controls {
+  position: absolute;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 8px; z-index: 15;
+}
+#zoom-controls button {
+  width: 46px; height: 46px;
+  background: var(--panel); color: var(--text);
+  border: 3px solid var(--panel-border); border-radius: 12px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+  font-size: 22px; font-weight: bold; cursor: pointer;
+  line-height: 1; padding: 0;
+}
+#zoom-controls button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+
 /* ---------- Toast ---------- */
 #toast {
   position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
@@ -283,6 +300,11 @@ html, body {
     font-size: 13px;
   }
   #modal { max-height: 88vh; max-height: 88dvh; }
+}
+
+@media (max-width: 480px) {
+  #zoom-controls { bottom: 88px; right: 8px; }
+  #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
 }
 
 /* Telefone em pé: HUD compacto em duas linhas, barras roláveis */
@@ -418,6 +440,13 @@ html, body {
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
   <button class="build-btn" id="btn-buy"><span class="build-icon">🛒</span><span class="build-label" data-i18n="build.buy">Comprar</span></button>
+</div>
+
+<!-- Controles de zoom -->
+<div id="zoom-controls">
+  <button id="btn-zoom-in" title="Aproximar">＋</button>
+  <button id="btn-zoom-out" title="Afastar">－</button>
+  <button id="btn-zoom-reset" title="Centralizar fazenda">⌖</button>
 </div>
 
 <!-- Barra de sementes (modo plantar) -->
@@ -2821,6 +2850,9 @@ function bindUi(handlers) {
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
+  $('btn-zoom-in').onclick = () => zoomHandlers.zoomIn();
+  $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
+  $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
 
   for (const btn of document.querySelectorAll('.side-btn')) {
@@ -3002,12 +3034,14 @@ canvas.addEventListener('touchmove', e => {
     } else {
       gridFromTouch(t);
     }
-  } else if (e.touches.length >= 2 && pinch) {
+  } else if (e.touches.length >= 2) {
     const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (!pinch) pinch = { dist: d };
     if (pinch.dist > 0) zoomAt(mid.x, mid.y, d / pinch.dist);
     pinch.dist = d;
+    touchDrag = null;
     return;
   }
   if (!state.ghostPinned && state.ghost &&
@@ -3302,6 +3336,20 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  }
+};
+
+function zoomStep(factor) {
+  zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, factor);
+}
+
+const zoomHandlers = {
+  zoomIn() { playSound('click'); zoomStep(1.25); },
+  zoomOut() { playSound('click'); zoomStep(1 / 1.25); },
+  zoomReset() {
+    playSound('click');
+    cam.zoom = canvas.clientWidth < 520 ? 0.72 : 1;
+    centerCamera();
   }
 };
 

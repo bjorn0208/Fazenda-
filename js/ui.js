@@ -622,6 +622,9 @@ function bindUi(handlers) {
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
+  $('btn-zoom-in').onclick = () => zoomHandlers.zoomIn();
+  $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
+  $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
 
   for (const btn of document.querySelectorAll('.side-btn')) {

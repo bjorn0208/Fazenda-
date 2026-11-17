@@ -146,12 +146,14 @@ canvas.addEventListener('touchmove', e => {
     } else {
       gridFromTouch(t);
     }
-  } else if (e.touches.length >= 2 && pinch) {
+  } else if (e.touches.length >= 2) {
     const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (!pinch) pinch = { dist: d };
     if (pinch.dist > 0) zoomAt(mid.x, mid.y, d / pinch.dist);
     pinch.dist = d;
+    touchDrag = null;
     return;
   }
   if (!state.ghostPinned && state.ghost &&
@@ -446,6 +448,20 @@ const uiHandlers = {
     if (state.mode === 'water') { setMode('idle'); return; }
     setMode('water');
     showToast(t('toast.waterHint'));
+  }
+};
+
+function zoomStep(factor) {
+  zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, factor);
+}
+
+const zoomHandlers = {
+  zoomIn() { playSound('click'); zoomStep(1.25); },
+  zoomOut() { playSound('click'); zoomStep(1 / 1.25); },
+  zoomReset() {
+    playSound('click');
+    cam.zoom = canvas.clientWidth < 520 ? 0.72 : 1;
+    centerCamera();
   }
 };
 
