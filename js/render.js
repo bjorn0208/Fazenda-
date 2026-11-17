@@ -164,6 +164,8 @@ function drawTerrain(ctx, cam, cw, ch, view) {
           drawWildflowers(ctx, cam, cw, ch, x, y, h);
         } else if (h > 0.78) {
           drawGrassTuft(ctx, cam, cw, ch, x, y, h, tNow);
+        } else if (h > 0.68) {
+          drawTallWeed(ctx, cam, cw, ch, x, y, h);
         }
       }
 
@@ -211,13 +213,39 @@ function drawGrassTuft(ctx, cam, cw, ch, x, y, h, tNow) {
     const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
     const sway = Math.sin(tNow * 1.7 + x * 1.9 + y * 2.3 + i * 1.1) * 2.2;
     const lean = (hx - 0.5) * 7 + sway;
-    const len = (6 + hy * 8) * cam.zoom;
+    const len = (7 + hy * 9) * cam.zoom;
     ctx.strokeStyle = shades[Math.floor(hx * shades.length)];
     ctx.lineWidth = Math.max(1, 1.3 * cam.zoom);
     ctx.beginPath();
     ctx.moveTo(pt.x, pt.y);
     ctx.quadraticCurveTo(pt.x + lean * 0.35, pt.y - len * 0.55, pt.x + lean, pt.y - len);
     ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+}
+
+/* Mato alto: hastes finas com espiga, balançando com o vento. */
+function drawTallWeed(ctx, cam, cw, ch, x, y, h) {
+  const tNow = performance.now() / 1000;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const hx = tileHash(x * 17 + i * 3, y * 7 + 5);
+    const hy = tileHash(x * 5 + 9, y * 11 + i * 2);
+    const pp = projectPoint(x + 0.15 + hx * 0.7, y + 0.15 + hy * 0.7, 0);
+    const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const sway = Math.sin(tNow * 1.3 + x * 2.1 + y * 1.7 + i * 1.3) * 2.6;
+    const len = (13 + hy * 9) * cam.zoom;
+    const lean = (hx - 0.5) * 8 + sway;
+    ctx.strokeStyle = i === 1 ? '#558b2f' : '#33691e';
+    ctx.lineWidth = Math.max(1, 1.4 * cam.zoom);
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+    ctx.quadraticCurveTo(pt.x + lean * 0.3, pt.y - len * 0.6, pt.x + lean, pt.y - len);
+    ctx.stroke();
+    ctx.fillStyle = i === 1 ? '#c0ca33' : '#9e9d24';
+    ctx.beginPath();
+    ctx.ellipse(pt.x + lean, pt.y - len, 1.6 * cam.zoom, 3.4 * cam.zoom, lean * 0.04, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.lineCap = 'butt';
 }
@@ -805,7 +833,8 @@ function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
     tri(8, 11, 22, '#388e3c');
     return;
   }
-  const cherry = variant === 'cherry';
+  if (variant === 'cherry') { drawCherryTree(ctx, cam, cw, ch, gx, gy, q); return; }
+  const cherry = false;
   drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
   drawPrism(ctx, cam, cw, ch, gx + 0.42, gy + 0.42, 0.16, 0.16, 0.5, cherry ? '#4e342e' : '#795548');
   drawPrism(ctx, cam, cw, ch, gx + 0.46, gy + 0.46, 0.08, 0.08, 0.62, '#5d4037');
@@ -829,6 +858,76 @@ function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
         const s = worldToScreen(cam, p.x, p.y, cw, ch);
         ctx.beginPath(); ctx.arc(s.x, s.y, 2.2 * cam.zoom, 0, Math.PI * 2); ctx.fill();
       }
+    }
+  }
+}
+
+/* --- Cerejeira: tronco curvo com galhos, copa em camadas de rosa e petalas caindo --- */
+function drawCherryTree(ctx, cam, cw, ch, gx, gy, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
+  const base = projectPoint(gx + 0.5, gy + 0.58, 0);
+  const b = worldToScreen(cam, base.x, base.y, cw, ch);
+  const z = cam.zoom;
+  const t = performance.now() / 1000;
+  const sway = Math.sin(t * 0.8 + gx * 1.3) * 1.5 * z;
+
+  ctx.strokeStyle = '#5d4037';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 5 * z;
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y);
+  ctx.quadraticCurveTo(b.x - 2 * z, b.y - 14 * z, b.x + z + sway * 0.3, b.y - 24 * z);
+  ctx.stroke();
+  ctx.lineWidth = 2.6 * z;
+  ctx.beginPath();
+  ctx.moveTo(b.x + 0.5 * z, b.y - 15 * z);
+  ctx.quadraticCurveTo(b.x + 8 * z, b.y - 20 * z, b.x + 12 * z + sway, b.y - 28 * z);
+  ctx.moveTo(b.x, b.y - 19 * z);
+  ctx.quadraticCurveTo(b.x - 7 * z, b.y - 23 * z, b.x - 11 * z + sway, b.y - 30 * z);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.lineWidth = 1.4 * z;
+  ctx.beginPath();
+  ctx.moveTo(b.x - 1.2 * z, b.y);
+  ctx.quadraticCurveTo(b.x - 3 * z, b.y - 13 * z, b.x - 0.5 * z, b.y - 22 * z);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  const puff = (dx, dy, r, col) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(b.x + dx * z + sway, b.y + dy * z, r * z, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  puff(-11, -32, 9, '#d81b60');
+  puff(10, -30, 10, '#d81b60');
+  puff(0, -38, 12, '#ec407a');
+  puff(-6, -36, 9, '#f06292');
+  puff(7, -36, 9, '#f06292');
+  puff(0, -42, 9, '#f48fb1');
+  puff(-3, -46, 6, '#f8bbd0');
+  puff(4, -44, 5.5, '#f8bbd0');
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.arc(b.x - 4 * z + sway, b.y - 47 * z, 2 * z, 0, Math.PI * 2);
+  ctx.arc(b.x + 5 * z + sway, b.y - 44 * z, 1.6 * z, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ad1457';
+  for (const [dx, dy] of [[-8, -34], [6, -33], [1, -40], [-2, -44], [9, -38]]) {
+    ctx.beginPath();
+    ctx.arc(b.x + dx * z + sway, b.y + dy * z, 1.1 * z, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (q !== 'baixa') {
+    ctx.fillStyle = 'rgba(248, 187, 208, 0.9)';
+    for (let i = 0; i < 5; i++) {
+      const ph = (t * 0.25 + i / 5) % 1;
+      const px = b.x + Math.sin(ph * 6.3 + i * 2) * 16 * z + (i - 2) * 5 * z;
+      const py = b.y - 40 * z + ph * 42 * z;
+      ctx.beginPath();
+      ctx.ellipse(px, py, 1.7 * z, 1.1 * z, ph * 5, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
@@ -1037,13 +1136,16 @@ function drawDoghouse(ctx, cam, cw, ch, gx, gy, q) {
   }
 }
 
-/* --- Bar da fazenda: balcao, banquinhas, barris, pisca-pisca e musica a noite --- */
+/* --- Bar da fazenda: letreiro, balcao com canecas, churrasqueira, banquinhas, barris, pisca-pisca e musica --- */
 function drawBar(ctx, cam, cw, ch, gx, gy, w, d, q) {
   drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
+  const z = cam.zoom;
+  const na = nightAlpha(game.time);
+
   drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, 0.85, '#8d6e63');
   if (q !== 'baixa') {
     ctx.strokeStyle = 'rgba(62,39,35,0.4)';
-    ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
+    ctx.lineWidth = Math.max(1, 1.2 * z);
     for (let i = 0; i < 4; i++) {
       const a1 = projectPoint(gx + 0.12, gy + 0.25 + i * 0.42, 0.8);
       const a2 = projectPoint(gx + w - 0.12, gy + 0.25 + i * 0.42, 0.8);
@@ -1052,50 +1154,134 @@ function drawBar(ctx, cam, cw, ch, gx, gy, w, d, q) {
       ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
     }
   }
+
   drawGableRoof(ctx, cam, cw, ch, gx + 0.02, gy + 0.02, w - 0.04, d - 0.04, 0.85, 0.5, '#4e342e', 'x');
+
+  if (q !== 'baixa') {
+    const dp = projectPoint(gx + 0.55, gy + d - 0.1, 0.42);
+    const ds = worldToScreen(cam, dp.x, dp.y, cw, ch);
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath();
+    ctx.roundRect(ds.x - 6 * z, ds.y - 13 * z, 12 * z, 14 * z, 2 * z);
+    ctx.fill();
+    ctx.fillStyle = na > 0.15 ? '#ffd76b' : '#3e2723';
+    ctx.beginPath();
+    ctx.roundRect(ds.x - 4.2 * z, ds.y - 11 * z, 8.4 * z, 10 * z, 1.5 * z);
+    ctx.fill();
+    if (na > 0.15) {
+      ctx.fillStyle = 'rgba(255,213,79,' + (na * 0.35).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(ds.x, ds.y - 4 * z, 14 * z, 12 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#d7a86e';
+    ctx.beginPath();
+    ctx.arc(ds.x + 3.5 * z, ds.y - 5 * z, 1 * z, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (q !== 'baixa') {
+    const sp = projectPoint(gx + w / 2, gy + d - 0.06, 1.42);
+    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
+    ctx.font = 'bold ' + Math.max(9, 11 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    if (na > 0.1) { ctx.shadowColor = '#ffeb3b'; ctx.shadowBlur = 10 * z; }
+    ctx.fillStyle = na > 0.1 ? '#ffe082' : '#ffca28';
+    ctx.fillText('BAR', ss.x, ss.y);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+  }
 
   drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.35, 0.42, '#a1662f');
   drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + d - 0.5, w - 0.3, 0.08, 0.06, '#d7a86e');
 
   if (q !== 'baixa') {
-    drawSphere(ctx, cam, cw, ch, gx + 0.7, gy + d - 0.75, 0.17, 0.24, '#c62828');
-    drawSphere(ctx, cam, cw, ch, gx + 1.5, gy + d - 0.75, 0.17, 0.24, '#c62828');
-    drawSphere(ctx, cam, cw, ch, gx + 2.3, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    for (let i = 0; i < 3; i++) {
+      const mp = projectPoint(gx + 0.55 + i * 0.85, gy + d - 0.5, 0.5);
+      const ms = worldToScreen(cam, mp.x, mp.y, cw, ch);
+      ctx.fillStyle = '#f57f17';
+      ctx.beginPath();
+      ctx.roundRect(ms.x - 2.4 * z, ms.y - 6 * z, 4.8 * z, 6 * z, 1 * z);
+      ctx.fill();
+      ctx.fillStyle = '#fff8e1';
+      ctx.beginPath();
+      ctx.ellipse(ms.x, ms.y - 6 * z, 2.6 * z, 1.4 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f57f17';
+      ctx.lineWidth = Math.max(1, 1.1 * z);
+      ctx.beginPath();
+      ctx.arc(ms.x + 3.2 * z, ms.y - 3 * z, 1.6 * z, -1.2, 1.2);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const stx = gx + 0.7 + i * 0.8;
+      drawPrism(ctx, cam, cw, ch, stx - 0.04, gy + d - 0.78, 0.08, 0.08, 0.2, '#5d4037');
+      drawSphere(ctx, cam, cw, ch, stx, gy + d - 0.75, 0.17, 0.24, '#c62828');
+    }
+
     drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.32, 0.32, 0.4, '#6d4c41');
     drawPrism(ctx, cam, cw, ch, gx + w + 0.05, gy + 0.35, 0.36, 0.36, 0.06, '#4e342e');
     drawPrism(ctx, cam, cw, ch, gx + w + 0.08, gy + 0.95, 0.28, 0.28, 0.34, '#8d6e63');
+
+    const gp = projectPoint(gx - 0.42, gy + 1.35, 0);
+    const gs = worldToScreen(cam, gp.x, gp.y, cw, ch);
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.roundRect(gs.x - 8 * z, gs.y - 10 * z, 16 * z, 10 * z, 2 * z);
+    ctx.fill();
+    ctx.fillStyle = na > 0.12 ? 'rgba(255,111,0,' + (0.55 + 0.35 * Math.sin(performance.now() / 180)).toFixed(2) + ')' : '#616161';
+    ctx.beginPath();
+    ctx.ellipse(gs.x, gs.y - 4 * z, 6 * z, 2.4 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#d7ccc8';
+    ctx.lineWidth = Math.max(1, 1.2 * z);
+    for (let i = 0; i < 2; i++) {
+      const sy = gs.y - 8 * z - i * 4 * z;
+      ctx.beginPath();
+      ctx.moveTo(gs.x - 7 * z, sy);
+      ctx.lineTo(gs.x + 7 * z, sy - 1.5 * z);
+      ctx.stroke();
+      ctx.fillStyle = '#a1887f';
+      for (let m = 0; m < 3; m++) {
+        ctx.beginPath();
+        ctx.arc(gs.x - 4 * z + m * 4 * z, sy - 0.7 * z - i * 4 * z, 1.6 * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (na > 0.12) drawSmoke(ctx, cam, cw, ch, gx - 0.42, gy + 1.35, 0.35);
 
     const w1 = projectPoint(gx + 0.08, gy + d - 0.32, 0.95);
     const w2 = projectPoint(gx + w - 0.08, gy + d - 0.32, 0.95);
     const p1 = worldToScreen(cam, w1.x, w1.y, cw, ch);
     const p2 = worldToScreen(cam, w2.x, w2.y, cw, ch);
     ctx.strokeStyle = 'rgba(60,50,40,0.7)';
-    ctx.lineWidth = Math.max(1, 1.1 * cam.zoom);
+    ctx.lineWidth = Math.max(1, 1.1 * z);
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
-    ctx.quadraticCurveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + 6 * cam.zoom, p2.x, p2.y);
+    ctx.quadraticCurveTo((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + 6 * z, p2.x, p2.y);
     ctx.stroke();
     const bulbs = ['#ff5252', '#ffd740', '#69f0ae', '#40c4ff', '#ff4081'];
     for (let i = 1; i < 7; i++) {
       const k = i / 7;
       const bx = p1.x + (p2.x - p1.x) * k;
-      const by = p1.y + (p2.y - p1.y) * k + 6 * cam.zoom * Math.sin(Math.PI * k) + 3.5 * cam.zoom;
+      const by = p1.y + (p2.y - p1.y) * k + 6 * z * Math.sin(Math.PI * k) + 3.5 * z;
       const lit = (Math.floor(performance.now() / 700) + i) % 2 === 0;
       ctx.fillStyle = bulbs[i % bulbs.length];
       ctx.globalAlpha = lit ? 1 : 0.45;
       ctx.beginPath();
-      ctx.arc(bx, by, 2 * cam.zoom, 0, Math.PI * 2);
+      ctx.arc(bx, by, 2 * z, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
   }
 
-  if (nightAlpha(game.time) > 0.15) {
+  if (na > 0.15) {
     const t = performance.now() / 1000;
-    ctx.font = Math.max(10, 13 * cam.zoom) + 'px sans-serif';
+    ctx.font = Math.max(10, 13 * z) + 'px sans-serif';
     ctx.textAlign = 'center';
     for (let i = 0; i < 3; i++) {
-      const bobn = Math.sin(t * 1.6 + i * 2.1) * 5 * cam.zoom;
+      const bobn = Math.sin(t * 1.6 + i * 2.1) * 5 * z;
       const nx = gx + 0.6 + i * 0.9, ny = gy + 0.4 + (i % 2) * 0.8;
       const np = projectPoint(nx, ny, 1.3 + Math.sin(t * 0.9 + i) * 0.12);
       const ns = worldToScreen(cam, np.x, np.y, cw, ch);

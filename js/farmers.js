@@ -175,7 +175,7 @@ function farmerTargetBusy(f, x, y) {
     if (o === f || o.inside) continue;
     const sx = o.jobSpot ? o.jobSpot.x : o.gx;
     const sy = o.jobSpot ? o.jobSpot.y : o.gy;
-    if (Math.hypot(sx - x, sy - y) < 2.5) return true;
+    if (Math.hypot(sx - x, sy - y) < 10) return true;
   }
   return false;
 }
@@ -260,28 +260,6 @@ function farmerWalkable(x, y) {
   return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
 }
 
-/* Agenda pelo ciclo do dia: de dia arar/plantar/regar; a tarde colher; noite descansam. */
-function farmerFindTillSpot(f) {
-  const candidates = new Set();
-  for (const c of game.crops) {
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const x = c.gx + dx, y = c.gy + dy;
-      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)] && !isTilled(x, y)) {
-        candidates.add(x + ',' + y);
-      }
-    }
-  }
-  let best = null, bestD = Infinity;
-  let bestFree = null, bestFreeD = Infinity;
-  for (const key of candidates) {
-    const [x, y] = key.split(',').map(Number);
-    const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
-    if (d < bestD) { bestD = d; best = { x, y }; }
-    if (d < bestFreeD && !farmerTargetBusy(f, x, y)) { bestFreeD = d; bestFree = { x, y }; }
-  }
-  return bestFree || best;
-}
-
 function farmerFindWaterTarget(f) {
   let best = null, bestD = Infinity;
   let bestFree = null, bestFreeD = Infinity;
@@ -308,8 +286,6 @@ function farmerFindJob(f) {
       for (const type of Object.keys(f.chest)) {
         if (f.chest[type] > 0) return { kind: 'plant', type };
       }
-      const till = farmerFindTillSpot(f);
-      if (till) return { kind: 'till', target: till };
       const dry = farmerFindWaterTarget(f);
       if (dry) return { kind: 'water', target: dry };
     }
@@ -346,7 +322,7 @@ function farmerFindPlantSpot(f, type) {
   for (const c of game.crops) {
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const x = c.gx + dx, y = c.gy + dy;
-      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) {
+      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)] && isTilled(x, y)) {
         candidates.add(x + ',' + y);
       }
     }
@@ -356,7 +332,6 @@ function farmerFindPlantSpot(f, type) {
     const [x, y] = key.split(',').map(Number);
     const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
     let score = -d;
-    if (isTilled(x, y)) score += 50;
     if (!farmerTargetBusy(f, x, y)) score += 8;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nb = occupancy[occIndex(x + dx, y + dy)];
@@ -365,10 +340,10 @@ function farmerFindPlantSpot(f, type) {
     if (score > bestScore) { bestScore = score; best = { x, y }; }
   }
   if (best) return best;
-  for (let tries = 0; tries < 40; tries++) {
+  for (let tries = 0; tries < 60; tries++) {
     const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
     const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
-    if (!occupancy[occIndex(x, y)]) return { x, y };
+    if (!occupancy[occIndex(x, y)] && isTilled(x, y)) return { x, y };
   }
   return null;
 }
@@ -492,19 +467,6 @@ function updateFarmers(dt) {
       }
     }
     const job = farmerFindJob(f);
-
-    if (job && job.kind === 'till') {
-      const s = job.target;
-      if (Math.hypot(s.x + 0.5 - f.gx, s.y + 0.5 - f.gy) < 0.9) {
-        if (tillSoil(s.x, s.y)) { spawnFloater(s.x, s.y, '\u26cf\ufe0f', '#a1887f'); farmerWorkCost(f); }
-        f.wait = 0.4;
-      } else {
-        f.riding = false;
-        f.tx = s.x + 0.5; f.ty = s.y + 0.5;
-        f.walking = true;
-      }
-      continue;
-    }
 
     if (job && job.kind === 'water') {
       const c = job.target;

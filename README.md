@@ -162,6 +162,15 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 20 — Cerejeira realista, mato alto, fazendeiros espalhados e bar de verdade
+
+- **Cerejeira redesenhada**: tronco curvo com galhos, copa em camadas de rosa (do vinho ao claro), botões escuros, brilhos e **pétalas caindo** devagar.
+- **Mato alto pelo campo**: manchas de mato com hastes finas e espigas balançando no vento, junto com os tufos de grama.
+- **Fazendeiros só plantam onde você arou**: eles não aram mais o mapa sozinhos — arar é tarefa sua (botão ⛏️); eles plantam, regam, colhem e cuidam dos animais na terra preparada.
+- **Cada um no seu canto**: antes de aceitar uma tarefa, o fazendeiro olha onde os outros estão e escolhe serviço a pelo menos **10 blocos** de distância. Os cachorros também: cada um persegue um animal diferente.
+- **Bar turbinado**: letreiro **BAR** que acende à noite, porta com luz quente, canecas de chopp no balcão, banquinhas com pés, **churrasqueira com brasas brilhando, espetinhos e fumaça**, piscas-piscas e música 🎵.
+- **Cavalo ainda mais forte**: manta azul sob a sela, peito e garupa musculosos, brilho no dorso, brida até a sela, brilho no olho e narina.
+
 ## Revisão 19 — Mais cachorros, casinha, sapos, cavalos finos, animais comendo grama e o Bar da Fazenda
 
 - **Vários cachorros 🐕**: agora dá para ter até **3 cachorros** — cada um custa o **dobro do anterior** (🪙3500, 🪙7000, 🪙14000). O botão 🐕 liga/desliga todos de uma vez, e cada um corre **2× mais rápido** para juntar os animais.

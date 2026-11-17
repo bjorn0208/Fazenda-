@@ -649,6 +649,8 @@ function updateDogOne(d, dt) {
     if (mode) {
       const wantInside = mode === 'herd';
       d.barkT = (d.barkT === undefined ? 0 : d.barkT) - dt;
+      const claimed = new Set();
+      for (const o of game.dogs) if (o !== d && o.targetA) claimed.add(o.targetA);
       let best = null, bestD = Infinity;
       for (const a of game.animals) {
         if (a.herdStage) continue;
@@ -657,8 +659,10 @@ function updateDogOne(d, dt) {
         if (dist <= 10 && d.barkT <= 0) {
           if (wantInside) herdAnimal(a); else releaseAnimal(a);
         }
+        if (claimed.has(a)) continue;
         if (dist < bestD) { bestD = dist; best = a; }
       }
+      d.targetA = best || null;
       if (d.barkT <= 0) d.barkT = 1.2;
       if (best) {
         if (bestD < 1.3) {
@@ -833,6 +837,28 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
 
   ctx.fillStyle = '#795548';
   ctx.beginPath();
+  ctx.ellipse(dir * -10, -19 + bob * 0.4, 6.5, 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(dir * 12, -18 + bob * 0.4, 5, 6.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(dir * -13, -23.5 + bob * 0.4);
+  ctx.quadraticCurveTo(0, -26.5 + bob * 0.4, dir * 13, -24 + bob * 0.4);
+  ctx.stroke();
+
+  ctx.fillStyle = '#1976d2';
+  ctx.beginPath();
+  ctx.ellipse(0, -22.5 + bob * 0.4, 7.5, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e91e63';
+  ctx.beginPath();
+  ctx.ellipse(0, -22.5 + bob * 0.4, 7.5, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#795548';
+  ctx.beginPath();
   ctx.ellipse(-4, -20 + bob * 0.4, 6, 4, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
@@ -892,6 +918,21 @@ function drawHorseBody(ctx, bob, dir, walking, phase) {
   ctx.beginPath();
   ctx.arc(dir * 17.5, -27 + bob, 1.1, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(dir * 17.1, -27.4 + bob, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.arc(dir * 23.2, -23 + bob, 0.55, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(dir * 21.5, -23.5 + bob);
+  ctx.quadraticCurveTo(dir * 10, -22 + bob, dir * 2, -23.5 + bob * 0.4);
+  ctx.stroke();
 
   ctx.fillStyle = '#5d4037';
   ctx.beginPath();

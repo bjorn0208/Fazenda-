@@ -204,6 +204,7 @@ vm.runInContext(`
   if (fm.chest.corn !== 5) throw new Error('bau com contagem errada');
   const plantedBefore = game.stats.planted || 0;
   const harvestedBefore = game.stats.harvested || 0;
+  for (const [tx2, ty2] of [[31, 30], [32, 30], [30, 31], [31, 31], [32, 31]]) tillSoil(tx2, ty2);
   game.time = 0.1;
   for (let i = 0; i < 900; i++) updateFarmers(0.1);
   if ((game.stats.planted || 0) <= plantedBefore) throw new Error('fazendeiro nao plantou');
@@ -301,6 +302,7 @@ vm.runInContext(`
   depositSeed(fm2, 'wheat', 6);
   game.crops.forEach(c => { c.product = undefined; });
   const anchor = plantCrop('wheat', 5, 40, true);
+  for (let tx3 = 6; tx3 < 11; tx3++) tillSoil(tx3, 40);
   const cropsBefore2 = game.crops.length;
   for (let i = 0; i < 1200; i++) updateFarmers(0.1);
   const newCrops = game.crops.slice(cropsBefore2);
