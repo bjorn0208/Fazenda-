@@ -75,6 +75,13 @@ python3 -m http.server 8000
 - Celeiro com fardos de feno e catavento girando; poço com balde balançando na corda.
 - Árvores em camadas com frutas; cercas que se conectam automaticamente às vizinhas; sombras sob todos os objetos.
 
+## Revisão 4 — Animais, lago e zoom livre ✅
+
+- **Loja de Animais:** galinha 🐔 (🪙150), porco 🐖 (🪙350) e vaca 🐄 (🪙600) — comprados na loja, passeiam livres pela fazenda (limite de 15).
+- **10 culturas:** alface 🥬, batata 🥔, morango 🍓, uva 🍇 e girassol 🌻 se juntam às 5 originais.
+- **Lago** (3×3, 🪙800): margem de areia, água com ondulação animada, pedras, vitórias-régias e taboas balançando.
+- **Zoom livre:** pinça de dois dedos reescrita com eventos touch nativos (mais confiável em celular) e faixa ampliada de 0,35x a 3x.
+
 ## Roadmap
 
 - **Fase 2 — Agricultura:** tiles de plantio, culturas (milho, tomate, cenoura, alface, trigo) com estágios de crescimento, irrigação pelo poço, timers.

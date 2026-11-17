@@ -25,6 +25,7 @@ const I18N = {
     'q.baixa': 'baixa', 'q.média': 'média', 'q.alta': 'alta',
     'cat.construcoes': 'Construções', 'cat.decoracoes': 'Decorações',
     'cat.cercas': 'Cercas', 'cat.arvores': 'Árvores',
+    'cat.animais': 'Animais', 'cat.natureza': 'Natureza',
     'shop.select': 'Selecionar', 'shop.noCoins': 'Sem moedas 🪙',
     'shop.locked': '🔒 Requer nível {n}', 'shop.expansion': 'Expansão de Terreno',
     'shop.expansionDesc': '+2 tiles em toda a borda da fazenda',
@@ -84,7 +85,16 @@ const I18N = {
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
     'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.',
     'c_wheat': 'Trigo', 'c_corn': 'Milho', 'c_carrot': 'Cenoura',
-    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora'
+    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora',
+    'c_lettuce': 'Alface', 'c_potato': 'Batata', 'c_strawberry': 'Morango',
+    'c_grape': 'Uva', 'c_sunflower': 'Girassol',
+    'an_chicken': 'Galinha', 'an_chicken_desc': 'Ciscando feliz (põe ovos na fase 3).',
+    'an_pig': 'Porco', 'an_pig_desc': 'Adora um banho de lama.',
+    'an_cow': 'Vaca', 'an_cow_desc': 'Produz leite (fase 3).',
+    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
+    'shop.buyAnimal': 'Comprar animal',
+    'toast.animalBought': '{icon} {name} chegou à fazenda!',
+    'toast.animalLimit': 'Limite de 15 animais atingido!'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
@@ -104,6 +114,7 @@ const I18N = {
     'q.baixa': 'low', 'q.média': 'medium', 'q.alta': 'high',
     'cat.construcoes': 'Buildings', 'cat.decoracoes': 'Decorations',
     'cat.cercas': 'Fences', 'cat.arvores': 'Trees',
+    'cat.animais': 'Animals', 'cat.natureza': 'Nature',
     'shop.select': 'Select', 'shop.noCoins': 'Not enough coins 🪙',
     'shop.locked': '🔒 Requires level {n}', 'shop.expansion': 'Land Expansion',
     'shop.expansionDesc': '+2 tiles along the entire farm border',
@@ -163,7 +174,16 @@ const I18N = {
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
     'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.',
     'c_wheat': 'Wheat', 'c_corn': 'Corn', 'c_carrot': 'Carrot',
-    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin'
+    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin',
+    'c_lettuce': 'Lettuce', 'c_potato': 'Potato', 'c_strawberry': 'Strawberry',
+    'c_grape': 'Grape', 'c_sunflower': 'Sunflower',
+    'an_chicken': 'Chicken', 'an_chicken_desc': 'Happily pecking (lays eggs in phase 3).',
+    'an_pig': 'Pig', 'an_pig_desc': 'Loves a mud bath.',
+    'an_cow': 'Cow', 'an_cow_desc': 'Produces milk (phase 3).',
+    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
+    'shop.buyAnimal': 'Buy animal',
+    'toast.animalBought': '{icon} {name} arrived at the farm!',
+    'toast.animalLimit': 'Animal limit of 15 reached!'
   }
 };
 
@@ -310,6 +330,37 @@ function openShop() {
 
     const grid = document.createElement('div');
     grid.className = 'shop-grid';
+    if (currentShopTab === 'animais') {
+      for (const def of Object.values(ANIMALS)) {
+        const locked = game.level < def.level;
+        const afford = game.coins >= def.price;
+        const full = game.animals.length >= MAX_ANIMALS;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('an_' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('an_' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${def.price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'shop-buy-btn';
+        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (!afford ? t('shop.noCoins') : (full ? t('toast.animalLimit') : t('shop.buyAnimal')));
+        buyBtn.disabled = locked || !afford || full;
+        buyBtn.onclick = () => {
+          if (buyAnimal(def.id)) {
+            showToast(t('toast.animalBought', { icon: def.icon, name: t('an_' + def.id) }));
+            refreshHud();
+            openShop();
+          }
+        };
+        item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
     for (const def of Object.values(BUILDINGS)) {
       if (def.category !== currentShopTab) continue;
       const locked = game.level < def.level;

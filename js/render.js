@@ -250,6 +250,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
+    case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 
@@ -569,6 +570,97 @@ function drawPath(ctx, cam, cw, ch, gx, gy) {
     ctx.beginPath();
     ctx.ellipse(s.x - 2 * cam.zoom, s.y - 1.5 * cam.zoom, r * TILE_W / 4 * cam.zoom * 0.5, r * TILE_H / 4 * cam.zoom * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+/* --- Lago: margem de areia, água animada, pedras, vitórias-régias e taboas --- */
+function drawPoly(ctx, pts, fill) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  const t = performance.now() / 1000;
+
+  const shore = [projectPoint(gx + 0.05, gy + 0.18, 0), projectPoint(gx + w - 0.18, gy + 0.02, 0),
+                 projectPoint(gx + w - 0.02, gy + d - 0.15, 0), projectPoint(gx + 0.18, gy + d - 0.02, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawPoly(ctx, shore, '#e8d8a0');
+
+  const wob = Math.sin(t * 1.2) * 0.02;
+  const water = [projectPoint(gx + 0.22, gy + 0.35 + wob, 0), projectPoint(gx + w - 0.3, gy + 0.16, 0),
+                 projectPoint(gx + w - 0.16, gy + d - 0.3, 0), projectPoint(gx + 0.35, gy + d - 0.16 - wob, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawPoly(ctx, water, COLORS.water);
+  drawPoly(ctx, water, 'rgba(41,163,221,0.35)');
+
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const ph = (t * 0.4 + i / 3) % 1;
+      const c = projectPoint(gx + w / 2, gy + d / 2, 0);
+      const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+      ctx.globalAlpha = 0.5 * (1 - ph);
+      ctx.beginPath();
+      ctx.ellipse(cs.x, cs.y, (6 + ph * 26) * cam.zoom, (3 + ph * 13) * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = '#757575';
+    const stones = [[0.25, 0.3], [0.7, 0.22], [0.85, 0.6], [0.4, 0.82], [0.15, 0.55]];
+    for (const [ox, oy] of stones) {
+      const p = projectPoint(gx + ox, gy + oy, 0.04);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4 * cam.zoom, 2.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const pads = [[0.45, 0.45, 0.9], [0.68, 0.62, 0.7], [0.35, 0.68, 0.6]];
+    for (const [ox, oy, r] of pads) {
+      const p = projectPoint(gx + ox + Math.sin(t + ox * 9) * 0.015, gy + oy, 0.02);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.fillStyle = '#43a047';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, r * 11 * cam.zoom, r * 6 * cam.zoom, 0, 0.3, Math.PI * 2 - 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2e7d32';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y + 1 * cam.zoom, r * 7 * cam.zoom, r * 3.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (r > 0.8) {
+        ctx.fillStyle = '#f48fb1';
+        ctx.beginPath();
+        ctx.arc(ps.x + r * 4 * cam.zoom, ps.y - r * 2 * cam.zoom, 2.2 * cam.zoom, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
+    for (const [ox, oy] of reeds) {
+      const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
+      const base = projectPoint(gx + ox, gy + oy, 0);
+      const top = projectPoint(gx + ox + sway, gy + oy, 0.55);
+      const bs = worldToScreen(cam, base.x, base.y, cw, ch);
+      const ts = worldToScreen(cam, top.x, top.y, cw, ch);
+      ctx.strokeStyle = '#558b2f';
+      ctx.lineWidth = 2 * cam.zoom;
+      ctx.beginPath();
+      ctx.moveTo(bs.x, bs.y);
+      ctx.quadraticCurveTo(bs.x, (bs.y + ts.y) / 2, ts.x, ts.y);
+      ctx.stroke();
+      ctx.fillStyle = '#6d4c41';
+      ctx.beginPath();
+      ctx.ellipse(ts.x, ts.y, 2 * cam.zoom, 4.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 

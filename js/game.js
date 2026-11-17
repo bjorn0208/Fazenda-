@@ -217,6 +217,30 @@ function removeCrop(crop) {
   return { refund, def };
 }
 
+/* ---------- Animais compráveis ---------- */
+const MAX_ANIMALS = 15;
+
+function buyAnimal(kind) {
+  const def = ANIMALS[kind];
+  if (!def) return false;
+  if (game.animals.length >= MAX_ANIMALS) { showToast(t('toast.animalLimit')); return false; }
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
+  const spot = randomFreeTile();
+  if (!spot) { showToast(t('toast.invalid')); return false; }
+  addCoins(-def.price);
+  game.animals.push({
+    id: game.nextId++, kind,
+    gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1 + Math.random() * 3,
+    phase: Math.random() * 10
+  });
+  game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
+  playSound('place');
+  return true;
+}
+
 /* ---------- Expansão de terreno ---------- */
 function expansionPrice() {
   return Math.round(LAND_EXPANSION.basePrice * Math.pow(LAND_EXPANSION.priceGrowth, game.landExpansions));

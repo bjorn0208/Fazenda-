@@ -8,7 +8,7 @@ const ANIMAL_KINDS = {
   pig:     { speed: 0.6, scale: 0.8 }
 };
 
-const ANIMAL_SPAWN = ['chicken', 'chicken', 'chicken', 'cow', 'cow', 'pig'];
+const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
 function randomFreeTile() {
   const a = game.ownedArea;

@@ -521,6 +521,28 @@ const BUILDINGS = {
     price: 15, w: 1, d: 1, level: 1, category: 'decoracoes',
     desc: 'Caminho decorativo de pedras.',
     refund: 0.5
+  },
+  lake: {
+    id: 'lake', name: 'Lago', icon: '🏞️',
+    price: 800, w: 3, d: 3, level: 2, category: 'natureza',
+    desc: 'Água viva com vitórias-régias e taboas.',
+    refund: 0.3
+  }
+};
+
+/* Catálogo de animais compráveis — passeiam livres pela fazenda. */
+const ANIMALS = {
+  chicken: {
+    id: 'chicken', name: 'Galinha', icon: '🐔',
+    price: 150, level: 1, desc: 'Ciscando feliz (põe ovos na fase 3).'
+  },
+  pig: {
+    id: 'pig', name: 'Porco', icon: '🐖',
+    price: 350, level: 2, desc: 'Adora um banho de lama.'
+  },
+  cow: {
+    id: 'cow', name: 'Vaca', icon: '🐄',
+    price: 600, level: 3, desc: 'Produz leite (fase 3).'
   }
 };
 
@@ -546,11 +568,33 @@ const CROPS = {
   pumpkin: {
     id: 'pumpkin', name: 'Abóbora', icon: '🎃',
     seedCost: 110, growTime: 240, sell: 330, xp: 45, level: 5
+  },
+  lettuce: {
+    id: 'lettuce', name: 'Alface', icon: '🥬',
+    seedCost: 15, growTime: 40, sell: 35, xp: 8, level: 1
+  },
+  potato: {
+    id: 'potato', name: 'Batata', icon: '🥔',
+    seedCost: 35, growTime: 80, sell: 85, xp: 15, level: 2
+  },
+  strawberry: {
+    id: 'strawberry', name: 'Morango', icon: '🍓',
+    seedCost: 90, growTime: 180, sell: 260, xp: 35, level: 4
+  },
+  grape: {
+    id: 'grape', name: 'Uva', icon: '🍇',
+    seedCost: 130, growTime: 300, sell: 420, xp: 55, level: 6
+  },
+  sunflower: {
+    id: 'sunflower', name: 'Girassol', icon: '🌻',
+    seedCost: 160, growTime: 360, sell: 520, xp: 70, level: 7
   }
 };
 
 const SHOP_CATEGORIES = [
   { id: 'construcoes', name: 'Construções' },
+  { id: 'animais', name: 'Animais' },
+  { id: 'natureza', name: 'Natureza' },
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
   { id: 'arvores', name: 'Árvores' }
@@ -1016,6 +1060,30 @@ function removeCrop(crop) {
   return { refund, def };
 }
 
+/* ---------- Animais compráveis ---------- */
+const MAX_ANIMALS = 15;
+
+function buyAnimal(kind) {
+  const def = ANIMALS[kind];
+  if (!def) return false;
+  if (game.animals.length >= MAX_ANIMALS) { showToast(t('toast.animalLimit')); return false; }
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  if (game.coins < def.price) { showToast(t('toast.noCoins')); return false; }
+  const spot = randomFreeTile();
+  if (!spot) { showToast(t('toast.invalid')); return false; }
+  addCoins(-def.price);
+  game.animals.push({
+    id: game.nextId++, kind,
+    gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1 + Math.random() * 3,
+    phase: Math.random() * 10
+  });
+  game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
+  playSound('place');
+  return true;
+}
+
 /* ---------- Expansão de terreno ---------- */
 function expansionPrice() {
   return Math.round(LAND_EXPANSION.basePrice * Math.pow(LAND_EXPANSION.priceGrowth, game.landExpansions));
@@ -1393,6 +1461,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
     case 'flowers': drawFlowers(ctx, cam, cw, ch, gx, gy); break;
     case 'path':    drawPath(ctx, cam, cw, ch, gx, gy); break;
+    case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 
@@ -1715,6 +1784,97 @@ function drawPath(ctx, cam, cw, ch, gx, gy) {
   }
 }
 
+/* --- Lago: margem de areia, água animada, pedras, vitórias-régias e taboas --- */
+function drawPoly(ctx, pts, fill) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  const t = performance.now() / 1000;
+
+  const shore = [projectPoint(gx + 0.05, gy + 0.18, 0), projectPoint(gx + w - 0.18, gy + 0.02, 0),
+                 projectPoint(gx + w - 0.02, gy + d - 0.15, 0), projectPoint(gx + 0.18, gy + d - 0.02, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawPoly(ctx, shore, '#e8d8a0');
+
+  const wob = Math.sin(t * 1.2) * 0.02;
+  const water = [projectPoint(gx + 0.22, gy + 0.35 + wob, 0), projectPoint(gx + w - 0.3, gy + 0.16, 0),
+                 projectPoint(gx + w - 0.16, gy + d - 0.3, 0), projectPoint(gx + 0.35, gy + d - 0.16 - wob, 0)]
+    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
+  drawPoly(ctx, water, COLORS.water);
+  drawPoly(ctx, water, 'rgba(41,163,221,0.35)');
+
+  if (q !== 'baixa') {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const ph = (t * 0.4 + i / 3) % 1;
+      const c = projectPoint(gx + w / 2, gy + d / 2, 0);
+      const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+      ctx.globalAlpha = 0.5 * (1 - ph);
+      ctx.beginPath();
+      ctx.ellipse(cs.x, cs.y, (6 + ph * 26) * cam.zoom, (3 + ph * 13) * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = '#757575';
+    const stones = [[0.25, 0.3], [0.7, 0.22], [0.85, 0.6], [0.4, 0.82], [0.15, 0.55]];
+    for (const [ox, oy] of stones) {
+      const p = projectPoint(gx + ox, gy + oy, 0.04);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4 * cam.zoom, 2.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const pads = [[0.45, 0.45, 0.9], [0.68, 0.62, 0.7], [0.35, 0.68, 0.6]];
+    for (const [ox, oy, r] of pads) {
+      const p = projectPoint(gx + ox + Math.sin(t + ox * 9) * 0.015, gy + oy, 0.02);
+      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.fillStyle = '#43a047';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, r * 11 * cam.zoom, r * 6 * cam.zoom, 0, 0.3, Math.PI * 2 - 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2e7d32';
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y + 1 * cam.zoom, r * 7 * cam.zoom, r * 3.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (r > 0.8) {
+        ctx.fillStyle = '#f48fb1';
+        ctx.beginPath();
+        ctx.arc(ps.x + r * 4 * cam.zoom, ps.y - r * 2 * cam.zoom, 2.2 * cam.zoom, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
+    for (const [ox, oy] of reeds) {
+      const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
+      const base = projectPoint(gx + ox, gy + oy, 0);
+      const top = projectPoint(gx + ox + sway, gy + oy, 0.55);
+      const bs = worldToScreen(cam, base.x, base.y, cw, ch);
+      const ts = worldToScreen(cam, top.x, top.y, cw, ch);
+      ctx.strokeStyle = '#558b2f';
+      ctx.lineWidth = 2 * cam.zoom;
+      ctx.beginPath();
+      ctx.moveTo(bs.x, bs.y);
+      ctx.quadraticCurveTo(bs.x, (bs.y + ts.y) / 2, ts.x, ts.y);
+      ctx.stroke();
+      ctx.fillStyle = '#6d4c41';
+      ctx.beginPath();
+      ctx.ellipse(ts.x, ts.y, 2 * cam.zoom, 4.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 /* ---------- Nuvens à deriva ---------- */
 const CLOUDS = [
   { x: 0.15, y: 0.12, s: 1.0, v: 8 },
@@ -1775,7 +1935,7 @@ const ANIMAL_KINDS = {
   pig:     { speed: 0.6, scale: 0.8 }
 };
 
-const ANIMAL_SPAWN = ['chicken', 'chicken', 'chicken', 'cow', 'cow', 'pig'];
+const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
 
 function randomFreeTile() {
   const a = game.ownedArea;
@@ -2064,6 +2224,7 @@ const I18N = {
     'q.baixa': 'baixa', 'q.média': 'média', 'q.alta': 'alta',
     'cat.construcoes': 'Construções', 'cat.decoracoes': 'Decorações',
     'cat.cercas': 'Cercas', 'cat.arvores': 'Árvores',
+    'cat.animais': 'Animais', 'cat.natureza': 'Natureza',
     'shop.select': 'Selecionar', 'shop.noCoins': 'Sem moedas 🪙',
     'shop.locked': '🔒 Requer nível {n}', 'shop.expansion': 'Expansão de Terreno',
     'shop.expansionDesc': '+2 tiles em toda a borda da fazenda',
@@ -2123,7 +2284,16 @@ const I18N = {
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
     'b_path': 'Trilha de Pedra', 'b_path_desc': 'Caminho decorativo de pedras.',
     'c_wheat': 'Trigo', 'c_corn': 'Milho', 'c_carrot': 'Cenoura',
-    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora'
+    'c_tomato': 'Tomate', 'c_pumpkin': 'Abóbora',
+    'c_lettuce': 'Alface', 'c_potato': 'Batata', 'c_strawberry': 'Morango',
+    'c_grape': 'Uva', 'c_sunflower': 'Girassol',
+    'an_chicken': 'Galinha', 'an_chicken_desc': 'Ciscando feliz (põe ovos na fase 3).',
+    'an_pig': 'Porco', 'an_pig_desc': 'Adora um banho de lama.',
+    'an_cow': 'Vaca', 'an_cow_desc': 'Produz leite (fase 3).',
+    'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
+    'shop.buyAnimal': 'Comprar animal',
+    'toast.animalBought': '{icon} {name} chegou à fazenda!',
+    'toast.animalLimit': 'Limite de 15 animais atingido!'
   },
   'en-US': {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
@@ -2143,6 +2313,7 @@ const I18N = {
     'q.baixa': 'low', 'q.média': 'medium', 'q.alta': 'high',
     'cat.construcoes': 'Buildings', 'cat.decoracoes': 'Decorations',
     'cat.cercas': 'Fences', 'cat.arvores': 'Trees',
+    'cat.animais': 'Animals', 'cat.natureza': 'Nature',
     'shop.select': 'Select', 'shop.noCoins': 'Not enough coins 🪙',
     'shop.locked': '🔒 Requires level {n}', 'shop.expansion': 'Land Expansion',
     'shop.expansionDesc': '+2 tiles along the entire farm border',
@@ -2202,7 +2373,16 @@ const I18N = {
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
     'b_path': 'Stone Path', 'b_path_desc': 'Decorative stone walkway.',
     'c_wheat': 'Wheat', 'c_corn': 'Corn', 'c_carrot': 'Carrot',
-    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin'
+    'c_tomato': 'Tomato', 'c_pumpkin': 'Pumpkin',
+    'c_lettuce': 'Lettuce', 'c_potato': 'Potato', 'c_strawberry': 'Strawberry',
+    'c_grape': 'Grape', 'c_sunflower': 'Sunflower',
+    'an_chicken': 'Chicken', 'an_chicken_desc': 'Happily pecking (lays eggs in phase 3).',
+    'an_pig': 'Pig', 'an_pig_desc': 'Loves a mud bath.',
+    'an_cow': 'Cow', 'an_cow_desc': 'Produces milk (phase 3).',
+    'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
+    'shop.buyAnimal': 'Buy animal',
+    'toast.animalBought': '{icon} {name} arrived at the farm!',
+    'toast.animalLimit': 'Animal limit of 15 reached!'
   }
 };
 
@@ -2349,6 +2529,37 @@ function openShop() {
 
     const grid = document.createElement('div');
     grid.className = 'shop-grid';
+    if (currentShopTab === 'animais') {
+      for (const def of Object.values(ANIMALS)) {
+        const locked = game.level < def.level;
+        const afford = game.coins >= def.price;
+        const full = game.animals.length >= MAX_ANIMALS;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('an_' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('an_' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${def.price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'shop-buy-btn';
+        buyBtn.textContent = locked ? t('shop.locked', { n: def.level }) : (!afford ? t('shop.noCoins') : (full ? t('toast.animalLimit') : t('shop.buyAnimal')));
+        buyBtn.disabled = locked || !afford || full;
+        buyBtn.onclick = () => {
+          if (buyAnimal(def.id)) {
+            showToast(t('toast.animalBought', { icon: def.icon, name: t('an_' + def.id) }));
+            refreshHud();
+            openShop();
+          }
+        };
+        item.appendChild(buyBtn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
     for (const def of Object.values(BUILDINGS)) {
       if (def.category !== currentShopTab) continue;
       const locked = game.level < def.level;
@@ -2649,7 +2860,7 @@ const canvas = $('game-canvas');
 const ctx = canvas.getContext('2d');
 
 const cam = { x: 0, y: 0, zoom: 1 };
-const MIN_ZOOM = 0.5, MAX_ZOOM = 2.2;
+const MIN_ZOOM = 0.35, MAX_ZOOM = 3;
 
 const state = {
   mode: 'idle',        // idle | build | move | remove | rotate
@@ -2694,37 +2905,31 @@ function zoomAt(sx, sy, factor) {
   clampCamera();
 }
 
-/* ---------- Entrada: mouse e toque ---------- */
+/* ---------- Entrada: mouse (pointer) e toque (touch nativo) ---------- */
 const pointer = { down: false, dragging: false, sx: 0, sy: 0, cx: 0, cy: 0 };
-const touches = new Map();
-let pinchActive = false;
-let pinchDist = 0;
 
 function eventPos(e) {
   const rect = canvas.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
-function gridFromEvent(e) {
-  const p = eventPos(e);
+function touchPos(t) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+}
+
+function gridFromScreenPos(p) {
   const w = screenToWorld(cam, p.x, p.y, canvas.clientWidth, canvas.clientHeight);
   lastPointerGrid = screenToGrid(w.x, w.y);
   return lastPointerGrid;
 }
 
+function gridFromEvent(e) { return gridFromScreenPos(eventPos(e)); }
+function gridFromTouch(t) { return gridFromScreenPos(touchPos(t)); }
+
+/* Mouse: arrastar move a câmera; clique curto interage. */
 canvas.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-  if (e.pointerType === 'touch') {
-    touches.set(e.pointerId, eventPos(e));
-    if (touches.size === 2) {
-      pinchActive = true;
-      const [a, b] = [...touches.values()];
-      pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
-      return;
-    }
-  }
-
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
   pointer.down = true; pointer.dragging = false;
   pointer.sx = e.clientX; pointer.sy = e.clientY;
   pointer.cx = cam.x; pointer.cy = cam.y;
@@ -2732,22 +2937,8 @@ canvas.addEventListener('pointerdown', e => {
 });
 
 canvas.addEventListener('pointermove', e => {
-  if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
-    touches.set(e.pointerId, eventPos(e));
-    if (touches.size >= 2) {
-      const [a, b] = [...touches.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinchDist > 0) {
-        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        zoomAt(mid.x, mid.y, d / pinchDist);
-      }
-      pinchDist = d;
-      return;
-    }
-  }
-
+  if (e.pointerType !== 'mouse') return;
   gridFromEvent(e);
-
   if (pointer.down) {
     const dx = e.clientX - pointer.sx, dy = e.clientY - pointer.sy;
     if (!pointer.dragging && Math.abs(dx) + Math.abs(dy) > 6) pointer.dragging = true;
@@ -2758,53 +2949,92 @@ canvas.addEventListener('pointermove', e => {
       canvas.classList.add('dragging');
     }
   }
-
   if (!state.ghostPinned && state.ghost &&
       (state.mode === 'build' || (state.mode === 'move' && state.moveId))) {
     updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
   }
 });
 
-function endPointer(e) {
-  const wasPinch = pinchActive;
-
-  if (e.pointerType === 'touch') touches.delete(e.pointerId);
-
-  if (touches.size === 1 && wasPinch) {
-    // pinça -> 1 dedo restante: reancora a câmera sem dar salto
-    const [a] = [...touches.values()];
-    const rect = canvas.getBoundingClientRect();
-    pointer.down = true; pointer.dragging = false;
-    pointer.sx = rect.left + a.x; pointer.sy = rect.top + a.y;
-    pointer.cx = cam.x; pointer.cy = cam.y;
-  }
-  if (touches.size === 0) {
-    pinchActive = false;
-    pinchDist = 0;
-  }
-
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (wasPinch) {
-    canvas.classList.remove('dragging');
-    if (touches.size === 0) pointer.down = false;
-    return;
-  }
-  if (!pointer.down) return;
-
+canvas.addEventListener('pointerup', e => {
+  if (e.pointerType !== 'mouse') return;
   canvas.classList.remove('dragging');
+  if (!pointer.down) return;
   const wasDragging = pointer.dragging;
   pointer.down = false; pointer.dragging = false;
   if (!wasDragging) handleClick(e);
-}
+});
 
-canvas.addEventListener('pointerup', endPointer);
-canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const p = eventPos(e);
   zoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+}, { passive: false });
+
+/* Toque: 1 dedo arrasta, 2 dedos dão zoom por pinça. */
+let touchDrag = null;
+let pinch = null;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    touchDrag = { sx: t.clientX, sy: t.clientY, cx: cam.x, cy: cam.y, moved: false };
+    gridFromTouch(t);
+  } else if (e.touches.length >= 2) {
+    touchDrag = null;
+    const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
+    pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) };
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && touchDrag) {
+    const t = e.touches[0];
+    const dx = t.clientX - touchDrag.sx, dy = t.clientY - touchDrag.sy;
+    if (!touchDrag.moved && Math.abs(dx) + Math.abs(dy) > 6) touchDrag.moved = true;
+    if (touchDrag.moved) {
+      cam.x = touchDrag.cx - dx / cam.zoom;
+      cam.y = touchDrag.cy - dy / cam.zoom;
+      clampCamera();
+    } else {
+      gridFromTouch(t);
+    }
+  } else if (e.touches.length >= 2 && pinch) {
+    const a = touchPos(e.touches[0]), b = touchPos(e.touches[1]);
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (pinch.dist > 0) zoomAt(mid.x, mid.y, d / pinch.dist);
+    pinch.dist = d;
+    return;
+  }
+  if (!state.ghostPinned && state.ghost &&
+      (state.mode === 'build' || (state.mode === 'move' && state.moveId))) {
+    updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (e.touches.length === 0) {
+    if (touchDrag && !touchDrag.moved) {
+      const t = e.changedTouches[0];
+      handleClick({ clientX: t.clientX, clientY: t.clientY });
+    }
+    touchDrag = null;
+    pinch = null;
+  } else if (e.touches.length === 1 && pinch) {
+    const t = e.touches[0];
+    touchDrag = { sx: t.clientX, sy: t.clientY, cx: cam.x, cy: cam.y, moved: true };
+    pinch = null;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchcancel', () => {
+  touchDrag = null;
+  pinch = null;
 }, { passive: false });
 
 /* ---------- Clique no mundo ---------- */

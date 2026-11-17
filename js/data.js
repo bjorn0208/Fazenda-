@@ -63,6 +63,28 @@ const BUILDINGS = {
     price: 15, w: 1, d: 1, level: 1, category: 'decoracoes',
     desc: 'Caminho decorativo de pedras.',
     refund: 0.5
+  },
+  lake: {
+    id: 'lake', name: 'Lago', icon: '🏞️',
+    price: 800, w: 3, d: 3, level: 2, category: 'natureza',
+    desc: 'Água viva com vitórias-régias e taboas.',
+    refund: 0.3
+  }
+};
+
+/* Catálogo de animais compráveis — passeiam livres pela fazenda. */
+const ANIMALS = {
+  chicken: {
+    id: 'chicken', name: 'Galinha', icon: '🐔',
+    price: 150, level: 1, desc: 'Ciscando feliz (põe ovos na fase 3).'
+  },
+  pig: {
+    id: 'pig', name: 'Porco', icon: '🐖',
+    price: 350, level: 2, desc: 'Adora um banho de lama.'
+  },
+  cow: {
+    id: 'cow', name: 'Vaca', icon: '🐄',
+    price: 600, level: 3, desc: 'Produz leite (fase 3).'
   }
 };
 
@@ -88,11 +110,33 @@ const CROPS = {
   pumpkin: {
     id: 'pumpkin', name: 'Abóbora', icon: '🎃',
     seedCost: 110, growTime: 240, sell: 330, xp: 45, level: 5
+  },
+  lettuce: {
+    id: 'lettuce', name: 'Alface', icon: '🥬',
+    seedCost: 15, growTime: 40, sell: 35, xp: 8, level: 1
+  },
+  potato: {
+    id: 'potato', name: 'Batata', icon: '🥔',
+    seedCost: 35, growTime: 80, sell: 85, xp: 15, level: 2
+  },
+  strawberry: {
+    id: 'strawberry', name: 'Morango', icon: '🍓',
+    seedCost: 90, growTime: 180, sell: 260, xp: 35, level: 4
+  },
+  grape: {
+    id: 'grape', name: 'Uva', icon: '🍇',
+    seedCost: 130, growTime: 300, sell: 420, xp: 55, level: 6
+  },
+  sunflower: {
+    id: 'sunflower', name: 'Girassol', icon: '🌻',
+    seedCost: 160, growTime: 360, sell: 520, xp: 70, level: 7
   }
 };
 
 const SHOP_CATEGORIES = [
   { id: 'construcoes', name: 'Construções' },
+  { id: 'animais', name: 'Animais' },
+  { id: 'natureza', name: 'Natureza' },
   { id: 'decoracoes', name: 'Decorações' },
   { id: 'cercas', name: 'Cercas' },
   { id: 'arvores', name: 'Árvores' }
