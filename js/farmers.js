@@ -4,6 +4,118 @@
 
 const FARMER_SPEED = 1.1;
 
+/* ================= MENTE DOS FAZENDEIROS =================
+   Cada fazendeiro tem nome, personalidade, energia, humor,
+   amizades e pensa/fala por conta propria. */
+
+const FARMER_NAMES = ['João', 'Maria', 'Pedro', 'Ana', 'Zé', 'Tião', 'Rita', 'Bento', 'Sofia', 'Duca', 'Lurdes', 'Chico'];
+
+const PERSONALITIES = {
+  trabalhador: { workMul: 1.2, chat: 0.5, mood: 'feliz' },
+  sonhador:    { workMul: 0.9, chat: 0.7, mood: 'feliz' },
+  rabugento:   { workMul: 1.0, chat: 0.3, mood: 'irritado' },
+  brincalhao:  { workMul: 0.95, chat: 0.9, mood: 'animado' },
+  sabio:       { workMul: 1.05, chat: 0.5, mood: 'feliz' }
+};
+
+const MIND_LINES = {
+  'pt-BR': {
+    idle: ['Que dia bonito na {farm}.', 'Alguém viu meu chapéu?', 'Que silêncio bom...'],
+    work: ['Essa terra é boa, viu.', 'Mais um dia de trabalho na {farm}.', 'Arar, plantar, regar... e repetir.'],
+    chestEmpty: ['Meu baú tá vazio... preciso de sementes.', 'Sem sementes não tem colheita.'],
+    tired: ['Ai, minhas costas...', 'Precisava de um café agora.', 'Hoje não rendo mais nada...'],
+    night: ['Que bom dormir numa cama de verdade.', 'Amanhã eu acordo cedinho.', 'Boa noite, fazenda.'],
+    dawn: ['Bom dia, fazenda!', 'O galo já cantou? Vamos trabalhar!', 'O ar da manhã é outro bicho.'],
+    harvest: ['Colheita boa é dinheiro no bolso.', 'Que espiga linda!', 'O patrão vai gostar dessa.'],
+    animals: ['Esses animais comem mais que eu.', 'O leite de hoje tá fresquinho.', 'Cuidado com o porco, ele é bravo.'],
+    greet: ['Oi, {other}!', 'Fala, {other}.', 'E aí, {other}, firme?'],
+    smalltalk: ['A colheita tá vindo boa, né?', 'Já contou os animais hoje?', 'Dizem que vai chover.', 'O patrão tá de olho na gente...', 'Essa {farm} cresce todo dia.'],
+    reply: ['Pois é, {other}.', 'Verdade!', 'Nem me fale...', 'Boa ideia, {other}.', 'Vamos com fé.'],
+    joke: ['Hahaha!', 'Essa foi boa, {other}!', 'Você é o diabo, {other}!']
+  },
+  'en-US': {
+    idle: ['Such a nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...'],
+    work: ['This soil is good stuff.', 'Another workday at {farm}.', 'Till, plant, water... repeat.'],
+    chestEmpty: ['My chest is empty... need seeds.', 'No seeds, no harvest.'],
+    tired: ['Ouch, my back...', 'Could use a coffee now.', 'Not much left in me today...'],
+    night: ['Nothing like a real bed.', 'I will wake up early.', 'Goodnight, farm.'],
+    dawn: ['Morning, farm!', 'Did the rooster crow? Time to work!', 'Morning air hits different.'],
+    harvest: ['A good harvest is money in the pocket.', 'What a beautiful ear of corn!', 'The boss will like this one.'],
+    animals: ['These animals eat more than me.', "Today's milk is fresh.", 'Careful with the pig, he bites.'],
+    greet: ['Hi, {other}!', 'Hey, {other}.', "What's up, {other}?"],
+    smalltalk: ['Harvest is looking good, right?', 'Counted the animals today?', 'They say it will rain.', 'The boss is watching us...', 'This {farm} grows every day.'],
+    reply: ['True, {other}.', 'So true!', "Don't get me started...", 'Good idea, {other}.', "Let's do it."],
+    joke: ['Hahaha!', 'Good one, {other}!', 'You are something else, {other}!']
+  }
+};
+
+function mindLang() {
+  return (game.settings && game.settings.language) === 'en-US' ? 'en-US' : 'pt-BR';
+}
+
+function mindLine(pool) {
+  const book = MIND_LINES[mindLang()];
+  const arr = (book && book[pool]) || MIND_LINES['pt-BR'][pool] || ['...'];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function farmerEnsureMind(f) {
+  if (f.name) return;
+  f.name = FARMER_NAMES[(f.id || 0) % FARMER_NAMES.length];
+  const keys = Object.keys(PERSONALITIES);
+  f.pers = keys[Math.floor(Math.random() * keys.length)];
+  f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
+  f.energy = 70 + Math.random() * 30;
+  f.friend = {};
+  f.thoughtT = 3 + Math.random() * 8;
+  f.chatT = 8 + Math.random() * 15;
+  f.bubble = null;
+  f.thoughtLog = [];
+}
+
+function farmerSay(f, text, dur) {
+  f.bubble = { text, until: performance.now() + (dur || 4200) };
+  f.thoughtLog = f.thoughtLog || [];
+  f.thoughtLog.unshift(text);
+  if (f.thoughtLog.length > 6) f.thoughtLog.length = 6;
+}
+
+function farmerThink(f) {
+  if (f.inside) { farmerSay(f, mindLine('night'), 4200); return; }
+  const phase = dayPhase();
+  let pool = 'idle';
+  if (phase === 'dawn') pool = 'dawn';
+  else if ((f.energy || 100) < 25) pool = 'tired';
+  else if (phase === 'day' && Object.keys(f.chest || {}).length === 0) pool = 'chestEmpty';
+  else if (phase === 'day') pool = 'work';
+  else if (phase === 'afternoon') pool = 'harvest';
+  farmerSay(f, mindLine(pool).replace('{farm}', game.farmName).replace('{other}', ''), 4200);
+}
+
+function farmerChat(a, b) {
+  farmerSay(a, mindLine('greet').replace('{other}', b.name), 4500);
+  const replyPool = Math.random() < 0.3 ? 'joke' : 'reply';
+  farmerSay(b, mindLine(replyPool).replace('{other}', a.name), 4500);
+  a.friend = a.friend || {};
+  b.friend = b.friend || {};
+  a.friend[b.id] = Math.min(100, (a.friend[b.id] || 0) + 2);
+  b.friend[a.id] = Math.min(100, (b.friend[a.id] || 0) + 2);
+  a.chatT = 20 + Math.random() * 25;
+  b.chatT = 20 + Math.random() * 25;
+  if ((PERSONALITIES[a.pers] || {}).chat > 0.7) a.mood = 'animado';
+  if (a.pers === 'rabugento') a.mood = 'irritado';
+}
+
+function farmerWorkCost(f, n) {
+  f.energy = Math.max(0, (f.energy || 100) - (n || 2));
+  if (f.energy < 25) f.mood = 'cansado';
+  else if (f.mood === 'cansado') f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
+}
+
+function farmerWorkMul(f) {
+  return (PERSONALITIES[f.pers] || {}).workMul || 1;
+}
+
 function farmerWalkable(x, y) {
   return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)];
 }
@@ -126,9 +238,31 @@ function houseDoorTile() {
 function updateFarmers(dt) {
   for (const f of game.farmers) {
     f.phase += dt;
+    farmerEnsureMind(f);
+
+    f.thoughtT -= dt;
+    if (f.thoughtT <= 0) {
+      f.thoughtT = 14 + Math.random() * 18;
+      if (!f.bubble || performance.now() > f.bubble.until) farmerThink(f);
+    }
+    f.chatT -= dt;
+    if (f.chatT <= 0) {
+      f.chatT = 12 + Math.random() * 20;
+      if (!f.walking && !f.inside) {
+        for (const o of game.farmers) {
+          if (o === f || o.inside || o.walking) continue;
+          if (Math.hypot(o.gx - f.gx, o.gy - f.gy) < 1.8) { farmerChat(f, o); break; }
+        }
+      }
+    }
 
     if (f.inside) {
       if (dayPhase() !== 'night') { f.inside = false; f.wait = 0.5; }
+      else {
+        f.energy = Math.min(100, (f.energy || 60) + 40 * dt);
+        f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
+        if (f.bubble && performance.now() > f.bubble.until) f.bubble = null;
+      }
       continue;
     }
 
@@ -141,7 +275,7 @@ function updateFarmers(dt) {
         if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
       }
       const dist = Math.hypot(dx, dy);
-      const step = FARMER_SPEED * (f.riding ? 2.5 : 1) * dt;
+      const step = FARMER_SPEED * farmerWorkMul(f) * (f.riding ? 2.5 : 1) * dt;
       if (dist <= step) {
         f.gx = f.tx; f.gy = f.ty;
         f.walking = false;

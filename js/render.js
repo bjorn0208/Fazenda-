@@ -39,6 +39,7 @@ function render(ctx, cam, cw, ch, state) {
     ctx.fillRect(0, 0, cw, ch);
   }
   drawFloaters(ctx, cam, cw, ch, performance.now());
+  drawMindBubbles(ctx, cam, cw, ch);
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -1021,4 +1022,57 @@ function drawGhost(ctx, cam, cw, ch, state) {
   ctx.globalAlpha = 0.65;
   drawBuilding(ctx, cam, cw, ch, fake, false);
   ctx.globalAlpha = 1;
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawMindBubbles(ctx, cam, cw, ch) {
+  const now = performance.now();
+  for (const f of game.farmers) {
+    if (!f.bubble || !f.bubble.text) continue;
+    if (now > f.bubble.until) { f.bubble = null; continue; }
+    if (f.inside) continue;
+    const pp = projectPoint(f.gx, f.gy, 2.4);
+    const pt = worldToScreen(cam, pp.x, pp.y, cw, ch);
+    const words = f.bubble.text.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      if ((cur + ' ' + w).trim().length > 22 && cur) { lines.push(cur.trim()); cur = w; }
+      else cur += ' ' + w;
+    }
+    if (cur.trim()) lines.push(cur.trim());
+    if (lines.length > 3) lines.length = 3;
+    ctx.save();
+    ctx.font = Math.max(10, 11 * cam.zoom) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    const lw = Math.min(160 * cam.zoom, Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 12);
+    const lh = 13 * Math.max(0.8, cam.zoom);
+    const bh = lines.length * lh + 8;
+    const bx = pt.x - lw / 2, by = pt.y - bh - 8;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.strokeStyle = 'rgba(93,64,55,0.8)';
+    ctx.lineWidth = 1.5;
+    roundRectPath(ctx, bx, by, lw, bh, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pt.x - 4, by + bh);
+    ctx.lineTo(pt.x + 4, by + bh);
+    ctx.lineTo(pt.x, by + bh + 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fill();
+    ctx.fillStyle = '#4e342e';
+    lines.forEach((l, i) => ctx.fillText(l, pt.x, by + 12 * Math.max(0.8, cam.zoom) + i * lh));
+    ctx.restore();
+  }
 }

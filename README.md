@@ -162,6 +162,15 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 14 — Fazendeiros vivos: personalidade, pensamento e conversa
+
+- Cada fazendeiro agora tem **nome próprio** (João, Maria, Tião...) e uma **personalidade**: Trabalhador, Sonhador, Rabugento, Brincalhão ou Sábio.
+- **Personalidade muda o trabalho**: o Trabalhador anda mais rápido, o Brincalhão conversa mais, o Rabugento reclama...
+- **Pensam e falam**: bolhas de fala sobre a cabeça mostram o que estão pensando de acordo com o momento (baú vazio, cansaço, amanhecer, colheita, noite).
+- **Conversam entre si**: quando dois fazendeiros se encontram, trocam cumprimentos e papo — e a **amizade entre eles cresce**.
+- **Energia e humor**: trabalhar cansa (ficam lentos e tristes); dormir na casa à noite recupera a energia e melhora o humor.
+- O painel de Fazendeiros mostra nome, personalidade, humor, energia e o **último pensamento** de cada um.
+
 ## Revisão 13 — Multiplayer: salas por código, visitas e presentes
 
 - **Botão 🌐 Multiplayer** no menu lateral: cada fazenda tem um **código único** (ex.: F3D-AB12). Toque nele para copiar.

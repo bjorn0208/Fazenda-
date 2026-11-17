@@ -125,6 +125,8 @@ const I18N = {
     'toast.mpCodeCopied': 'Código copiado!',
     'visit.banner': '👀 Visitando: {name}',
     'visit.back': '🏡 Voltar',
+    'pers.trabalhador': 'Trabalhador', 'pers.sonhador': 'Sonhador', 'pers.rabugento': 'Rabugento', 'pers.brincalhao': 'Brincalhão', 'pers.sabio': 'Sábio',
+    'mood.feliz': 'Feliz', 'mood.animado': 'Animado', 'mood.cansado': 'Cansado', 'mood.irritado': 'Irritado',
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias e taboas.',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
@@ -296,6 +298,8 @@ const I18N = {
     'toast.mpCodeCopied': 'Code copied!',
     'visit.banner': '👀 Visiting: {name}',
     'visit.back': '🏡 Back',
+    'pers.trabalhador': 'Hard worker', 'pers.sonhador': 'Dreamer', 'pers.rabugento': 'Grumpy', 'pers.brincalhao': 'Joker', 'pers.sabio': 'Wise',
+    'mood.feliz': 'Happy', 'mood.animado': 'Cheerful', 'mood.cansado': 'Tired', 'mood.irritado': 'Grumpy',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads and cattails.',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
@@ -787,9 +791,15 @@ function openFarmersPanel() {
       const head = document.createElement('div');
       head.className = 'farmer-head';
       head.innerHTML = `<span class="farmer-icon">🧑‍🌾</span>` +
-        `<span class="farmer-name">${t('farmers.name', { n: i + 1 })}</span>` +
+        `<span class="farmer-name">${f.name || t('farmers.name', { n: i + 1 })}</span>` +
         `<span class="farmer-seeds">🧺 ${seeds}</span>`;
       card.appendChild(head);
+      const mind = document.createElement('div');
+      mind.className = 'farmer-mind';
+      const lastThought = f.thoughtLog && f.thoughtLog[0] ? ' — “' + f.thoughtLog[0] + '”' : '';
+      mind.textContent = (t('pers.' + (f.pers || 'trabalhador'))) + ' · ' + (t('mood.' + (f.mood || 'feliz'))) +
+        ' ⚡' + Math.round(f.energy || 100) + lastThought;
+      card.appendChild(mind);
       const roleRow = document.createElement('div');
       roleRow.className = 'farmer-roles';
       for (const r of roles) {

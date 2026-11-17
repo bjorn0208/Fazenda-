@@ -437,6 +437,33 @@ vm.runInContext(`
   game.visiting = false;
   render(ctx, cam, 800, 600, state);
 
+  // mente dos fazendeiros: nome, personalidade, pensamento e conversa
+  for (const f of game.farmers) farmerEnsureMind(f);
+  const mindF = game.farmers[0];
+  if (!mindF.name || !PERSONALITIES[mindF.pers]) throw new Error('fazendeiro sem identidade');
+  if (!farmerWorkMul(mindF)) throw new Error('workMul ausente');
+  mindF.thoughtT = 0.01;
+  updateFarmers(0.05);
+  if (!mindF.bubble || !mindF.bubble.text) throw new Error('fazendeiro nao pensou');
+  if (!mindF.thoughtLog.length) throw new Error('pensamento nao registrado');
+  if (game.farmers.length >= 2) {
+    const a = game.farmers[0], b = game.farmers[1];
+    a.gx = b.gx + 0.5; a.gy = b.gy;
+    a.walking = false; b.walking = false;
+    a.chatT = 0; b.chatT = 0;
+    a.inside = false; b.inside = false;
+    updateFarmers(0.05);
+    if ((a.friend[b.id] || 0) < 2) throw new Error('conversa nao aumentou amizade');
+    if (!a.bubble || !b.bubble) throw new Error('conversa sem bolhas');
+  }
+  mindF.energy = 10;
+  mindF.inside = true;
+  game.time = 0.9;
+  updateFarmers(1);
+  if (mindF.energy <= 10) throw new Error('energia nao recuperou dormindo');
+  game.time = 0.1;
+  render(ctx, cam, 800, 600, state);
+
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');
