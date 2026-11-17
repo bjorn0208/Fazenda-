@@ -346,6 +346,8 @@ vm.runInContext(`
   for (const a of game.animals) { a.herdStage = 0; a.scaredT = 0; }
   for (let i = 0; i < 8000; i++) { updateDog(0.05); updateAnimals(0.05); }
   if (!game.animals.some(a => !inPen(a))) throw new Error('cachorro nao soltou os animais ao amanhecer');
+  const spotsDawn = new Set(game.animals.filter(a => !inPen(a)).map(a => Math.floor(a.gx) + ',' + Math.floor(a.gy)));
+  if (game.animals.length > 3 && spotsDawn.size < 2) throw new Error('animais nao se espalharam ao amanhecer');
   removePen();
 
   // cavalo: compra e fazendeiro pode montar
@@ -480,6 +482,36 @@ vm.runInContext(`
   const rNone = shovelTile(47, 47);
   updateGhostPosition(10, 10);
   render(ctx, cam, 800, 600, state);
+
+  // ciclo de 5 minutos
+  if (DAY_LENGTH !== 300) throw new Error('ciclo deveria durar 5 minutos (300s)');
+
+  // camisa unica por fazendeiro
+  if (!game.farmers.every(f => f.shirt && f.shirtDark)) throw new Error('fazendeiro sem roupa propria');
+
+  // reuniao matinal: acontece, termina e empresta sementes
+  for (const f of game.farmers) { f.chest = {}; f.inside = false; f.walking = false; }
+  const rich = game.farmers[0];
+  depositSeed(rich, 'wheat', 6);
+  game.meetingDone = false;
+  game.meetingScript = null;
+  game.time = 0.2;
+  for (let i = 0; i < 400; i++) updateFarmers(0.1);
+  if (!game.meetingDone) throw new Error('reuniao matinal nao aconteceu');
+  if (game.meetingScript && game.meetingScript.length) throw new Error('falas da reuniao nao terminaram');
+  const broke = game.farmers.find(f => f !== rich);
+  if (!broke || !(broke.chest.wheat >= 3)) throw new Error('emprestimo de sementes nao aconteceu');
+  if ((rich.chest.wheat || 0) !== 3) throw new Error('sementes nao foram deduzidas de quem emprestou');
+
+  // bolha longa renderiza sem estourar em zoom afastado
+  const bFarmer = game.farmers[0];
+  farmerSay(bFarmer, 'Essa e uma frase bem comprida para testar a quebra de linha da bolha de fala no zoom afastado', 5000);
+  cam.zoom = 0.4;
+  render(ctx, cam, 800, 600, state);
+  cam.zoom = 2.5;
+  render(ctx, cam, 800, 600, state);
+  cam.zoom = 1;
+  game.time = 0.1;
 
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');

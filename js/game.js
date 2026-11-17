@@ -27,6 +27,7 @@ const game = {
   achievementsClaimed: [],
   settings: { sound: true, music: false, quality: 'alta', language: 'pt-BR' },
   landExpansions: 0,
+  meetingDone: false,     // reuniao matinal dos fazendeiro ja aconteceu hoje
   farmCode: null,         // codigo da sala multiplayer (ex.: F3D-AB12)
   visiting: false         // modo visita: somente leitura
 };
@@ -215,7 +216,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 180; // segundos reais por dia completo (3 minutos)
+const DAY_LENGTH = 300; // segundos reais por dia completo (5 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -223,6 +224,12 @@ function dayPhase() {
   if (t < 0.45) return 'day';
   if (t < 0.65) return 'afternoon';
   return 'night';
+}
+
+function advanceClock(dt) {
+  const prev = game.time;
+  game.time = (prev + dt / DAY_LENGTH) % 1;
+  if (game.time < prev) game.meetingDone = false;
 }
 
 function clockString(t) {

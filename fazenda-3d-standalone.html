@@ -620,7 +620,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v22</div>
+<div id="debug-badge">v23</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1110,6 +1110,7 @@ const game = {
   achievementsClaimed: [],
   settings: { sound: true, music: false, quality: 'alta', language: 'pt-BR' },
   landExpansions: 0,
+  meetingDone: false,     // reuniao matinal dos fazendeiro ja aconteceu hoje
   farmCode: null,         // codigo da sala multiplayer (ex.: F3D-AB12)
   visiting: false         // modo visita: somente leitura
 };
@@ -1298,7 +1299,7 @@ function harvestAllCrops() {
 }
 
 /* ---------- Ciclo dia/noite ---------- */
-const DAY_LENGTH = 180; // segundos reais por dia completo (3 minutos)
+const DAY_LENGTH = 300; // segundos reais por dia completo (5 minutos)
 
 function dayPhase() {
   const t = game.time;
@@ -1306,6 +1307,12 @@ function dayPhase() {
   if (t < 0.45) return 'day';
   if (t < 0.65) return 'afternoon';
   return 'night';
+}
+
+function advanceClock(dt) {
+  const prev = game.time;
+  game.time = (prev + dt / DAY_LENGTH) % 1;
+  if (game.time < prev) game.meetingDone = false;
 }
 
 function clockString(t) {
@@ -2807,16 +2814,16 @@ function drawMindBubbles(ctx, cam, cw, ch) {
     const lines = [];
     let cur = '';
     for (const w of words) {
-      if ((cur + ' ' + w).trim().length > 22 && cur) { lines.push(cur.trim()); cur = w; }
+      if ((cur + ' ' + w).trim().length > 20 && cur) { lines.push(cur.trim()); cur = w; }
       else cur += ' ' + w;
     }
     if (cur.trim()) lines.push(cur.trim());
-    if (lines.length > 3) lines.length = 3;
+    if (lines.length > 4) lines.length = 4;
     ctx.save();
-    ctx.font = Math.max(10, 11 * cam.zoom) + 'px sans-serif';
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    const lw = Math.min(160 * cam.zoom, Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 12);
-    const lh = 13 * Math.max(0.8, cam.zoom);
+    const lw = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 14;
+    const lh = 13;
     const bh = lines.length * lh + 8;
     const bx = pt.x - lw / 2, by = pt.y - bh - 8;
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
@@ -2833,7 +2840,7 @@ function drawMindBubbles(ctx, cam, cw, ch) {
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fill();
     ctx.fillStyle = '#4e342e';
-    lines.forEach((l, i) => ctx.fillText(l, pt.x, by + 12 * Math.max(0.8, cam.zoom) + i * lh));
+    lines.forEach((l, i) => ctx.fillText(l, pt.x, by + 12 + i * lh));
     ctx.restore();
   }
 }
@@ -3044,7 +3051,7 @@ function animalUpdateOne(a, dt) {
         a.tx = w.x + 0.5; a.ty = w.y + 0.5;
       } else if (a.herdStage === 1) {
         a.herdStage = 2;
-        const spot = a.herdOut ? outsideGateTile() : randomPenTile();
+        const spot = a.herdOut ? (randomFreeTile() || outsideGateTile()) : randomPenTile();
         if (spot) startHerdPath(a, spot.x, spot.y);
         else { a.herdStage = 0; a.walking = false; a.wait = 1; }
       } else if (a.herdStage === 2) {
@@ -3695,32 +3702,46 @@ const PERSONALITIES = {
 
 const MIND_LINES = {
   'pt-BR': {
-    idle: ['Que dia bonito na {farm}.', 'Alguém viu meu chapéu?', 'Que silêncio bom...'],
-    work: ['Essa terra é boa, viu.', 'Mais um dia de trabalho na {farm}.', 'Arar, plantar, regar... e repetir.'],
-    chestEmpty: ['Meu baú tá vazio... preciso de sementes.', 'Sem sementes não tem colheita.'],
-    tired: ['Ai, minhas costas...', 'Precisava de um café agora.', 'Hoje não rendo mais nada...'],
-    night: ['Que bom dormir numa cama de verdade.', 'Amanhã eu acordo cedinho.', 'Boa noite, fazenda.'],
-    dawn: ['Bom dia, fazenda!', 'O galo já cantou? Vamos trabalhar!', 'O ar da manhã é outro bicho.'],
-    harvest: ['Colheita boa é dinheiro no bolso.', 'Que espiga linda!', 'O patrão vai gostar dessa.'],
-    animals: ['Esses animais comem mais que eu.', 'O leite de hoje tá fresquinho.', 'Cuidado com o porco, ele é bravo.'],
-    greet: ['Oi, {other}!', 'Fala, {other}.', 'E aí, {other}, firme?'],
-    smalltalk: ['A colheita tá vindo boa, né?', 'Já contou os animais hoje?', 'Dizem que vai chover.', 'O patrão tá de olho na gente...', 'Essa {farm} cresce todo dia.'],
-    reply: ['Pois é, {other}.', 'Verdade!', 'Nem me fale...', 'Boa ideia, {other}.', 'Vamos com fé.'],
-    joke: ['Hahaha!', 'Essa foi boa, {other}!', 'Você é o diabo, {other}!']
+    idle: ['Que dia bonito na {farm}.', 'Alguem viu meu chapeu?', 'Que silencio bom...', 'O sol hoje ta bom pra plantio.', 'Adoro o cheiro da terra de manha.', 'Essa cerca precisa de um retoque.', 'O poco nunca secou, que bencao.', 'Passarinho demais hoje.', 'Meu jaw ta doendo de tanto falar.', 'Ate que enfim um descanso.', 'A {farm} ta linda esse ano.', 'Devia ter trazido agua.', 'As abelhas tavam bravas la atras.', 'Essa bota nova aperta o pe.', 'Quanto tempo a gente trabalha aqui ja?'],
+    work: ['Essa terra e boa, viu.', 'Mais um dia de trabalho na {farm}.', 'Arar, plantar, regar... e repetir.', 'A terra agradece capricho.', 'Essa enxada e minha melhor amiga.', 'Sem pressa que o dia e longo.', 'Terra arada rende o dobro, sabia?', 'Trabalho bem feito nao precisa refazer.', 'Hoje rendo o triplo, marca la.', 'Nao e forca, e tecnica.', 'Aqui o trigo nasce ate com elogio.', 'Meu cantinho favorito da {farm}.', 'Planta que a {farm} cresce.', 'Cuidar da terra e como criar filho.', 'Nem parece trabalho quando da colheita.'],
+    chestEmpty: ['Meu bau ta vazio... preciso de sementes.', 'Sem sementes nao tem colheita.', 'Bau zerado, coracao apertado.', 'Preciso pedir sementes emprestadas.', 'Cadê meu estoque de sementes?', 'Bau vazio nao planta nada.', 'Vou pedir emprestado na reuniao.', 'Quem tiver semente sobrando me avisa.'],
+    tired: ['Ai, minhas costas...', 'Precisava de um cafe agora.', 'Hoje nao rendo mais nada...', 'Meus pes pedindo arrego.', 'Ja da hora de um cochilo.', 'A idade nao perdoa, nao.', 'Dormir mal ontem cobrou hoje.', 'So mais um canteiro e eu paro.', 'Cansaco bom, de trabalho honesto.', 'Amanha rendo mais, prometo.'],
+    night: ['Que bom dormir numa cama de verdade.', 'Amanha eu acordo cedinho.', 'Boa noite, fazenda.', 'O galo me acorda, nao precisa despertador.', 'Sonho com colheita boa.', 'A casa fica quentinha a noite.', 'Dormir bem e meio do trabalho.', 'Hoje foi um dia produtivo.', 'Ate amanha, companheiros.', 'A lua ta bonita hoje...'],
+    dawn: ['Bom dia, fazenda!', 'O galo ja cantou? Vamos trabalhar!', 'O ar da manha e outro bicho.', 'Orvalho na grama, dia perfeito.', 'Levantar cedo vale a pena.', 'Primeira reuniao do dia, pessoal!', 'O sol chegou, hora de acao.', 'Hoje o dia vai ser produtivo, aposto.'],
+    harvest: ['Colheita boa e dinheiro no bolso.', 'Que espiga linda!', 'O patrao vai gostar dessa.', 'Do jeito que plantei, cresceu.', 'Colher e a melhor parte.', 'Cesta cheia, coracao feliz.', 'Isso vai dar um bom preco.', 'Colheita record hoje, aposto.', 'A terra retribui quem cuida.', 'Mais uma pro estoque!', 'Cheiro de colheita fresca...', 'Ve o tamanho desse tomate!'],
+    animals: ['Esses animais comem mais que eu.', 'O leite de hoje ta fresquinho.', 'Cuidado com o porco, ele e bravo.', 'As galinhas tavam ciscando meu canteiro.', 'O cavalo corre demais.', 'Vaca feliz da leite bom.', 'Quem soltou as galinhas?', 'Esse ovo ta quentinho ainda.', 'O cachorro de novo atras do coitado.', 'Bichos comem melhor que a gente.'],
+    greet: ['Oi, {other}!', 'Fala, {other}.', 'E ai, {other}, firme?', 'Coé, {other}!', 'Bom te ver, {other}.', 'Tudo certo, {other}?'],
+    smalltalk: ['A colheita ta vindo boa, ne?', 'Ja contou os animais hoje?', 'Dizem que vai chover.', 'O patrao ta de olho na gente...', 'Essa {farm} cresce todo dia.', 'O preco do trigo subiu, ouvi dizer.', 'Ontem sonhei com um campo dourado.', 'O vizinho plantou milho tambem.', 'Vamos ter que ampliar o curral.', 'O lago ta cheio de peixes.', 'Voce viu o tamanho da abobora?', 'Esse vento ta bom pra trabalhar.'],
+    reply: ['Pois e, {other}.', 'Verdade!', 'Nem me fale...', 'Boa ideia, {other}.', 'Vamos com fe.', 'Concordo plenamente.', 'E o que eu tava pensando!', 'Palavra de fazendeiro.'],
+    joke: ['Hahaha!', 'Essa foi boa, {other}!', 'Voce e o diabo, {other}!', 'Ri tanto que doeu a barriga.', 'Conto essa pro patrao depois.'],
+    meetOpen: ['Bom dia, pessoal! Reuniao!', 'Vamos planejar o dia, gente.', 'Atencao, time! Reuniao rapida.', 'Circulo aqui! Assunto importante.'],
+    meetPlan: ['Hoje vamos plantar {crop}. Temos {n} sementes.', 'O plano e {crop}: temos {n} sementes no bau.', 'Foco no {crop} hoje — {n} sementes disponiveis.', 'Prioridade de hoje: {crop}, {n} sementes no total.'],
+    meetHave: ['Eu tenho {n} sementes de {crop} aqui.', 'Comigo vai {n} sementes de {crop}.', 'Deixo {n} sementes de {crop} com voces.'],
+    meetBorrow: ['{other}, me empresta sementes de {crop}? Meu bau zerou.', 'To sem {crop}... {other}, pode me emprestar?', 'Empresta umas sementes de {crop}, {other}? Devolvo na colheita.'],
+    meetLend: ['Claro, {other}! Te dou umas agora.', 'Pega, {other}! A colheita e de quem planta.', 'Toma, {other}. Sucesso com elas!'],
+    meetNoSeeds: ['Sem sementes por enquanto... vou ajudar no resto.', 'Hoje trabalho na aracao e na agua.'],
+    meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!']
   },
   'en-US': {
-    idle: ['Such a nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...'],
-    work: ['This soil is good stuff.', 'Another workday at {farm}.', 'Till, plant, water... repeat.'],
-    chestEmpty: ['My chest is empty... need seeds.', 'No seeds, no harvest.'],
-    tired: ['Ouch, my back...', 'Could use a coffee now.', 'Not much left in me today...'],
-    night: ['Nothing like a real bed.', 'I will wake up early.', 'Goodnight, farm.'],
-    dawn: ['Morning, farm!', 'Did the rooster crow? Time to work!', 'Morning air hits different.'],
-    harvest: ['A good harvest is money in the pocket.', 'What a beautiful ear of corn!', 'The boss will like this one.'],
-    animals: ['These animals eat more than me.', "Today's milk is fresh.", 'Careful with the pig, he bites.'],
-    greet: ['Hi, {other}!', 'Hey, {other}.', "What's up, {other}?"],
-    smalltalk: ['Harvest is looking good, right?', 'Counted the animals today?', 'They say it will rain.', 'The boss is watching us...', 'This {farm} grows every day.'],
-    reply: ['True, {other}.', 'So true!', "Don't get me started...", 'Good idea, {other}.', "Let's do it."],
-    joke: ['Hahaha!', 'Good one, {other}!', 'You are something else, {other}!']
+    idle: ['Nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...', 'Good sun for planting today.', 'I love the morning soil smell.', 'That fence needs a touch-up.', 'The well never ran dry. Bless it.', 'So many birds today.', 'My jaw hurts from talking.', 'Finally a little rest.', 'The {farm} looks great this year.', 'I should have brought water.', 'The bees were angry back there.', 'These new boots pinch.', 'How long have we worked here?'],
+    work: ['This soil is good stuff.', 'Another workday at {farm}.', 'Till, plant, water... repeat.', 'The land rewards care.', 'This hoe is my best friend.', 'No rush, the day is long.', 'Tilled soil doubles yield, you know?', 'Well done needs no redo.', 'Today I triple my output, watch me.', "It's not force, it's technique.", 'Wheat even grows on compliments here.', 'My favorite spot at {farm}.', 'Plant and the {farm} grows.', 'Caring for soil is like raising kids.', "Doesn't feel like work when harvest comes."],
+    chestEmpty: ['My chest is empty... need seeds.', 'No seeds, no harvest.', 'Empty chest, heavy heart.', 'I need to borrow some seeds.', 'Where is my seed stock?', 'An empty chest plants nothing.', "I'll ask for a loan at the meeting.", 'Anyone with spare seeds, call me.'],
+    tired: ['Ouch, my back...', 'Could use a coffee now.', 'Not much left in me today...', 'My feet are begging for a break.', 'Nap time almost.', 'Age does not forgive.', 'Bad sleep last night charged me.', 'Just one more bed and I stop.', 'Good tired, from honest work.', 'Tomorrow I do more, promise.'],
+    night: ['Nothing like a real bed.', 'I will wake up early.', 'Goodnight, farm.', 'The rooster wakes me, no alarm needed.', 'I dream of a good harvest.', 'The house is warm at night.', 'Sleeping well is half the job.', 'Productive day today.', 'See you tomorrow, friends.', 'The moon is lovely tonight...'],
+    dawn: ['Morning, farm!', 'Did the rooster crow? Time to work!', 'Morning air hits different.', 'Dew on the grass, perfect day.', 'Waking early pays off.', 'First meeting of the day, folks!', 'Sun is up, time to act.', 'Today will be productive, I bet.'],
+    harvest: ['A good harvest is money in the pocket.', 'What a beautiful ear of corn!', 'The boss will like this one.', 'I planted it and it grew.', 'Harvesting is the best part.', 'Full basket, happy heart.', 'This will fetch a good price.', 'Record harvest today, I bet.', 'The land repays those who care.', 'One more for the stock!', 'Smell of fresh harvest...', 'Look at the size of this tomato!'],
+    animals: ['These animals eat more than me.', "Today's milk is fresh.", 'Careful with the pig, he bites.', 'The hens were pecking my bed.', 'The horse runs too much.', 'Happy cow, good milk.', 'Who let the chickens out?', 'This egg is still warm.', 'The dog chasing the poor thing again.', 'Animals eat better than us.'],
+    greet: ['Hi, {other}!', 'Hey, {other}.', "What's up, {other}?", 'Yo, {other}!', 'Good to see you, {other}.', 'All good, {other}?'],
+    smalltalk: ['Harvest is looking good, right?', 'Counted the animals today?', 'They say it will rain.', 'The boss is watching us...', 'This {farm} grows every day.', 'Wheat price went up, I heard.', 'Last night I dreamed of a golden field.', 'The neighbor planted corn too.', 'We will need a bigger pen.', 'The lake is full of fish.', 'Did you see the size of that pumpkin?', 'This wind is good for working.'],
+    reply: ['True, {other}.', 'So true!', "Don't get me started...", 'Good idea, {other}.', "Let's do it.", 'Fully agree.', "That's what I was thinking!", "Farmer's word."],
+    joke: ['Hahaha!', 'Good one, {other}!', 'You are something else, {other}!', 'I laughed so hard.', "I'll tell the boss this one."],
+    meetOpen: ['Morning, everyone! Meeting!', "Let's plan the day, folks.", 'Attention, team! Quick meeting.', 'Gather round! Important topic.'],
+    meetPlan: ['Today we plant {crop}. We have {n} seeds.', "The plan is {crop}: {n} seeds in the chests.", "Today's focus: {crop} — {n} seeds available.", "Today's priority: {crop}, {n} seeds total."],
+    meetHave: ['I have {n} {crop} seeds here.', 'I carry {n} {crop} seeds.', 'I leave {n} {crop} seeds with you.'],
+    meetBorrow: ['{other}, lend me {crop} seeds? My chest is empty.', "I'm out of {crop}... {other}, can you lend me some?", 'Lend me some {crop} seeds, {other}? I pay you back at harvest.'],
+    meetLend: ['Sure, {other}! Here you go.', 'Take it, {other}! The harvest belongs to whoever plants.', 'Here, {other}. Good luck with them!'],
+    meetNoSeeds: ['No seeds for now... I will help with the rest.', "I'll work the tilling and watering today."],
+    meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!']
   }
 };
 
@@ -3732,6 +3753,111 @@ function mindLine(pool) {
   const book = MIND_LINES[mindLang()];
   const arr = (book && book[pool]) || MIND_LINES['pt-BR'][pool] || ['...'];
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function mindFmt(pool, params) {
+  let txt = mindLine(pool);
+  for (const k in (params || {})) txt = txt.split('{' + k + '}').join(params[k]);
+  return txt;
+}
+
+const SHIRT_PALETTE = ['#c62828', '#d81b60', '#8e24aa', '#5e35b1', '#1e88e5', '#00897b', '#43a047', '#f4511e', '#6d4c41', '#ad1457', '#ef6c00', '#7cb342'];
+
+function shadeColor(hex, mul) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * mul);
+  const g = Math.round(((n >> 8) & 255) * mul);
+  const b = Math.round((n & 255) * mul);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+/* ---------- Reuniao matinal dos fazendeiros ---------- */
+function meetingPoint() {
+  const door = houseDoorTile();
+  if (door) return door;
+  const a = game.ownedArea;
+  return { x: a.x0 + 2, y: a.y0 + 2 };
+}
+
+function farmerChestTotal(f) {
+  let n = 0;
+  for (const k in (f.chest || {})) n += f.chest[k];
+  return n;
+}
+
+function startMeetingDiscussion() {
+  const farmers = game.farmers.filter(f => !f.inside);
+  if (!farmers.length) return;
+  const script = [];
+  const leader = farmers[Math.floor(Math.random() * farmers.length)];
+  const totals = {};
+  for (const f of farmers) {
+    for (const k in (f.chest || {})) totals[k] = (totals[k] || 0) + f.chest[k];
+  }
+  const types = Object.keys(totals).filter(k => totals[k] > 0);
+  const chosen = types.length ? types[Math.floor(Math.random() * types.length)] : null;
+  script.push({ f: leader, text: mindFmt('meetOpen') });
+  if (chosen) {
+    script.push({ f: leader, text: mindFmt('meetPlan', { crop: t('c_' + chosen), n: totals[chosen] }) });
+    const holder = farmers.find(f => f !== leader && (f.chest[chosen] || 0) > 0);
+    if (holder) script.push({ f: holder, text: mindFmt('meetHave', { n: holder.chest[chosen], crop: t('c_' + chosen) }) });
+  }
+  const broke = farmers.find(f => farmerChestTotal(f) === 0);
+  if (broke) {
+    const rich = farmers.filter(f => f !== broke && farmerChestTotal(f) >= 3)
+      .sort((a, b) => farmerChestTotal(b) - farmerChestTotal(a))[0];
+    if (rich && chosen && (rich.chest[chosen] || 0) > 0) {
+      script.push({ f: broke, text: mindFmt('meetBorrow', { other: rich.name, crop: t('c_' + chosen) }) });
+      script.push({ f: rich, text: mindFmt('meetLend', { other: broke.name }) });
+      const give = Math.min(3, rich.chest[chosen]);
+      rich.chest[chosen] -= give;
+      if (rich.chest[chosen] <= 0) delete rich.chest[chosen];
+      broke.chest[chosen] = (broke.chest[chosen] || 0) + give;
+    } else {
+      script.push({ f: broke, text: mindFmt('meetNoSeeds') });
+    }
+  }
+  const closer = farmers[farmers.length - 1];
+  if (closer !== leader) script.push({ f: closer, text: mindFmt('meetClose') });
+  game.meetingScript = script.map((l, i) => ({ f: l.f, text: l.text, at: 1.2 + i * 2.6 }));
+  game.meetingT = 0;
+}
+
+function updateMeeting(dt) {
+  if (game.meetingDone) return;
+  if (dayPhase() !== 'day' || !game.farmers.length) return;
+  const point = meetingPoint();
+  let allHere = true;
+  for (const f of game.farmers) {
+    farmerEnsureMind(f);
+    if (f.inside) continue;
+    const d = Math.hypot(point.x + 0.5 - f.gx, point.y + 0.5 - f.gy);
+    if (d > 1.8) {
+      allHere = false;
+      if (!f.walking) {
+        f.riding = false;
+        f.tx = point.x + 0.5 + (Math.random() * 1.6 - 0.8);
+        f.ty = point.y + 0.5 + (Math.random() * 1.6 - 0.8);
+        f.walking = true;
+      }
+    }
+  }
+  game.meetingWait = (game.meetingWait || 0) + dt;
+  if (allHere || game.meetingWait > 20) {
+    game.meetingDone = true;
+    game.meetingWait = 0;
+    startMeetingDiscussion();
+  }
+}
+
+function farmerTargetBusy(f, x, y) {
+  for (const o of game.farmers) {
+    if (o === f || o.inside) continue;
+    const sx = o.jobSpot ? o.jobSpot.x : o.gx;
+    const sy = o.jobSpot ? o.jobSpot.y : o.gy;
+    if (Math.hypot(sx - x, sy - y) < 2.5) return true;
+  }
+  return false;
 }
 
 function farmerEnsureMind(f) {
@@ -3746,6 +3872,8 @@ function farmerEnsureMind(f) {
   f.chatT = 8 + Math.random() * 15;
   f.bubble = null;
   f.thoughtLog = [];
+  f.shirt = SHIRT_PALETTE[(f.id || 0) % SHIRT_PALETTE.length];
+  f.shirtDark = shadeColor(f.shirt, 0.62);
 }
 
 function farmerSay(f, text, dur) {
@@ -3807,22 +3935,26 @@ function farmerFindTillSpot(f) {
     }
   }
   let best = null, bestD = Infinity;
+  let bestFree = null, bestFreeD = Infinity;
   for (const key of candidates) {
     const [x, y] = key.split(',').map(Number);
     const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
     if (d < bestD) { bestD = d; best = { x, y }; }
+    if (d < bestFreeD && !farmerTargetBusy(f, x, y)) { bestFreeD = d; bestFree = { x, y }; }
   }
-  return best;
+  return bestFree || best;
 }
 
 function farmerFindWaterTarget(f) {
   let best = null, bestD = Infinity;
+  let bestFree = null, bestFreeD = Infinity;
   for (const c of game.crops) {
     if (c.watered || cropProgress(c) >= 1) continue;
     const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
     if (d < bestD) { bestD = d; best = c; }
+    if (d < bestFreeD && !farmerTargetBusy(f, c.gx, c.gy)) { bestFreeD = d; bestFree = c; }
   }
-  return best;
+  return bestFree || best;
 }
 
 function hasHorse() {
@@ -3846,11 +3978,14 @@ function farmerFindJob(f) {
     }
     if (phase === 'afternoon') {
       let best = null, bestD = Infinity;
+      let bestFree = null, bestFreeD = Infinity;
       for (const c of game.crops) {
         if (cropProgress(c) < 1) continue;
         const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
         if (d < bestD) { bestD = d; best = c; }
+        if (d < bestFreeD && !farmerTargetBusy(f, c.gx, c.gy)) { bestFreeD = d; bestFree = c; }
       }
+      best = bestFree || best;
       if (best) return { kind: 'harvest', target: best };
     }
   }
@@ -3885,6 +4020,7 @@ function farmerFindPlantSpot(f, type) {
     const d = Math.hypot(x + 0.5 - f.gx, y + 0.5 - f.gy);
     let score = -d;
     if (isTilled(x, y)) score += 50;
+    if (!farmerTargetBusy(f, x, y)) score += 8;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nb = occupancy[occIndex(x + dx, y + dy)];
       if (nb && nb.isCrop) score += (nb.type === type ? 20 : 5);
@@ -3911,6 +4047,14 @@ function houseDoorTile() {
 }
 
 function updateFarmers(dt) {
+  updateMeeting(dt);
+  if (game.meetingScript && game.meetingScript.length) {
+    game.meetingT += dt;
+    while (game.meetingScript.length && game.meetingT >= game.meetingScript[0].at) {
+      const line = game.meetingScript.shift();
+      farmerSay(line.f, line.text, 5000);
+    }
+  }
   for (const f of game.farmers) {
     f.phase += dt;
     farmerEnsureMind(f);
@@ -3964,6 +4108,8 @@ function updateFarmers(dt) {
 
     f.wait -= dt;
     if (f.wait > 0) continue;
+
+    if (!game.meetingDone && dayPhase() === 'day') continue;
 
     if (dayPhase() === 'night') {
       const door = houseDoorTile();
@@ -4112,27 +4258,15 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.ellipse(2.5 - legSwing, 0.5, 2.2, 1.1, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#3949ab';
+  ctx.fillStyle = f.shirt || '#c62828';
   ctx.beginPath();
   ctx.rect(-5, -18 + bob * 0.4, 10, 11);
   ctx.fill();
 
-  ctx.fillStyle = '#303f9f';
+  ctx.fillStyle = f.shirtDark || '#8e0000';
   ctx.fillRect(-5, -12 + bob * 0.4, 10, 2);
 
-  ctx.fillStyle = '#a1887f';
-  ctx.beginPath();
-  ctx.rect(-3.5, -17 + bob * 0.4, 7, 8.5);
-  ctx.fill();
-  ctx.strokeStyle = '#8d6e63';
-  ctx.lineWidth = 0.8;
-  ctx.strokeRect(-3.5, -17 + bob * 0.4, 7, 8.5);
-  ctx.beginPath();
-  ctx.moveTo(-3.5, -17 + bob * 0.4); ctx.lineTo(-5, -18.5 + bob * 0.4);
-  ctx.moveTo(3.5, -17 + bob * 0.4); ctx.lineTo(5, -18.5 + bob * 0.4);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#c62828';
+  ctx.strokeStyle = f.shirtDark || '#8e0000';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(-5, -16 + bob * 0.4); ctx.lineTo(-8, -11 + armSwing + bob * 0.4);
@@ -5668,7 +5802,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v22';
+const GAME_VERSION = 'v23';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -6272,7 +6406,7 @@ function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   try {
-    game.time = (game.time + dt / DAY_LENGTH) % 1;
+    advanceClock(dt);
     updateAnimals(dt);
     updateFarmers(dt);
     updateDog(dt);

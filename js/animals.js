@@ -202,7 +202,7 @@ function animalUpdateOne(a, dt) {
         a.tx = w.x + 0.5; a.ty = w.y + 0.5;
       } else if (a.herdStage === 1) {
         a.herdStage = 2;
-        const spot = a.herdOut ? outsideGateTile() : randomPenTile();
+        const spot = a.herdOut ? (randomFreeTile() || outsideGateTile()) : randomPenTile();
         if (spot) startHerdPath(a, spot.x, spot.y);
         else { a.herdStage = 0; a.walking = false; a.wait = 1; }
       } else if (a.herdStage === 2) {

@@ -1046,16 +1046,16 @@ function drawMindBubbles(ctx, cam, cw, ch) {
     const lines = [];
     let cur = '';
     for (const w of words) {
-      if ((cur + ' ' + w).trim().length > 22 && cur) { lines.push(cur.trim()); cur = w; }
+      if ((cur + ' ' + w).trim().length > 20 && cur) { lines.push(cur.trim()); cur = w; }
       else cur += ' ' + w;
     }
     if (cur.trim()) lines.push(cur.trim());
-    if (lines.length > 3) lines.length = 3;
+    if (lines.length > 4) lines.length = 4;
     ctx.save();
-    ctx.font = Math.max(10, 11 * cam.zoom) + 'px sans-serif';
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    const lw = Math.min(160 * cam.zoom, Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 12);
-    const lh = 13 * Math.max(0.8, cam.zoom);
+    const lw = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 14;
+    const lh = 13;
     const bh = lines.length * lh + 8;
     const bx = pt.x - lw / 2, by = pt.y - bh - 8;
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
@@ -1072,7 +1072,7 @@ function drawMindBubbles(ctx, cam, cw, ch) {
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fill();
     ctx.fillStyle = '#4e342e';
-    lines.forEach((l, i) => ctx.fillText(l, pt.x, by + 12 * Math.max(0.8, cam.zoom) + i * lh));
+    lines.forEach((l, i) => ctx.fillText(l, pt.x, by + 12 + i * lh));
     ctx.restore();
   }
 }

@@ -162,6 +162,16 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+## Revisão 16 — Reunião matinal, 100+ falas e roupas únicas
+
+- **Bolha de fala corrigida**: o texto nunca mais sai fora do balão, em qualquer zoom.
+- **Ciclo de 5 minutos**: cada dia completo agora dura 300 segundos.
+- **Reunião matinal**: no começo do dia, os fazendeiros se juntam na casa para a primeira reunião — decidem em voz alta o que vão plantar, quantas sementes têm no total e, se o baú de um deles estiver zerado, **pedem emprestado** e as sementes são transferidas de verdade. Depois cada um vai para o seu serviço.
+- **Mais de 100 frases novas**: pensamentos e conversas muito mais variados (trabalho, colheita, cansaço, noite, animais, fofocas da fazenda).
+- **Roupas únicas**: sem avental — cada fazendeiro veste uma camisa de cor própria, com braços no tom mais escuro.
+- **Animais se espalham**: ao amanhecer, depois de soltos pelo cachorro, correm para pontos **aleatórios da fazenda inteira** (não ficam na porta do curral).
+- **Fazendeiros não se grudam**: arar, regar e colher agora evitam alvos onde outro fazendeiro já está trabalhando.
+
 ## Revisão 15 — HUD sem sobreposição, roleta infinita e pá
 
 - **Zoom e centralização para a esquerda**: os controles de zoom agora ficam no canto inferior esquerdo, livres da coluna de ações.

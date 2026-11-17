@@ -51,7 +51,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v22';
+const GAME_VERSION = 'v23';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -655,7 +655,7 @@ function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 1);
   lastTime = ts;
   try {
-    game.time = (game.time + dt / DAY_LENGTH) % 1;
+    advanceClock(dt);
     updateAnimals(dt);
     updateFarmers(dt);
     updateDog(dt);
