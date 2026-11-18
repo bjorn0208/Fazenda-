@@ -176,6 +176,8 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Correção**: botão mostrava o texto cru “build.till” — chave de tradução faltante adicionada (Arar/Till).
 - Versão **v37** (service worker e PWA atualizados).
 - **Tutorial removido** (v38): a barra de instruções saiu do jogo — o carro com o amigo do fazendeiro continua chegando no jogo novo, e depois dele o jogador já fica livre para jogar.
+- **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
+- **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
 ## Revisão 29 — Loja de ferramentas, perfil, tarefas de nível e dia de trabalho
 

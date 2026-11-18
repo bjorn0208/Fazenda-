@@ -105,19 +105,6 @@ function drawParticles(ctx, cam, cw, ch) {
 function drawIntroCar(ctx, cam, cw, ch) {
   if (!game.intro || game.visiting) return;
   const it = game.intro;
-  const now = performance.now();
-  if (it.phase === 'drop' || it.phase === 'leave') {
-    const fp = {
-      gx: it.x + 1.3, gy: it.y + 0.2, walking: false,
-      phase: now / 1000, face: Math.PI, lastDir: 1,
-      shirt: '#1e88e5', shirtDark: '#0d47a1'
-    };
-    const a = it.phase === 'leave' ? Math.max(0, 1 - it.t / 1.5) : Math.min(1, it.t / 0.8);
-    ctx.save();
-    ctx.globalAlpha = a;
-    drawFarmer(ctx, cam, cw, ch, fp);
-    ctx.restore();
-  }
   const pp = projectPoint(it.x, it.y, 0);
   const p = worldToScreen(cam, pp.x, pp.y, cw, ch);
   const pa = projectPoint(it.x + 0.4, it.y + 0.3, 0);
@@ -143,6 +130,10 @@ function drawIntroCar(ctx, cam, cw, ch) {
   ctx.fillStyle = '#b71c1c';
   roundRectPath(ctx, -L * 0.10, -H * 0.38, 4 * z, H * 0.66, 2 * z);
   ctx.fill();
+  ctx.fillStyle = '#6d4c41';
+  ctx.beginPath(); ctx.arc(L * 0.04, 0, 3.4 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#37474f';
+  ctx.beginPath(); ctx.ellipse(L * 0.04, 2.4 * z, 4.2 * z, 2.6 * z, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#fff59d';
   ctx.beginPath(); ctx.arc(L / 2 - 3 * z, -H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(L / 2 - 3 * z, H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();

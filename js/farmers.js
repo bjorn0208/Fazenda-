@@ -179,7 +179,7 @@ function farmerTargetBusy(f, x, y) {
 
 function farmerEnsureMind(f) {
   if (f.name) return;
-  f.name = FARMER_NAMES[(f.id || 0) % FARMER_NAMES.length];
+  f.name = f.isPlayer ? (game.playerName || 'Fazendeiro') : FARMER_NAMES[(f.id || 0) % FARMER_NAMES.length];
   const keys = Object.keys(PERSONALITIES);
   f.pers = keys[Math.floor(Math.random() * keys.length)];
   f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
@@ -189,7 +189,7 @@ function farmerEnsureMind(f) {
   f.chatT = 8 + Math.random() * 15;
   f.bubble = null;
   f.thoughtLog = [];
-  f.shirt = SHIRT_PALETTE[(f.id || 0) % SHIRT_PALETTE.length];
+  f.shirt = f.isPlayer ? '#2e7d32' : SHIRT_PALETTE[(f.id || 0) % SHIRT_PALETTE.length];
   f.shirtDark = shadeColor(f.shirt, 0.62);
   f.barTonight = Math.random() < 0.65;
   f.barDone = false;
@@ -291,25 +291,21 @@ function farmerFindJob(f) {
   const H = gameHour();
   if (H >= 19 || H < 8.5) return null;
   if (role !== 'animal') {
-    if (H < 12) {
-      for (const type of Object.keys(f.chest)) {
-        if (f.chest[type] > 0) return { kind: 'plant', type };
-      }
-      const dry = farmerFindWaterTarget(f);
-      if (dry) return { kind: 'water', target: dry };
+    for (const type of Object.keys(f.chest)) {
+      if (f.chest[type] > 0 && farmerFindPlantSpot(f, type)) return { kind: 'plant', type };
     }
-    if (H >= 13) {
-      let best = null, bestD = Infinity;
-      let bestFree = null, bestFreeD = Infinity;
-      for (const c of game.crops) {
-        if (cropProgress(c) < 1) continue;
-        const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
-        if (d < bestD) { bestD = d; best = c; }
-        if (d < bestFreeD && !farmerTargetBusy(f, c.gx, c.gy)) { bestFreeD = d; bestFree = c; }
-      }
-      best = bestFree || best;
-      if (best) return { kind: 'harvest', target: best };
+    let best = null, bestD = Infinity;
+    let bestFree = null, bestFreeD = Infinity;
+    for (const c of game.crops) {
+      if (cropProgress(c) < 1) continue;
+      const d = Math.hypot(c.gx + 0.5 - f.gx, c.gy + 0.5 - f.gy);
+      if (d < bestD) { bestD = d; best = c; }
+      if (d < bestFreeD && !farmerTargetBusy(f, c.gx, c.gy)) { bestFreeD = d; bestFree = c; }
     }
+    best = bestFree || best;
+    if (best) return { kind: 'harvest', target: best };
+    const dry = farmerFindWaterTarget(f);
+    if (dry) return { kind: 'water', target: dry };
   }
   if (role !== 'plant') {
     let an = null;
@@ -368,6 +364,7 @@ function houseDoorTile() {
 }
 
 function updateFarmers(dt) {
+  if (game.intro) return;
   updateMeeting(dt);
   if (game.meetingScript && game.meetingScript.length) {
     game.meetingT += dt;

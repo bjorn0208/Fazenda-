@@ -134,8 +134,30 @@ vm.runInContext(`
   if (game.farmers.length !== 0) throw new Error('jogo novo com fazendeiros antes da cutscene');
   finishIntro();
   if (game.farmers.length !== 1) throw new Error('cutscene nao gerou o fazendeiro inicial');
+  if (!game.farmers[0].isPlayer) throw new Error('fazendeiro inicial deveria ser o principal');
+  if (game.farmers[0].name !== (game.playerName || 'Fazendeiro')) throw new Error('fazendeiro principal sem nome do perfil');
   if (!game.introDone) throw new Error('cutscene nao marcou introDone');
   if (t('build.till') === 'build.till') throw new Error('chave build.till sem traducao');
+
+  // plantio continuo: fazendeiro planta do baú a tarde inteira, se tiver terra arada
+  game.time = 0.35;
+  const fpA = game.farmers[0];
+  fpA.role = 'plant'; fpA.chest = { wheat: 3 };
+  let ftA = null;
+  for (let y = 27; y >= 20 && !ftA; y--) {
+    for (let x = 27; x >= 20 && !ftA; x--) {
+      if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) ftA = { x, y };
+    }
+  }
+  if (ftA) {
+    game.upgrades.till = 2;
+    plantCrop('wheat', ftA.x, ftA.y, true);
+    if (!tillSoil(ftA.x - 1, ftA.y)) throw new Error('tillSoil falhou no teste de plantio a tarde');
+    const jobPM = farmerFindJob(fpA);
+    if (!jobPM || jobPM.kind !== 'plant') throw new Error('fazendeiro deveria plantar a tarde com baú cheio');
+  }
+  fpA.role = 'all';
+  game.upgrades.till = 0;
 
   // render base com todas as construcoes do catalogo
   game.coins = 999999;
@@ -280,9 +302,21 @@ vm.runInContext(`
   if (!jobA || jobA.kind !== 'animal') throw new Error('role animal nao busca animais');
   fRole.role = 'plant';
   depositSeed(fRole, 'corn', 2);
+  let ftB = null;
+  for (let y = 27; y >= 20 && !ftB; y--) {
+    for (let x = 27; x >= 20 && !ftB; x--) {
+      if (!occupancy[occIndex(x, y)]) ftB = { x, y };
+    }
+  }
+  if (ftB) {
+    game.upgrades.till = 2;
+    plantCrop('corn', ftB.x, ftB.y, true);
+    tillSoil(ftB.x - 1, ftB.y);
+  }
   const jobP = farmerFindJob(fRole);
+  game.upgrades.till = 0;
   if (jobP && jobP.kind === 'animal') throw new Error('role plant busca animais');
-  if (!jobP) throw new Error('role plant sem trabalho de plantio/colheita');
+  if (!jobP && ftB) throw new Error('role plant sem trabalho de plantio/colheita');
   fRole.role = 'all';
 
   // curral: montar, cachorro junta os animais, eles nao saem, remover com reembolso

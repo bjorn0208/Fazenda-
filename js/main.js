@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v38';
+const GAME_VERSION = 'v39';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -657,7 +657,18 @@ function introActive() { return !!(game.intro && !game.visiting); }
 
 function startIntroCutscene() {
   const a = game.ownedArea;
-  game.intro = { phase: 'arrive', t: 0, x: a.x0 - 9, y: a.y0 - 14 };
+  game.intro = { phase: 'arrive', t: 0, x: a.x0 - 12, y: a.y0 + 2 };
+}
+
+function spawnMainFarmer(gx, gy) {
+  if (game.farmers.some(f => f.isPlayer)) return;
+  const f = {
+    id: game.nextId++, gx, gy, tx: gx, ty: gy,
+    walking: false, wait: 1.5, phase: Math.random() * 10,
+    chest: {}, role: 'all', isPlayer: true
+  };
+  farmerEnsureMind(f);
+  game.farmers.push(f);
 }
 
 function finishIntro() {
@@ -665,13 +676,7 @@ function finishIntro() {
   game.intro = null;
   game.introDone = true;
   const a = game.ownedArea;
-  const spot = { x: a.x0 + 2, y: a.y0 + 3 };
-  game.farmers.push({
-    id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
-    tx: spot.x + 0.5, ty: spot.y + 0.5,
-    walking: false, wait: 1, phase: Math.random() * 10,
-    chest: {}, role: 'all'
-  });
+  spawnMainFarmer(a.x0 + 3.5, a.y0 + 3.5);
   saveGame(false);
   centerCamera();
   showToast(t('toast.welcome'));
@@ -682,19 +687,24 @@ function updateIntro(dt) {
   const it = game.intro;
   it.t += dt;
   const a = game.ownedArea;
-  const p0 = { x: a.x0 - 9, y: a.y0 - 14 };
-  const stop = { x: a.x0 + 2, y: a.y0 - 1 };
+  const roadY = a.y0 + 2;
+  const p0 = { x: a.x0 - 12, y: roadY };
+  const stop = { x: a.x0 + 1, y: roadY };
+  const exit = { x: a.x1 + 13, y: roadY };
   if (it.phase === 'arrive') {
-    const k = Math.min(1, it.t / 5.5);
+    const k = Math.min(1, it.t / 5);
     it.x = p0.x + (stop.x - p0.x) * k;
-    it.y = p0.y + (stop.y - p0.y) * k;
-    if (k >= 1) { it.phase = 'drop'; it.t = 0; }
+    it.y = roadY;
+    if (k >= 1) {
+      it.phase = 'drop'; it.t = 0;
+      spawnMainFarmer(stop.x + 1.6, roadY + 0.2);
+    }
   } else if (it.phase === 'drop') {
-    if (it.t >= 2.4) { it.phase = 'leave'; it.t = 0; it.sx = stop.x; it.sy = stop.y; }
+    if (it.t >= 2.2) { it.phase = 'leave'; it.t = 0; it.sx = stop.x; it.sy = roadY; }
   } else if (it.phase === 'leave') {
     const k = Math.min(1, it.t / 5);
-    it.x = it.sx + (p0.x - it.sx) * k;
-    it.y = it.sy + (p0.y - it.sy) * k;
+    it.x = it.sx + (exit.x - it.sx) * k;
+    it.y = roadY;
     if (k >= 1) finishIntro();
   }
   const c = projectPoint(it.x, it.y, 0);
