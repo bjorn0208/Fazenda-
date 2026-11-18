@@ -277,6 +277,7 @@ function updateAnimals(dt) {
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
+    if (!game.visiting && Math.random() < dt * 0.004) playSound(a.kind);
   }
 }
 

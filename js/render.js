@@ -63,6 +63,11 @@ function render(ctx, cam, cw, ch, state) {
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
   if (seasonIndex() === 3) drawSnow(ctx, cam, cw, ch);
+  if (game.flashT > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, game.flashT * 1.8).toFixed(3) + ')';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+  if (typeof updateBuildingCtx === 'function' && state) updateBuildingCtx(cam, cw, ch);
 }
 
 /* ---------- Chuva ---------- */

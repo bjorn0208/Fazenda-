@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=40">
+<link rel="stylesheet" href="css/style.css?v=41">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -48,6 +48,8 @@
 <!-- ================= MENU LATERAL ================= -->
 <div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
+  <button class="side-btn" id="btn-build"><span class="side-icon">🧱</span><span class="side-label" data-i18n="build.build">Construir</span></button>
+  <button class="side-btn" id="btn-buy"><span class="side-icon">🛒</span><span class="side-label" data-i18n="build.buy">Comprar</span></button>
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
   <button class="side-btn" data-panel="barn"><span class="side-icon">🧺</span><span class="side-label" data-i18n="menu.barn">Celeiro</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
@@ -58,7 +60,6 @@
 
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
-  <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
   <button class="build-btn" id="btn-shovel"><span class="build-icon">🪏</span><span class="build-label" data-i18n="build.shovel">Pá</span></button>
   <button class="build-btn hidden" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn hidden" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
@@ -66,20 +67,9 @@
   <button class="build-btn hidden" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
   <button class="build-btn hidden" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
   <button class="build-btn hidden" id="btn-pen"><span class="build-icon">🚧</span><span class="build-label" data-i18n="build.pen">Curral</span></button>
-<button class="build-btn hidden" id="btn-plot"><span class="build-icon">🟫</span><span class="build-label" data-i18n="build.plot">Lote</span></button>
+  <button class="build-btn hidden" id="btn-plot"><span class="build-icon">🟫</span><span class="build-label" data-i18n="build.plot">Lote</span></button>
   <button class="build-btn hidden" id="btn-dog"><span class="build-icon">🐕</span><span class="build-label" data-i18n="build.dog">Cachorro</span></button>
   <button class="build-btn hidden" id="btn-tractor"><span class="build-icon">🚜</span><span class="build-label" data-i18n="build.tractor">Trator</span></button>
-  <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
-  <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
-  <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
-  <button class="build-btn" id="btn-buy"><span class="build-icon">🛒</span><span class="build-label" data-i18n="build.buy">Comprar</span></button>
-</div>
-
-<!-- Controles de zoom -->
-<div id="zoom-controls">
-  <button id="btn-zoom-in" title="Aproximar">＋</button>
-  <button id="btn-zoom-out" title="Afastar">－</button>
-  <button id="btn-zoom-reset" title="Centralizar fazenda">⌖</button>
 </div>
 
 <!-- Botões de minimizar as colunas de ferramentas -->
@@ -87,7 +77,7 @@
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v40</div>
+<div id="debug-badge">v41</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -97,6 +87,14 @@
   <span id="confirm-info"></span>
   <button id="confirm-ok" class="btn-ok">✓ Confirmar</button>
   <button id="confirm-cancel" class="btn-cancel">✕ Cancelar</button>
+</div>
+
+<!-- Menu de contexto em volta da construcao selecionada -->
+<div id="bctx" style="display:none">
+  <button class="bctx-btn" id="bctx-move" title="Mover">&#x1F590;&#xFE0F;</button>
+  <button class="bctx-btn" id="bctx-rotate" title="Girar">&#x21BB;</button>
+  <button class="bctx-btn" id="bctx-panel" title="Gerenciar">&#x1F4CA;</button>
+  <button class="bctx-btn" id="bctx-remove" title="Remover">&#x2716;&#xFE0F;</button>
 </div>
 
 <!-- Toast de avisos -->
@@ -124,14 +122,14 @@
   </div>
 </div>
 
-<script src="js/data.js?v=40"></script>
-<script src="js/iso.js?v=40"></script>
-<script src="js/game.js?v=40"></script>
-<script src="js/render.js?v=40"></script>
-<script src="js/animals.js?v=40"></script>
-<script src="js/farmers.js?v=40"></script>
-<script src="js/ui.js?v=40"></script>
-<script src="js/multiplayer.js?v=40"></script>
-<script src="js/main.js?v=40"></script>
+<script src="js/data.js?v=41"></script>
+<script src="js/iso.js?v=41"></script>
+<script src="js/game.js?v=41"></script>
+<script src="js/render.js?v=41"></script>
+<script src="js/animals.js?v=41"></script>
+<script src="js/farmers.js?v=41"></script>
+<script src="js/ui.js?v=41"></script>
+<script src="js/multiplayer.js?v=41"></script>
+<script src="js/main.js?v=41"></script>
 </body>
 </html>

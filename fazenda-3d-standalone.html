@@ -166,10 +166,15 @@ html, body {
   bottom: calc(180px + env(safe-area-inset-bottom, 0px));
   right: calc(10px + env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; justify-content: flex-start;
-  gap: 10px; z-index: 15;
+  gap: 8px; z-index: 15;
   overflow-y: auto; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
-          mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  background: linear-gradient(180deg, rgba(255,253,246,0.96), rgba(255,248,231,0.96));
+  border: 3px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 8px 6px;
+  box-shadow: 0 4px 0 rgba(0,0,0,.18);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
 #build-bar::-webkit-scrollbar { display: none; }
 
@@ -199,13 +204,21 @@ html, body {
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   width: 84px; padding: 9px 4px;
-  background: var(--wood); color: #fff;
-  border: 3px solid var(--wood-dark); border-radius: 14px;
-  box-shadow: 0 4px 0 rgba(0,0,0,.3);
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  color: #4e342e;
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  border-radius: 13px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.22);
   font-weight: bold; font-size: 12px; cursor: pointer;
 }
-.build-btn:hover { filter: brightness(1.1); }
-.build-btn.active { background: var(--green); border-color: var(--green-dark); }
+.build-btn:hover { filter: brightness(1.05); }
+.build-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
+.build-btn.active {
+  background: linear-gradient(180deg, #66bb6a, #43a047);
+  color: #fff;
+  border-color: var(--green-dark);
+}
 .build-icon { font-size: 22px; }
 
 /* ---------- Barra de confirmação ---------- */
@@ -229,22 +242,6 @@ html, body {
 .btn-cancel:hover { background: #90a4ae; }
 
 /* ---------- Controles de zoom ---------- */
-#zoom-controls {
-  position: absolute;
-  left: calc(12px + env(safe-area-inset-left, 0px));
-  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: column; gap: 8px; z-index: 15;
-}
-#zoom-controls button {
-  width: 46px; height: 46px;
-  background: var(--panel); color: var(--text);
-  border: 3px solid var(--panel-border); border-radius: 12px;
-  box-shadow: 0 3px 0 rgba(0,0,0,.25);
-  font-size: 22px; font-weight: bold; cursor: pointer;
-  line-height: 1; padding: 0;
-}
-#zoom-controls button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
-
 /* ---------- Botões de minimizar colunas ---------- */
 .collapse-btn {
   position: absolute;
@@ -260,13 +257,39 @@ html, body {
 #btn-collapse-left { left: calc(10px + env(safe-area-inset-left, 0px)); }
 #btn-collapse-right { right: calc(10px + env(safe-area-inset-right, 0px)); }
 .collapse-arrow { display: inline-block; transition: transform .25s ease; }
+.side-btn.active { background: var(--green); color: #fff; border-color: var(--green-dark); }
+
+/* ---------- Menu de contexto da construcao selecionada ---------- */
+#bctx {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0; height: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+.bctx-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.bctx-btn:active { transform: translate(-50%, -50%) scale(0.94); }
 body.tools-left-hidden #btn-collapse-left .collapse-arrow,
 body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(180deg); }
 
 #side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
 body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
-body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -394,8 +417,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 }
 
 @media (max-width: 480px) {
-  #zoom-controls { bottom: 88px; left: 8px; }
-  #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
   #build-bar {
     top: calc(108px + env(safe-area-inset-top, 0px));
     bottom: calc(150px + env(safe-area-inset-bottom, 0px));
@@ -726,6 +747,8 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <!-- ================= MENU LATERAL ================= -->
 <div id="visit-banner" class="hidden"><span id="visit-label">👀 Modo visita</span><button id="btn-leave-visit">🏡 Voltar</button></div>
 <div id="side-menu">
+  <button class="side-btn" id="btn-build"><span class="side-icon">🧱</span><span class="side-label" data-i18n="build.build">Construir</span></button>
+  <button class="side-btn" id="btn-buy"><span class="side-icon">🛒</span><span class="side-label" data-i18n="build.buy">Comprar</span></button>
   <button class="side-btn" data-panel="missions"><span class="side-icon">📋</span><span class="side-label" data-i18n="menu.missions">Missões</span></button>
   <button class="side-btn" data-panel="barn"><span class="side-icon">🧺</span><span class="side-label" data-i18n="menu.barn">Celeiro</span></button>
   <button class="side-btn" data-panel="shop"><span class="side-icon">🏪</span><span class="side-label" data-i18n="menu.shop">Loja</span></button>
@@ -736,7 +759,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 
 <!-- ================= BARRA DE CONSTRUÇÃO (INFERIOR) ================= -->
 <div id="build-bar">
-  <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
   <button class="build-btn" id="btn-shovel"><span class="build-icon">🪏</span><span class="build-label" data-i18n="build.shovel">Pá</span></button>
   <button class="build-btn hidden" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn hidden" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
@@ -744,20 +766,9 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   <button class="build-btn hidden" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
   <button class="build-btn hidden" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
   <button class="build-btn hidden" id="btn-pen"><span class="build-icon">🚧</span><span class="build-label" data-i18n="build.pen">Curral</span></button>
-<button class="build-btn hidden" id="btn-plot"><span class="build-icon">🟫</span><span class="build-label" data-i18n="build.plot">Lote</span></button>
+  <button class="build-btn hidden" id="btn-plot"><span class="build-icon">🟫</span><span class="build-label" data-i18n="build.plot">Lote</span></button>
   <button class="build-btn hidden" id="btn-dog"><span class="build-icon">🐕</span><span class="build-label" data-i18n="build.dog">Cachorro</span></button>
   <button class="build-btn hidden" id="btn-tractor"><span class="build-icon">🚜</span><span class="build-label" data-i18n="build.tractor">Trator</span></button>
-  <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
-  <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
-  <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
-  <button class="build-btn" id="btn-buy"><span class="build-icon">🛒</span><span class="build-label" data-i18n="build.buy">Comprar</span></button>
-</div>
-
-<!-- Controles de zoom -->
-<div id="zoom-controls">
-  <button id="btn-zoom-in" title="Aproximar">＋</button>
-  <button id="btn-zoom-out" title="Afastar">－</button>
-  <button id="btn-zoom-reset" title="Centralizar fazenda">⌖</button>
 </div>
 
 <!-- Botões de minimizar as colunas de ferramentas -->
@@ -765,7 +776,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v40</div>
+<div id="debug-badge">v41</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -775,6 +786,14 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   <span id="confirm-info"></span>
   <button id="confirm-ok" class="btn-ok">✓ Confirmar</button>
   <button id="confirm-cancel" class="btn-cancel">✕ Cancelar</button>
+</div>
+
+<!-- Menu de contexto em volta da construcao selecionada -->
+<div id="bctx" style="display:none">
+  <button class="bctx-btn" id="bctx-move" title="Mover">&#x1F590;&#xFE0F;</button>
+  <button class="bctx-btn" id="bctx-rotate" title="Girar">&#x21BB;</button>
+  <button class="bctx-btn" id="bctx-panel" title="Gerenciar">&#x1F4CA;</button>
+  <button class="bctx-btn" id="bctx-remove" title="Remover">&#x2716;&#xFE0F;</button>
 </div>
 
 <!-- Toast de avisos -->
@@ -1412,6 +1431,7 @@ const game = {
   weather: 'clear',       // clear | rain
   weatherT: 0,
   weatherTick: 0,
+  flashT: 0,
   ambT: 0,
   particles: [],          // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
   couriers: []            // entregador de moto (transiente, nao salva)
@@ -2094,6 +2114,7 @@ function seasonName() { return SEASONS[seasonIndex()]; }
 
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
 function updateWeather(dt) {
+  if (game.flashT > 0) game.flashT -= dt;
   if (game.visiting) return;
   if (game.weather === 'rain') {
     game.weatherT -= dt;
@@ -2102,6 +2123,7 @@ function updateWeather(dt) {
       game.weatherTick = 1.2;
       const dry = game.crops.filter(c => !c.watered && cropProgress(c) < 1);
       if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
+      if (Math.random() < 0.22) { game.flashT = 0.4; playSound('thunder'); }
     }
     if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
   } else {
@@ -2317,7 +2339,7 @@ function collectAnimal(a) {
     addCoins(value);
     game.stats.slaughtered = (game.stats.slaughtered || 0) + 1;
     spawnFloater(a.gx - 0.5, a.gy - 0.5, '+' + value + ' 🪙', '#ff8a65');
-    playSound('harvest');
+    playSound('pig');
     return true;
   }
   if (!a.product) return false;
@@ -2327,7 +2349,7 @@ function collectAnimal(a) {
   addCoins(value);
   spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
   a.product = 0;
-  playSound('harvest');
+  playSound(a.kind || 'harvest');
   return true;
 }
 
@@ -2780,6 +2802,11 @@ function render(ctx, cam, cw, ch, state) {
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
   if (seasonIndex() === 3) drawSnow(ctx, cam, cw, ch);
+  if (game.flashT > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, game.flashT * 1.8).toFixed(3) + ')';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+  if (typeof updateBuildingCtx === 'function' && state) updateBuildingCtx(cam, cw, ch);
 }
 
 /* ---------- Chuva ---------- */
@@ -5083,6 +5110,7 @@ function updateAnimals(dt) {
     if (a.product === undefined) a.product = 0;
     if (a.prodT === undefined) a.prodT = 0;
     animalUpdateOne(a, dt);
+    if (!game.visiting && Math.random() < dt * 0.004) playSound(a.kind);
   }
 }
 
@@ -7105,21 +7133,95 @@ function playSound(kind) {
   if (!game.settings.sound) return;
   try {
     const ac = getAudioCtx();
+    const T = ac.currentTime;
+    const blip = (f0, f1, dur, type, vol, at) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, T + (at || 0));
+      if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), T + (at || 0) + dur);
+      g.gain.setValueAtTime(vol, T + (at || 0));
+      g.gain.exponentialRampToValueAtTime(0.001, T + (at || 0) + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(T + (at || 0)); o.stop(T + (at || 0) + dur + 0.05);
+    };
+    if (kind === 'cow') { blip(160, 84, 0.6, 'sawtooth', 0.11); blip(320, 168, 0.55, 'triangle', 0.05); return; }
+    if (kind === 'pig') { blip(230, 150, 0.13, 'sawtooth', 0.11); blip(250, 160, 0.12, 'sawtooth', 0.1, 0.18); return; }
+    if (kind === 'chicken') { blip(880, 660, 0.09, 'square', 0.05); blip(980, 720, 0.08, 'square', 0.045, 0.12); blip(900, 640, 0.1, 'square', 0.04, 0.24); return; }
+    if (kind === 'sheep') { blip(520, 430, 0.28, 'triangle', 0.1); blip(500, 420, 0.22, 'triangle', 0.09, 0.3); return; }
+    if (kind === 'horse') { blip(980, 340, 0.7, 'sawtooth', 0.08); blip(1200, 500, 0.5, 'triangle', 0.04, 0.08); return; }
+    if (kind === 'dog') { blip(320, 200, 0.1, 'square', 0.11); blip(300, 190, 0.11, 'square', 0.1, 0.16); return; }
+    if (kind === 'thunder') {
+      const durT = 1.6;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durT), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) {
+        const k = i / d.length;
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 2.2) * (0.5 + 0.5 * Math.sin(k * 40));
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(420, T);
+      f.frequency.exponentialRampToValueAtTime(60, T + durT);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.55, T);
+      g.gain.exponentialRampToValueAtTime(0.001, T + durT);
+      src.connect(f); f.connect(g); g.connect(ac.destination);
+      src.start(T);
+      return;
+    }
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
       rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
       plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16], dig: [180, 0.14]
     };
     const [freq, dur] = notes[kind] || notes.click;
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.12, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
-    osc.connect(gain); gain.connect(ac.destination);
-    osc.start(); osc.stop(ac.currentTime + dur);
-  } catch (e) { /* áudio indisponível */ }
+    blip(freq, null, dur, 'triangle', 0.12);
+  } catch (e) { /* audio indisponivel */ }
+}
+
+/* ---------- Som de chuva (ruido filtrado em loop) ---------- */
+let rainNode = null, rainGain = null;
+function startRainSound() {
+  if (rainNode) return;
+  try {
+    const ac = getAudioCtx();
+    const len = Math.floor(ac.sampleRate * 2);
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let l = 0;
+    for (let i = 0; i < len; i++) {
+      l = l * 0.96 + (Math.random() * 2 - 1) * 0.04;
+      d[i] = l * 3;
+    }
+    rainNode = ac.createBufferSource();
+    rainNode.buffer = buf;
+    rainNode.loop = true;
+    const filt = ac.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 900;
+    rainGain = ac.createGain();
+    rainGain.gain.setValueAtTime(0.001, ac.currentTime);
+    rainGain.gain.linearRampToValueAtTime(0.16, ac.currentTime + 1.5);
+    rainNode.connect(filt); filt.connect(rainGain); rainGain.connect(ac.destination);
+    rainNode.start();
+  } catch (e) { rainNode = null; }
+}
+function stopRainSound() {
+  if (!rainNode) return;
+  try {
+    const ac = getAudioCtx();
+    const n = rainNode;
+    rainGain.gain.linearRampToValueAtTime(0.001, ac.currentTime + 0.8);
+    setTimeout(() => { try { n.stop(); } catch (e2) { /* noop */ } }, 900);
+  } catch (e) { /* noop */ }
+  rainNode = null;
+  rainGain = null;
+}
+function updateRainSound() {
+  if (game.weather === 'rain' && game.settings.sound) startRainSound();
+  else stopRainSound();
 }
 
 /* ---------- Música ambiente (gerada, sem arquivos) ---------- */
@@ -8347,13 +8449,11 @@ function bindUi(handlers) {
   $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
-  $('btn-move').onclick = () => handlers.move();
-  $('btn-remove').onclick = () => handlers.remove();
-  $('btn-rotate').onclick = () => handlers.rotate();
-  $('btn-zoom-in').onclick = () => zoomHandlers.zoomIn();
-  $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
-  $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
+  $('bctx-move').onclick = () => handlers.ctxMove();
+  $('bctx-rotate').onclick = () => handlers.ctxRotate();
+  $('bctx-panel').onclick = () => handlers.ctxPanel();
+  $('bctx-remove').onclick = () => handlers.ctxRemove();
   $('btn-leave-visit').onclick = () => { if (mpStatus === 'visiting') leaveVisitMode(); };
 
   $('btn-collapse-left').onclick = () => {
@@ -8606,7 +8706,8 @@ const state = {
   rotateId: null,
   ghostPinned: false,  // posição fixa aguardando confirmação
   highlightTile: null,
-  selectedSeed: 'wheat'
+  selectedSeed: 'wheat',
+  selId: null
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -8645,7 +8746,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v40';
+const GAME_VERSION = 'v41';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -9020,10 +9121,12 @@ function handleClick(e) {
       return;
     }
     const bld = buildingAt(g.gx, g.gy);
-    if (bld && ['house', 'barn', 'stable', 'coop'].includes(bld.type)) {
-      openBuildingPanel(bld.type);
+    if (bld && !bld.isCrop) {
+      state.selId = (state.selId === bld.id) ? null : bld.id;
+      playSound('click');
       return;
     }
+    if (state.selId) { state.selId = null; return; }
   }
 
   // modo normal: colher plantação pronta ou destacar construção
@@ -9045,6 +9148,41 @@ function handleClick(e) {
   }
 }
 
+/* ---------- Menu de contexto em volta da construcao selecionada ---------- */
+const CTX_PANEL_TYPES = ['house', 'barn', 'stable', 'coop'];
+function updateBuildingCtx(cam, cw, ch) {
+  const el = document.getElementById('bctx');
+  if (!el || !el.style) return;
+  const sel = state.selId ? game.buildings.find(b => b.id === state.selId) : null;
+  if (!sel || state.mode !== 'idle' || game.visiting) {
+    el.style.display = 'none';
+    if (!sel) state.highlightTile = null;
+    return;
+  }
+  const def = BUILDINGS[sel.type];
+  const canRot = def.w !== 1 || def.d !== 1 || sel.type === 'fence';
+  const showPanel = CTX_PANEL_TYPES.indexOf(sel.type) !== -1;
+  el.style.display = 'block';
+  const kids = [];
+  const list = el.children || [];
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i];
+    if (!c || !c.style) continue;
+    if (c.id === 'bctx-rotate') c.style.display = canRot ? 'flex' : 'none';
+    else if (c.id === 'bctx-panel') c.style.display = showPanel ? 'flex' : 'none';
+    else c.style.display = 'flex';
+    if (c.style.display !== 'none') kids.push(c);
+  }
+  const p3 = projectPoint(sel.gx + def.w / 2, sel.gy + def.d / 2, 1.2);
+  const p = worldToScreen(cam, p3.x, p3.y, cw, ch);
+  const R = 44 + 16 * cam.zoom;
+  for (let i = 0; i < kids.length; i++) {
+    const a = Math.PI - Math.PI * (i + 1) / (kids.length + 1);
+    kids[i].style.left = Math.round(p.x + Math.cos(a) * R * 1.3) + 'px';
+    kids[i].style.top = Math.round(p.y - Math.sin(a) * R) + 'px';
+  }
+}
+
 /* ---------- Fantasma ---------- */
 function updateGhostPosition(gx, gy) {
   if (!state.ghost) return;
@@ -9062,12 +9200,13 @@ function setMode(mode) {
   state.ghostPinned = false;
   state.moveId = null;
   state.rotateId = null;
+  state.selId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
   canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -9084,24 +9223,6 @@ const uiHandlers = {
     if (state.mode === 'build' && !state.ghostPinned) { setMode('idle'); return; }
     playSound('click');
     openShop();
-  },
-  move() {
-    playSound('click');
-    if (state.mode === 'move') { setMode('idle'); return; }
-    setMode('move');
-    showToast(t('toast.moveHint'));
-  },
-  remove() {
-    playSound('click');
-    if (state.mode === 'remove') { setMode('idle'); return; }
-    setMode('remove');
-    showToast(t('toast.removeHint'));
-  },
-  rotate() {
-    playSound('click');
-    if (state.mode === 'rotate') { setMode('idle'); return; }
-    setMode('rotate');
-    showToast(t('toast.rotateHint'));
   },
   confirmOk() {
     if (state.mode === 'build' && state.ghost) {
@@ -9136,6 +9257,54 @@ const uiHandlers = {
   },
   confirmCancel() {
     setMode('idle');
+  },
+  ctxMove() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    setMode('move');
+    state.moveId = sel.id;
+    state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: sel.rot, valid: true };
+    updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
+    showToast(t('toast.moveSelect'));
+  },
+  ctxRotate() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    const def = BUILDINGS[sel.type];
+    if (def.w === 1 && def.d === 1) { showToast(t('toast.noRotate')); return; }
+    playSound('click');
+    setMode('rotate');
+    state.rotateId = sel.id;
+    const newRot = (sel.rot + 1) % 4;
+    const valid = canPlace(sel.type, sel.gx, sel.gy, newRot, sel.id);
+    state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: newRot, valid };
+    state.ghostPinned = true;
+    showConfirmBar(t('confirm.rotate'));
+  },
+  ctxRemove() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    const def = BUILDINGS[sel.type];
+    confirmDialog(
+      t('dialog.removeText', { icon: def.icon, name: t('b_' + def.id), refund: Math.floor(def.price * def.refund).toLocaleString('pt-BR') }),
+      () => {
+        const r = removeBuilding(sel.id);
+        if (r) showToast(t('toast.removed', { refund: r.refund.toLocaleString('pt-BR') }));
+        refreshHud();
+        autoClaimReady();
+      });
+  },
+  ctxPanel() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    openBuildingPanel(sel.type);
   },
   plant() {
     playSound('click');
@@ -9336,6 +9505,7 @@ function loop(ts) {
     if (!game.visiting) {
       advanceClock(dt);
       updateWeather(dt);
+      updateRainSound();
       updateAnimals(dt);
       updateFarmers(dt);
       updateDogs(dt);

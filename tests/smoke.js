@@ -822,6 +822,22 @@ vm.runInContext(`
   if (game.seeds.wheat !== undefined) throw new Error('semente do estoque nao consumida');
   if (game.coins !== seedCoins - CROPS.wheat.seedCost) throw new Error('plantio com semente pagou moedas');
 
+  // R33: menu de contexto da construcao, sons e trovao
+  state.mode = 'idle'; game.visiting = false;
+  const cb1 = game.buildings[game.buildings.length - 1];
+  if (!cb1) throw new Error('sem construcao para menu de contexto');
+  state.selId = cb1.id;
+  updateBuildingCtx(cam, 800, 600);
+  if (document.getElementById('bctx').style.display !== 'block') throw new Error('menu de contexto nao abriu');
+  state.selId = null;
+  updateBuildingCtx(cam, 800, 600);
+  if (document.getElementById('bctx').style.display !== 'none') throw new Error('menu de contexto nao fechou');
+  for (const sk of ['thunder', 'cow', 'pig', 'sheep', 'horse', 'dog', 'chicken', 'dig']) playSound(sk);
+  game.flashT = 0.5;
+  updateWeather(0.2);
+  if (Math.abs(game.flashT - 0.3) > 0.001) throw new Error('flash do trovao nao decai');
+  game.flashT = 0;
+
   // R32: lote arado compravel
   game.coins = 999999;
   let plotDone = false;

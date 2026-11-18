@@ -47,6 +47,7 @@ const game = {
   weather: 'clear',       // clear | rain
   weatherT: 0,
   weatherTick: 0,
+  flashT: 0,
   ambT: 0,
   particles: [],          // {x,y,z,vx,vy,vz,life,ttl,g,color,size}
   couriers: []            // entregador de moto (transiente, nao salva)
@@ -729,6 +730,7 @@ function seasonName() { return SEASONS[seasonIndex()]; }
 
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
 function updateWeather(dt) {
+  if (game.flashT > 0) game.flashT -= dt;
   if (game.visiting) return;
   if (game.weather === 'rain') {
     game.weatherT -= dt;
@@ -737,6 +739,7 @@ function updateWeather(dt) {
       game.weatherTick = 1.2;
       const dry = game.crops.filter(c => !c.watered && cropProgress(c) < 1);
       if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
+      if (Math.random() < 0.22) { game.flashT = 0.4; playSound('thunder'); }
     }
     if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
   } else {
@@ -952,7 +955,7 @@ function collectAnimal(a) {
     addCoins(value);
     game.stats.slaughtered = (game.stats.slaughtered || 0) + 1;
     spawnFloater(a.gx - 0.5, a.gy - 0.5, '+' + value + ' 🪙', '#ff8a65');
-    playSound('harvest');
+    playSound('pig');
     return true;
   }
   if (!a.product) return false;
@@ -962,7 +965,7 @@ function collectAnimal(a) {
   addCoins(value);
   spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
   a.product = 0;
-  playSound('harvest');
+  playSound(a.kind || 'harvest');
   return true;
 }
 

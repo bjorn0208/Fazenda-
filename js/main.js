@@ -13,7 +13,8 @@ const state = {
   rotateId: null,
   ghostPinned: false,  // posição fixa aguardando confirmação
   highlightTile: null,
-  selectedSeed: 'wheat'
+  selectedSeed: 'wheat',
+  selId: null
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -52,7 +53,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v40';
+const GAME_VERSION = 'v41';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -427,10 +428,12 @@ function handleClick(e) {
       return;
     }
     const bld = buildingAt(g.gx, g.gy);
-    if (bld && ['house', 'barn', 'stable', 'coop'].includes(bld.type)) {
-      openBuildingPanel(bld.type);
+    if (bld && !bld.isCrop) {
+      state.selId = (state.selId === bld.id) ? null : bld.id;
+      playSound('click');
       return;
     }
+    if (state.selId) { state.selId = null; return; }
   }
 
   // modo normal: colher plantação pronta ou destacar construção
@@ -452,6 +455,41 @@ function handleClick(e) {
   }
 }
 
+/* ---------- Menu de contexto em volta da construcao selecionada ---------- */
+const CTX_PANEL_TYPES = ['house', 'barn', 'stable', 'coop'];
+function updateBuildingCtx(cam, cw, ch) {
+  const el = document.getElementById('bctx');
+  if (!el || !el.style) return;
+  const sel = state.selId ? game.buildings.find(b => b.id === state.selId) : null;
+  if (!sel || state.mode !== 'idle' || game.visiting) {
+    el.style.display = 'none';
+    if (!sel) state.highlightTile = null;
+    return;
+  }
+  const def = BUILDINGS[sel.type];
+  const canRot = def.w !== 1 || def.d !== 1 || sel.type === 'fence';
+  const showPanel = CTX_PANEL_TYPES.indexOf(sel.type) !== -1;
+  el.style.display = 'block';
+  const kids = [];
+  const list = el.children || [];
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i];
+    if (!c || !c.style) continue;
+    if (c.id === 'bctx-rotate') c.style.display = canRot ? 'flex' : 'none';
+    else if (c.id === 'bctx-panel') c.style.display = showPanel ? 'flex' : 'none';
+    else c.style.display = 'flex';
+    if (c.style.display !== 'none') kids.push(c);
+  }
+  const p3 = projectPoint(sel.gx + def.w / 2, sel.gy + def.d / 2, 1.2);
+  const p = worldToScreen(cam, p3.x, p3.y, cw, ch);
+  const R = 44 + 16 * cam.zoom;
+  for (let i = 0; i < kids.length; i++) {
+    const a = Math.PI - Math.PI * (i + 1) / (kids.length + 1);
+    kids[i].style.left = Math.round(p.x + Math.cos(a) * R * 1.3) + 'px';
+    kids[i].style.top = Math.round(p.y - Math.sin(a) * R) + 'px';
+  }
+}
+
 /* ---------- Fantasma ---------- */
 function updateGhostPosition(gx, gy) {
   if (!state.ghost) return;
@@ -469,12 +507,13 @@ function setMode(mode) {
   state.ghostPinned = false;
   state.moveId = null;
   state.rotateId = null;
+  state.selId = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
   canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -491,24 +530,6 @@ const uiHandlers = {
     if (state.mode === 'build' && !state.ghostPinned) { setMode('idle'); return; }
     playSound('click');
     openShop();
-  },
-  move() {
-    playSound('click');
-    if (state.mode === 'move') { setMode('idle'); return; }
-    setMode('move');
-    showToast(t('toast.moveHint'));
-  },
-  remove() {
-    playSound('click');
-    if (state.mode === 'remove') { setMode('idle'); return; }
-    setMode('remove');
-    showToast(t('toast.removeHint'));
-  },
-  rotate() {
-    playSound('click');
-    if (state.mode === 'rotate') { setMode('idle'); return; }
-    setMode('rotate');
-    showToast(t('toast.rotateHint'));
   },
   confirmOk() {
     if (state.mode === 'build' && state.ghost) {
@@ -543,6 +564,54 @@ const uiHandlers = {
   },
   confirmCancel() {
     setMode('idle');
+  },
+  ctxMove() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    setMode('move');
+    state.moveId = sel.id;
+    state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: sel.rot, valid: true };
+    updateGhostPosition(lastPointerGrid.gx, lastPointerGrid.gy);
+    showToast(t('toast.moveSelect'));
+  },
+  ctxRotate() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    const def = BUILDINGS[sel.type];
+    if (def.w === 1 && def.d === 1) { showToast(t('toast.noRotate')); return; }
+    playSound('click');
+    setMode('rotate');
+    state.rotateId = sel.id;
+    const newRot = (sel.rot + 1) % 4;
+    const valid = canPlace(sel.type, sel.gx, sel.gy, newRot, sel.id);
+    state.ghost = { type: sel.type, gx: sel.gx, gy: sel.gy, rot: newRot, valid };
+    state.ghostPinned = true;
+    showConfirmBar(t('confirm.rotate'));
+  },
+  ctxRemove() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    const def = BUILDINGS[sel.type];
+    confirmDialog(
+      t('dialog.removeText', { icon: def.icon, name: t('b_' + def.id), refund: Math.floor(def.price * def.refund).toLocaleString('pt-BR') }),
+      () => {
+        const r = removeBuilding(sel.id);
+        if (r) showToast(t('toast.removed', { refund: r.refund.toLocaleString('pt-BR') }));
+        refreshHud();
+        autoClaimReady();
+      });
+  },
+  ctxPanel() {
+    const sel = game.buildings.find(b => b.id === state.selId);
+    state.selId = null;
+    if (!sel) return;
+    playSound('click');
+    openBuildingPanel(sel.type);
   },
   plant() {
     playSound('click');
@@ -743,6 +812,7 @@ function loop(ts) {
     if (!game.visiting) {
       advanceClock(dt);
       updateWeather(dt);
+      updateRainSound();
       updateAnimals(dt);
       updateFarmers(dt);
       updateDogs(dt);

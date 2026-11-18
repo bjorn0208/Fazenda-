@@ -559,21 +559,95 @@ function playSound(kind) {
   if (!game.settings.sound) return;
   try {
     const ac = getAudioCtx();
+    const T = ac.currentTime;
+    const blip = (f0, f1, dur, type, vol, at) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, T + (at || 0));
+      if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), T + (at || 0) + dur);
+      g.gain.setValueAtTime(vol, T + (at || 0));
+      g.gain.exponentialRampToValueAtTime(0.001, T + (at || 0) + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(T + (at || 0)); o.stop(T + (at || 0) + dur + 0.05);
+    };
+    if (kind === 'cow') { blip(160, 84, 0.6, 'sawtooth', 0.11); blip(320, 168, 0.55, 'triangle', 0.05); return; }
+    if (kind === 'pig') { blip(230, 150, 0.13, 'sawtooth', 0.11); blip(250, 160, 0.12, 'sawtooth', 0.1, 0.18); return; }
+    if (kind === 'chicken') { blip(880, 660, 0.09, 'square', 0.05); blip(980, 720, 0.08, 'square', 0.045, 0.12); blip(900, 640, 0.1, 'square', 0.04, 0.24); return; }
+    if (kind === 'sheep') { blip(520, 430, 0.28, 'triangle', 0.1); blip(500, 420, 0.22, 'triangle', 0.09, 0.3); return; }
+    if (kind === 'horse') { blip(980, 340, 0.7, 'sawtooth', 0.08); blip(1200, 500, 0.5, 'triangle', 0.04, 0.08); return; }
+    if (kind === 'dog') { blip(320, 200, 0.1, 'square', 0.11); blip(300, 190, 0.11, 'square', 0.1, 0.16); return; }
+    if (kind === 'thunder') {
+      const durT = 1.6;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durT), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) {
+        const k = i / d.length;
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 2.2) * (0.5 + 0.5 * Math.sin(k * 40));
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(420, T);
+      f.frequency.exponentialRampToValueAtTime(60, T + durT);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.55, T);
+      g.gain.exponentialRampToValueAtTime(0.001, T + durT);
+      src.connect(f); f.connect(g); g.connect(ac.destination);
+      src.start(T);
+      return;
+    }
     const notes = {
       click: [660, 0.05], place: [520, 0.12], remove: [220, 0.15],
       rotate: [440, 0.08], level: [784, 0.2], error: [180, 0.18],
       plant: [392, 0.1], water: [330, 0.12], harvest: [880, 0.16], dig: [180, 0.14]
     };
     const [freq, dur] = notes[kind] || notes.click;
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.12, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
-    osc.connect(gain); gain.connect(ac.destination);
-    osc.start(); osc.stop(ac.currentTime + dur);
-  } catch (e) { /* áudio indisponível */ }
+    blip(freq, null, dur, 'triangle', 0.12);
+  } catch (e) { /* audio indisponivel */ }
+}
+
+/* ---------- Som de chuva (ruido filtrado em loop) ---------- */
+let rainNode = null, rainGain = null;
+function startRainSound() {
+  if (rainNode) return;
+  try {
+    const ac = getAudioCtx();
+    const len = Math.floor(ac.sampleRate * 2);
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let l = 0;
+    for (let i = 0; i < len; i++) {
+      l = l * 0.96 + (Math.random() * 2 - 1) * 0.04;
+      d[i] = l * 3;
+    }
+    rainNode = ac.createBufferSource();
+    rainNode.buffer = buf;
+    rainNode.loop = true;
+    const filt = ac.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 900;
+    rainGain = ac.createGain();
+    rainGain.gain.setValueAtTime(0.001, ac.currentTime);
+    rainGain.gain.linearRampToValueAtTime(0.16, ac.currentTime + 1.5);
+    rainNode.connect(filt); filt.connect(rainGain); rainGain.connect(ac.destination);
+    rainNode.start();
+  } catch (e) { rainNode = null; }
+}
+function stopRainSound() {
+  if (!rainNode) return;
+  try {
+    const ac = getAudioCtx();
+    const n = rainNode;
+    rainGain.gain.linearRampToValueAtTime(0.001, ac.currentTime + 0.8);
+    setTimeout(() => { try { n.stop(); } catch (e2) { /* noop */ } }, 900);
+  } catch (e) { /* noop */ }
+  rainNode = null;
+  rainGain = null;
+}
+function updateRainSound() {
+  if (game.weather === 'rain' && game.settings.sound) startRainSound();
+  else stopRainSound();
 }
 
 /* ---------- Música ambiente (gerada, sem arquivos) ---------- */
@@ -1801,13 +1875,11 @@ function bindUi(handlers) {
   $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
-  $('btn-move').onclick = () => handlers.move();
-  $('btn-remove').onclick = () => handlers.remove();
-  $('btn-rotate').onclick = () => handlers.rotate();
-  $('btn-zoom-in').onclick = () => zoomHandlers.zoomIn();
-  $('btn-zoom-out').onclick = () => zoomHandlers.zoomOut();
-  $('btn-zoom-reset').onclick = () => zoomHandlers.zoomReset();
   $('btn-buy').onclick = openBuyMenu;
+  $('bctx-move').onclick = () => handlers.ctxMove();
+  $('bctx-rotate').onclick = () => handlers.ctxRotate();
+  $('bctx-panel').onclick = () => handlers.ctxPanel();
+  $('bctx-remove').onclick = () => handlers.ctxRemove();
   $('btn-leave-visit').onclick = () => { if (mpStatus === 'visiting') leaveVisitMode(); };
 
   $('btn-collapse-left').onclick = () => {

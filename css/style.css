@@ -153,10 +153,15 @@ html, body {
   bottom: calc(180px + env(safe-area-inset-bottom, 0px));
   right: calc(10px + env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; justify-content: flex-start;
-  gap: 10px; z-index: 15;
+  gap: 8px; z-index: 15;
   overflow-y: auto; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
-          mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  background: linear-gradient(180deg, rgba(255,253,246,0.96), rgba(255,248,231,0.96));
+  border: 3px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 8px 6px;
+  box-shadow: 0 4px 0 rgba(0,0,0,.18);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
 #build-bar::-webkit-scrollbar { display: none; }
 
@@ -186,13 +191,21 @@ html, body {
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   width: 84px; padding: 9px 4px;
-  background: var(--wood); color: #fff;
-  border: 3px solid var(--wood-dark); border-radius: 14px;
-  box-shadow: 0 4px 0 rgba(0,0,0,.3);
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  color: #4e342e;
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  border-radius: 13px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.22);
   font-weight: bold; font-size: 12px; cursor: pointer;
 }
-.build-btn:hover { filter: brightness(1.1); }
-.build-btn.active { background: var(--green); border-color: var(--green-dark); }
+.build-btn:hover { filter: brightness(1.05); }
+.build-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
+.build-btn.active {
+  background: linear-gradient(180deg, #66bb6a, #43a047);
+  color: #fff;
+  border-color: var(--green-dark);
+}
 .build-icon { font-size: 22px; }
 
 /* ---------- Barra de confirmação ---------- */
@@ -216,22 +229,6 @@ html, body {
 .btn-cancel:hover { background: #90a4ae; }
 
 /* ---------- Controles de zoom ---------- */
-#zoom-controls {
-  position: absolute;
-  left: calc(12px + env(safe-area-inset-left, 0px));
-  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: column; gap: 8px; z-index: 15;
-}
-#zoom-controls button {
-  width: 46px; height: 46px;
-  background: var(--panel); color: var(--text);
-  border: 3px solid var(--panel-border); border-radius: 12px;
-  box-shadow: 0 3px 0 rgba(0,0,0,.25);
-  font-size: 22px; font-weight: bold; cursor: pointer;
-  line-height: 1; padding: 0;
-}
-#zoom-controls button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
-
 /* ---------- Botões de minimizar colunas ---------- */
 .collapse-btn {
   position: absolute;
@@ -247,13 +244,39 @@ html, body {
 #btn-collapse-left { left: calc(10px + env(safe-area-inset-left, 0px)); }
 #btn-collapse-right { right: calc(10px + env(safe-area-inset-right, 0px)); }
 .collapse-arrow { display: inline-block; transition: transform .25s ease; }
+.side-btn.active { background: var(--green); color: #fff; border-color: var(--green-dark); }
+
+/* ---------- Menu de contexto da construcao selecionada ---------- */
+#bctx {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0; height: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+.bctx-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.bctx-btn:active { transform: translate(-50%, -50%) scale(0.94); }
 body.tools-left-hidden #btn-collapse-left .collapse-arrow,
 body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(180deg); }
 
 #side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
 body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
-body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -381,8 +404,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 }
 
 @media (max-width: 480px) {
-  #zoom-controls { bottom: 88px; left: 8px; }
-  #zoom-controls button { width: 40px; height: 40px; font-size: 18px; border-width: 2px; }
   #build-bar {
     top: calc(108px + env(safe-area-inset-top, 0px));
     bottom: calc(150px + env(safe-area-inset-bottom, 0px));

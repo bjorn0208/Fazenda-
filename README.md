@@ -179,6 +179,17 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 33 — Menu de contexto nas construções, som completo e visual mais realista
+
+- **Mover, Remover e Girar saíram da coluna**: agora basta **tocar em qualquer construção** (casa, restaurante, celeiro, decoração…) e as opções aparecem **em volta dela**, flutuando no mapa: 🖐 Mover, ↻ Girar (só para coisas que giram), 📊 Gerenciar (casa, celeiro, estábulo e galinheiro) e ✖️ Remover. Tocar no chão fecha o menu.
+- **Construir e Comprar foram para a coluna da esquerda**, junto de Loja, Missões e Configuração; a coluna da direita ficou só com as ferramentas de trabalho.
+- **Botão ativo muda de cor**: todo modo acionado (arar, plantar, regar, construir, curral, lote, pá…) fica **verde** até ser desligado — inclusive Construir/Comprar na coluna esquerda.
+- **Som para tudo**: as ferramentas jà tinham — agora os **animais fazem barulho** e soltam o som certo na coleta: galinha cacareja, vaca muge, porco grunhe, ovelha bale, cavalo relincha e cachorro late; e os sons acontecem sozinhos conforme os bichos passeiam pela fazenda. Tudo sintetizado na hora, sem arquivos.
+- **Chuva com trovão**: quando chove, toca o **barulho da chuva** (ruido continuo) e de vez em quando vem **trovão com relâmpago** — um clarão branco na tela junto do estrondo.
+- **Zoom e centralizar removidos**: o controle de zoom sumiu da tela — **só os dedos** (pinça para zoom, arrastar para mover).
+- **Coluna da direita branca e botões mais realistas**: a barra de ferramentas virou um painel branco como os outros, e os botões ganharam gradiente, borda tridimensional e afundam ao toque.
+- Versão **v41** (service worker, cache-busting e standalone atualizados).
+
 ## Revisão 32 — Decorações, lote já arado e saúde dos fazendeiros
 
 - **11 decorações novas na loja (aba Decorações)** para preencher o mapa: Fardo de Feno 🌾 (40), Banco de Jardim 🪑 (65), Placa da Fazenda 🪧 (45), Poste de Luz 🏮 (60, nível 2), Canteiro Duplo 💐 (70, nível 2), Jardim de Cogumelos 🍄 (55, nível 2), Espantalho 🧑‍🌾 (90, nível 2), Mesa de Piquenique 🍽️ (110, nível 3), Estátua de Jardim 🗿 (140, nível 3), Fonte ⛲ (420, nível 4) e Moinho de Vento 🌀 (900, nível 6) — todos desenhados em canvas com sombra e detalhes próprios: jatos animados na fonte, pás do moinho girando ao vento, poste que acende de noite, cogumelos que brilham no escuro e espantalho que muda a camisa ao anoitecer.
