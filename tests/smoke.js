@@ -126,9 +126,17 @@ for (const f of SCRIPTS) {
 }
 
 vm.runInContext(`
-  // jogo novo: casa e poco iniciais dentro da area possuida
-  if (!game.buildings.some(b => b.type === 'house')) throw new Error('jogo novo sem casa (init)');
-  if (!game.buildings.some(b => b.type === 'well')) throw new Error('jogo novo sem poco (init)');
+  // jogo novo: comeca vazio (sem casa, sem poco, sem animais) com a cutscene do carro
+  if (game.buildings.length !== 0) throw new Error('jogo novo com construcoes (init)');
+  if (game.animals.length !== 0) throw new Error('jogo novo com animais (init)');
+  if (!introActive()) throw new Error('jogo novo sem cutscene do carro (init)');
+  render(ctx, cam, 800, 600, state);
+  if (game.farmers.length !== 0) throw new Error('jogo novo com fazendeiros antes da cutscene');
+  finishIntro();
+  if (game.farmers.length !== 1) throw new Error('cutscene nao gerou o fazendeiro inicial');
+  if (!game.introDone) throw new Error('cutscene nao marcou introDone');
+  if (!tutorialActive()) throw new Error('tutorial nao comecou apos a cutscene');
+  if (t('build.till') === 'build.till') throw new Error('chave build.till sem traducao');
 
   // render base com todas as construcoes do catalogo
   game.coins = 999999;
@@ -233,6 +241,8 @@ vm.runInContext(`
   if (!collectAnimal(hen)) throw new Error('coleta de ovo falhou');
   if (game.coins !== coinsBefore + 30) throw new Error('valor do ovo errado');
   if (hen.product !== 0) throw new Error('produto nao zerado');
+  game.coins = 999999;
+  if (!buyAnimal('cow')) throw new Error('compra de vaca no teste falhou');
   const cow2 = game.animals.find(a => a.kind === 'cow');
   cow2.product = 1;
   if (!collectAnimal(cow2)) throw new Error('coleta de leite falhou');
@@ -831,6 +841,7 @@ vm.runInContext(`
   if (!PLAYER_FACES.includes(game.playerFace)) throw new Error('foto do jogador invalida');
 
   // tutorial: avanca por acoes e terminal por skip
+  tutAdvance('shop');
   tutAdvance('till');
   if (!tutorialActive()) throw new Error('tutorial deveria estar ativo apos 1 passo');
   tutSkip();

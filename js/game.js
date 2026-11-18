@@ -13,6 +13,7 @@ const game = {
   level: 1,
   farmName: 'Fazenda do Jogador',
   ownedArea: { ...START_AREA },
+  intro: null, introDone: false,
   buildings: [],          // {id, type, gx, gy, rot}
   crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
@@ -1126,7 +1127,7 @@ function snapshotData() {
     pen: game.pen, dogs: game.dogs, time: game.time,
     barn: game.barn, orders: game.orders, upgrades: game.upgrades,
     day: game.day, weather: game.weather, weatherT: game.weatherT,
-    tutorialDone: game.tutorialDone,
+    tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
@@ -1185,6 +1186,8 @@ function applySaveData(data) {
       barn: data.barn ?? {}, orders: data.orders ?? [],
       upgrades: applyToolMigration(data), 
       tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
+      introDone: data.introDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1 || (data.buildings || []).length > 0),
+      intro: null,
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},

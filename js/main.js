@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v36';
+const GAME_VERSION = 'v37';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -100,6 +100,7 @@ function beginPinch() {
 
 function onDown(e) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (game.intro) return;
   if (e.pointerType === 'mouse') {
     pointer.down = true; pointer.dragging = false;
     pointer.sx = e.clientX; pointer.sy = e.clientY;
@@ -651,8 +652,60 @@ for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'col
   const orig = uiHandlers[k];
   uiHandlers[k] = (...a) => {
     if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+    if (game.intro) return;
     orig(...a);
   };
+}
+
+/* ---------- Cutscene inicial: chega de carro com o amigo ---------- */
+function introActive() { return !!(game.intro && !game.visiting); }
+
+function startIntroCutscene() {
+  const a = game.ownedArea;
+  game.intro = { phase: 'arrive', t: 0, x: a.x0 - 9, y: a.y0 - 14 };
+}
+
+function finishIntro() {
+  if (!game.intro) return;
+  game.intro = null;
+  game.introDone = true;
+  const a = game.ownedArea;
+  const spot = { x: a.x0 + 2, y: a.y0 + 3 };
+  game.farmers.push({
+    id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1, phase: Math.random() * 10,
+    chest: {}, role: 'all'
+  });
+  saveGame(false);
+  centerCamera();
+  setupTutorial();
+  showToast(t('toast.welcome'));
+}
+
+function updateIntro(dt) {
+  if (!introActive()) return;
+  const it = game.intro;
+  it.t += dt;
+  const a = game.ownedArea;
+  const p0 = { x: a.x0 - 9, y: a.y0 - 14 };
+  const stop = { x: a.x0 + 2, y: a.y0 - 1 };
+  if (it.phase === 'arrive') {
+    const k = Math.min(1, it.t / 5.5);
+    it.x = p0.x + (stop.x - p0.x) * k;
+    it.y = p0.y + (stop.y - p0.y) * k;
+    if (k >= 1) { it.phase = 'drop'; it.t = 0; }
+  } else if (it.phase === 'drop') {
+    if (it.t >= 2.4) { it.phase = 'leave'; it.t = 0; it.sx = stop.x; it.sy = stop.y; }
+  } else if (it.phase === 'leave') {
+    const k = Math.min(1, it.t / 5);
+    it.x = it.sx + (p0.x - it.sx) * k;
+    it.y = it.sy + (p0.y - it.sy) * k;
+    if (k >= 1) finishIntro();
+  }
+  const c = projectPoint(it.x, it.y, 0);
+  cam.x = c.x; cam.y = c.y;
+  clampCamera();
 }
 
 /* ---------- Salvamento ao sair ---------- */
@@ -679,6 +732,7 @@ function loop(ts) {
       updateTractor(dt);
       updateParticles(dt);
       updateAmbient(dt);
+      updateIntro(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
@@ -699,24 +753,23 @@ function init() {
   resize();
   const loaded = loadGame();
   ensureFarmCode();
-  if (!loaded) {
-    // propriedade inicial: casa e poço já construídos (dentro da área inicial)
-    placeBuilding('house', 21, 21, 0, true);
-    placeBuilding('well', 25, 25, 0, true);
-    saveGame(false);
+  if (!loaded || !game.introDone) {
+    // jogo novo comeca vazio (sem casa, sem poco e sem animais) com a cutscene do carro;
+    // se o jogador fechar no meio da cutscene, ela recomeca ao voltar
+    startIntroCutscene();
+    if (!loaded) saveGame(false);
   }
   game.stats.level = game.level;
   game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
-  spawnAnimals();
+  if (loaded) spawnAnimals();
   applyLang();
   centerCamera();
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
-  setupTutorial();
+  if (!game.intro) setupTutorial();
   requestAnimationFrame(loop);
-  if (!loaded) showToast(t('toast.welcome'));
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
   }

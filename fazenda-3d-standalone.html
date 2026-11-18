@@ -176,9 +176,9 @@ html, body {
 #seed-bar {
   position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 8px; padding: 8px 10px;
-  background: rgba(255,255,255,0.95); border: 2px solid var(--wood-dark);
+  background: #fff; border: 2px solid var(--wood-dark);
   border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  max-width: 94vw; overflow-x: auto; z-index: 16;
+  max-width: min(378px, 94vw); overflow-x: auto; z-index: 16; flex-wrap: nowrap;
 }
 .seed-item {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -390,6 +390,13 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
     flex-wrap: wrap; justify-content: center;
     font-size: 13px;
   }
+  #tut-bar {
+    top: calc(112px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    max-width: calc(100vw - 20px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
   #modal { max-height: 88vh; max-height: 88dvh; }
 }
 
@@ -427,7 +434,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   .side-icon { font-size: 16px; }
 
 
-  #seed-bar { bottom: 84px; padding: 6px 8px; gap: 6px; max-width: 94vw; }
+  #seed-bar { bottom: 84px; padding: 6px 8px; gap: 6px; max-width: min(334px, 92vw); }
   .seed-item { min-width: 58px; padding: 5px 6px; }
   .seed-icon { font-size: 19px; }
   .seed-name { font-size: 10px; }
@@ -436,7 +443,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   #confirm-bar { bottom: 84px; padding: 7px 10px; gap: 7px; font-size: 12px; border-width: 2px; }
   .btn-ok, .btn-cancel { padding: 7px 12px; font-size: 12px; }
 
-  #toast { top: 132px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
+  #toast { top: 190px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
 
   #modal { width: 96vw; max-height: 90dvh; border-width: 3px; border-radius: 14px; }
   #modal-title { font-size: 16px; }
@@ -750,12 +757,12 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <div id="build-bar">
   <button class="build-btn" id="btn-build"><span class="build-icon">🪧</span><span class="build-label" data-i18n="build.build">Construir</span></button>
   <button class="build-btn" id="btn-shovel"><span class="build-icon">🪏</span><span class="build-label" data-i18n="build.shovel">Pá</span></button>
-  <button class="build-btn" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
-  <button class="build-btn" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
-  <button class="build-btn" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
-  <button class="build-btn" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
-  <button class="build-btn" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
-  <button class="build-btn" id="btn-pen"><span class="build-icon">🚧</span><span class="build-label" data-i18n="build.pen">Curral</span></button>
+  <button class="build-btn hidden" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
+  <button class="build-btn hidden" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
+  <button class="build-btn hidden" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
+  <button class="build-btn hidden" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
+  <button class="build-btn hidden" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
+  <button class="build-btn hidden" id="btn-pen"><span class="build-icon">🚧</span><span class="build-label" data-i18n="build.pen">Curral</span></button>
   <button class="build-btn hidden" id="btn-dog"><span class="build-icon">🐕</span><span class="build-label" data-i18n="build.dog">Cachorro</span></button>
   <button class="build-btn hidden" id="btn-tractor"><span class="build-icon">🚜</span><span class="build-label" data-i18n="build.tractor">Trator</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
@@ -776,7 +783,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v36</div>
+<div id="debug-badge">v37</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1329,6 +1336,7 @@ const game = {
   level: 1,
   farmName: 'Fazenda do Jogador',
   ownedArea: { ...START_AREA },
+  intro: null, introDone: false,
   buildings: [],          // {id, type, gx, gy, rot}
   crops: [],              // {id, isCrop, type, gx, gy, plantedAt, watered}
   animals: [],            // {id, kind, gx, gy, tx, ty, walking, wait, phase}
@@ -2442,7 +2450,7 @@ function snapshotData() {
     pen: game.pen, dogs: game.dogs, time: game.time,
     barn: game.barn, orders: game.orders, upgrades: game.upgrades,
     day: game.day, weather: game.weather, weatherT: game.weatherT,
-    tutorialDone: game.tutorialDone,
+    tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
@@ -2501,6 +2509,8 @@ function applySaveData(data) {
       barn: data.barn ?? {}, orders: data.orders ?? [],
       upgrades: applyToolMigration(data), 
       tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
+      introDone: data.introDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1 || (data.buildings || []).length > 0),
+      intro: null,
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
@@ -2683,6 +2693,7 @@ function render(ctx, cam, cw, ch, state) {
   }
   if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
   drawParticles(ctx, cam, cw, ch);
+  drawIntroCar(ctx, cam, cw, ch);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
@@ -2723,6 +2734,87 @@ function drawParticles(ctx, cam, cw, ch) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+
+/* ---------- Cutscene inicial: carro trazendo o fazendeiro ---------- */
+function drawIntroCar(ctx, cam, cw, ch) {
+  if (!game.intro || game.visiting) return;
+  const it = game.intro;
+  const now = performance.now();
+  if (it.phase === 'drop' || it.phase === 'leave') {
+    const fp = {
+      gx: it.x + 1.3, gy: it.y + 0.2, walking: false,
+      phase: now / 1000, face: Math.PI, lastDir: 1,
+      shirt: '#1e88e5', shirtDark: '#0d47a1'
+    };
+    const a = it.phase === 'leave' ? Math.max(0, 1 - it.t / 1.5) : Math.min(1, it.t / 0.8);
+    ctx.save();
+    ctx.globalAlpha = a;
+    drawFarmer(ctx, cam, cw, ch, fp);
+    ctx.restore();
+  }
+  const pp = projectPoint(it.x, it.y, 0);
+  const p = worldToScreen(cam, pp.x, pp.y, cw, ch);
+  const pa = projectPoint(it.x + 0.4, it.y + 0.3, 0);
+  const pb = worldToScreen(cam, pa.x, pa.y, cw, ch);
+  const ang = Math.atan2(pb.y - p.y, pb.x - p.x);
+  const z = cam.zoom;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  const L = 62 * z, H = 30 * z;
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, 4 * z, L * 0.55, H * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.fillRect(-L * 0.34, H * 0.30, 13 * z, 8 * z);
+  ctx.fillRect(L * 0.12, H * 0.30, 13 * z, 8 * z);
+  ctx.fillStyle = '#d84315';
+  roundRectPath(ctx, -L / 2, -H / 2, L, H, 8 * z);
+  ctx.fill();
+  ctx.strokeStyle = '#8d2f0c'; ctx.lineWidth = 2 * z; ctx.stroke();
+  ctx.fillStyle = 'rgba(160,220,255,0.9)';
+  roundRectPath(ctx, -L * 0.10, -H * 0.38, L * 0.30, H * 0.66, 5 * z);
+  ctx.fill();
+  ctx.fillStyle = '#b71c1c';
+  roundRectPath(ctx, -L * 0.10, -H * 0.38, 4 * z, H * 0.66, 2 * z);
+  ctx.fill();
+  ctx.fillStyle = '#fff59d';
+  ctx.beginPath(); ctx.arc(L / 2 - 3 * z, -H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(L / 2 - 3 * z, H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ef5350';
+  ctx.beginPath(); ctx.arc(-L / 2 + 3 * z, -H * 0.22, 2.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-L / 2 + 3 * z, H * 0.22, 2.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (it.phase === 'drop' && it.t < 2.2) drawCarSpeech(ctx, cam, cw, ch, p, t('intro.friend'));
+}
+
+function drawCarSpeech(ctx, cam, cw, ch, p, text) {
+  ctx.save();
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  const lines = [];
+  let cur = '';
+  for (const w of text.split(' ')) {
+    if ((cur + ' ' + w).trim().length > 22 && cur) { lines.push(cur.trim()); cur = w; }
+    else cur += ' ' + w;
+  }
+  if (cur.trim()) lines.push(cur.trim());
+  const lh = 13, bh = lines.length * lh + 8;
+  const lw = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 14;
+  const bx = p.x - lw / 2, by = p.y - 44 - bh;
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.strokeStyle = 'rgba(93,64,55,0.8)';
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, bx, by, lw, bh, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x - 4, by + bh); ctx.lineTo(p.x + 4, by + bh); ctx.lineTo(p.x, by + bh + 6);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+  ctx.fillStyle = '#4e342e';
+  lines.forEach((l, i) => ctx.fillText(l, p.x, by + 12 + i * lh));
+  ctx.restore();
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -6128,7 +6220,7 @@ const I18N = {
     'menu.missions': 'Missões', 'menu.shop': 'Loja',
     'menu.achievements': 'Conquistas',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
-    'build.rotate': 'Girar', 'build.buy': 'Comprar',
+    'build.rotate': 'Girar', 'build.buy': 'Comprar', 'build.till': 'Arar',
     'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
     'modal.achievements': '🏆 Conquistas',
@@ -6258,6 +6350,8 @@ const I18N = {
     'tut.next': 'Entendi',
     'tut.skip': 'Pular',
     'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
+    'tut.shop': 'Abra a Loja (menu esquerdo) e compre a enxada e o pacote de sementes.',
+    'intro.friend': 'Pode descer! A fazenda \u00e9 toda sua. Boa sorte!',
     'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
     'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
     'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
@@ -6374,7 +6468,7 @@ const I18N = {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
     'menu.achievements': 'Achievements',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
-    'build.rotate': 'Rotate', 'build.buy': 'Buy',
+    'build.rotate': 'Rotate', 'build.buy': 'Buy', 'build.till': 'Till',
     'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
     'modal.achievements': '🏆 Achievements',
@@ -6504,6 +6598,8 @@ const I18N = {
     'tut.next': 'Got it',
     'tut.skip': 'Skip',
     'tut.move': 'Drag your finger to move around and use Zoom on the left.',
+    'tut.shop': 'Open the Shop (left menu) and buy the hoe and the seed pack.',
+    'intro.friend': 'Hop off! The farm is all yours. Good luck!',
     'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
     'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
     'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
@@ -6744,6 +6840,20 @@ function refreshHud() {
   }
   const tractorBtn = $('btn-tractor');
   if (tractorBtn) tractorBtn.classList.toggle('hidden', !game.tractorOwned);
+  const ownedTill = upgradeLevel('till') > 0;
+  const ownedWater = upgradeLevel('water') > 0;
+  const gateBtns = [
+    ['btn-till', ownedTill],
+    ['btn-plant', ownedTill],
+    ['btn-water', ownedWater],
+    ['btn-harvestall', game.crops.length > 0],
+    ['btn-collectall', game.animals.length > 0],
+    ['btn-pen', game.animals.length > 0]
+  ];
+  for (const gb of gateBtns) {
+    const gbEl = $(gb[0]);
+    if (gbEl) gbEl.classList.toggle('hidden', !gb[1]);
+  }
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
@@ -6812,6 +6922,7 @@ function mkInfo(text) {
 let currentShopTab = 'construcoes';
 
 function openShop() {
+  tutAdvance('shop');
   openModal(t('modal.shop'), body => {
     const tabs = document.createElement('div');
     tabs.className = 'shop-tabs';
@@ -7540,7 +7651,7 @@ function openMultiplayer() {
 }
 
 /* ---------- Tutorial da primeira vez ---------- */
-const TUT_STEPS = ['tut.move', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
+const TUT_STEPS = ['tut.move', 'tut.shop', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
 let tutStep = 0;
 
 function tutorialActive() {
@@ -7576,7 +7687,7 @@ function tutSkip() {
 
 function tutAdvance(action) {
   if (!tutorialActive()) return;
-  const map = { till: 1, plant: 2, water: 3, harvest: 4, sell: 5 };
+  const map = { shop: 1, till: 2, plant: 3, water: 4, harvest: 5, sell: 6 };
   if (map[action] === tutStep) tutNext();
 }
 
@@ -8147,7 +8258,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v36';
+const GAME_VERSION = 'v37';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -8195,6 +8306,7 @@ function beginPinch() {
 
 function onDown(e) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (game.intro) return;
   if (e.pointerType === 'mouse') {
     pointer.down = true; pointer.dragging = false;
     pointer.sx = e.clientX; pointer.sy = e.clientY;
@@ -8746,8 +8858,60 @@ for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'col
   const orig = uiHandlers[k];
   uiHandlers[k] = (...a) => {
     if (game.visiting) { showToast(t('toast.visitingBlock')); return; }
+    if (game.intro) return;
     orig(...a);
   };
+}
+
+/* ---------- Cutscene inicial: chega de carro com o amigo ---------- */
+function introActive() { return !!(game.intro && !game.visiting); }
+
+function startIntroCutscene() {
+  const a = game.ownedArea;
+  game.intro = { phase: 'arrive', t: 0, x: a.x0 - 9, y: a.y0 - 14 };
+}
+
+function finishIntro() {
+  if (!game.intro) return;
+  game.intro = null;
+  game.introDone = true;
+  const a = game.ownedArea;
+  const spot = { x: a.x0 + 2, y: a.y0 + 3 };
+  game.farmers.push({
+    id: game.nextId++, gx: spot.x + 0.5, gy: spot.y + 0.5,
+    tx: spot.x + 0.5, ty: spot.y + 0.5,
+    walking: false, wait: 1, phase: Math.random() * 10,
+    chest: {}, role: 'all'
+  });
+  saveGame(false);
+  centerCamera();
+  setupTutorial();
+  showToast(t('toast.welcome'));
+}
+
+function updateIntro(dt) {
+  if (!introActive()) return;
+  const it = game.intro;
+  it.t += dt;
+  const a = game.ownedArea;
+  const p0 = { x: a.x0 - 9, y: a.y0 - 14 };
+  const stop = { x: a.x0 + 2, y: a.y0 - 1 };
+  if (it.phase === 'arrive') {
+    const k = Math.min(1, it.t / 5.5);
+    it.x = p0.x + (stop.x - p0.x) * k;
+    it.y = p0.y + (stop.y - p0.y) * k;
+    if (k >= 1) { it.phase = 'drop'; it.t = 0; }
+  } else if (it.phase === 'drop') {
+    if (it.t >= 2.4) { it.phase = 'leave'; it.t = 0; it.sx = stop.x; it.sy = stop.y; }
+  } else if (it.phase === 'leave') {
+    const k = Math.min(1, it.t / 5);
+    it.x = it.sx + (p0.x - it.sx) * k;
+    it.y = it.sy + (p0.y - it.sy) * k;
+    if (k >= 1) finishIntro();
+  }
+  const c = projectPoint(it.x, it.y, 0);
+  cam.x = c.x; cam.y = c.y;
+  clampCamera();
 }
 
 /* ---------- Salvamento ao sair ---------- */
@@ -8774,6 +8938,7 @@ function loop(ts) {
       updateTractor(dt);
       updateParticles(dt);
       updateAmbient(dt);
+      updateIntro(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
@@ -8794,24 +8959,23 @@ function init() {
   resize();
   const loaded = loadGame();
   ensureFarmCode();
-  if (!loaded) {
-    // propriedade inicial: casa e poço já construídos (dentro da área inicial)
-    placeBuilding('house', 21, 21, 0, true);
-    placeBuilding('well', 25, 25, 0, true);
-    saveGame(false);
+  if (!loaded || !game.introDone) {
+    // jogo novo comeca vazio (sem casa, sem poco e sem animais) com a cutscene do carro;
+    // se o jogador fechar no meio da cutscene, ela recomeca ao voltar
+    startIntroCutscene();
+    if (!loaded) saveGame(false);
   }
   game.stats.level = game.level;
   game.stats.peak_coins = Math.max(game.stats.peak_coins || 0, game.coins);
-  spawnAnimals();
+  if (loaded) spawnAnimals();
   applyLang();
   centerCamera();
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
-  setupTutorial();
+  if (!game.intro) setupTutorial();
   requestAnimationFrame(loop);
-  if (!loaded) showToast(t('toast.welcome'));
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
   }

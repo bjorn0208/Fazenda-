@@ -11,7 +11,7 @@ const I18N = {
     'menu.missions': 'Missões', 'menu.shop': 'Loja',
     'menu.achievements': 'Conquistas',
     'build.build': 'Construir', 'build.move': 'Mover', 'build.remove': 'Remover',
-    'build.rotate': 'Girar', 'build.buy': 'Comprar',
+    'build.rotate': 'Girar', 'build.buy': 'Comprar', 'build.till': 'Arar',
     'build.plant': 'Plantar', 'build.water': 'Regar',
     'modal.shop': '🏪 Loja da Fazenda', 'modal.missions': '📋 Missões',
     'modal.achievements': '🏆 Conquistas',
@@ -141,6 +141,8 @@ const I18N = {
     'tut.next': 'Entendi',
     'tut.skip': 'Pular',
     'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
+    'tut.shop': 'Abra a Loja (menu esquerdo) e compre a enxada e o pacote de sementes.',
+    'intro.friend': 'Pode descer! A fazenda \u00e9 toda sua. Boa sorte!',
     'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
     'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
     'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
@@ -257,7 +259,7 @@ const I18N = {
     'menu.missions': 'Missions', 'menu.shop': 'Shop',
     'menu.achievements': 'Achievements',
     'build.build': 'Build', 'build.move': 'Move', 'build.remove': 'Remove',
-    'build.rotate': 'Rotate', 'build.buy': 'Buy',
+    'build.rotate': 'Rotate', 'build.buy': 'Buy', 'build.till': 'Till',
     'build.plant': 'Plant', 'build.water': 'Water',
     'modal.shop': '🏪 Farm Shop', 'modal.missions': '📋 Missions',
     'modal.achievements': '🏆 Achievements',
@@ -387,6 +389,8 @@ const I18N = {
     'tut.next': 'Got it',
     'tut.skip': 'Skip',
     'tut.move': 'Drag your finger to move around and use Zoom on the left.',
+    'tut.shop': 'Open the Shop (left menu) and buy the hoe and the seed pack.',
+    'intro.friend': 'Hop off! The farm is all yours. Good luck!',
     'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
     'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
     'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
@@ -627,6 +631,20 @@ function refreshHud() {
   }
   const tractorBtn = $('btn-tractor');
   if (tractorBtn) tractorBtn.classList.toggle('hidden', !game.tractorOwned);
+  const ownedTill = upgradeLevel('till') > 0;
+  const ownedWater = upgradeLevel('water') > 0;
+  const gateBtns = [
+    ['btn-till', ownedTill],
+    ['btn-plant', ownedTill],
+    ['btn-water', ownedWater],
+    ['btn-harvestall', game.crops.length > 0],
+    ['btn-collectall', game.animals.length > 0],
+    ['btn-pen', game.animals.length > 0]
+  ];
+  for (const gb of gateBtns) {
+    const gbEl = $(gb[0]);
+    if (gbEl) gbEl.classList.toggle('hidden', !gb[1]);
+  }
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
@@ -695,6 +713,7 @@ function mkInfo(text) {
 let currentShopTab = 'construcoes';
 
 function openShop() {
+  tutAdvance('shop');
   openModal(t('modal.shop'), body => {
     const tabs = document.createElement('div');
     tabs.className = 'shop-tabs';
@@ -1423,7 +1442,7 @@ function openMultiplayer() {
 }
 
 /* ---------- Tutorial da primeira vez ---------- */
-const TUT_STEPS = ['tut.move', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
+const TUT_STEPS = ['tut.move', 'tut.shop', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
 let tutStep = 0;
 
 function tutorialActive() {
@@ -1459,7 +1478,7 @@ function tutSkip() {
 
 function tutAdvance(action) {
   if (!tutorialActive()) return;
-  const map = { till: 1, plant: 2, water: 3, harvest: 4, sell: 5 };
+  const map = { shop: 1, till: 2, plant: 3, water: 4, harvest: 5, sell: 6 };
   if (map[action] === tutStep) tutNext();
 }
 

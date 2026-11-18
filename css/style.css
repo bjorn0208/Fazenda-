@@ -163,9 +163,9 @@ html, body {
 #seed-bar {
   position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 8px; padding: 8px 10px;
-  background: rgba(255,255,255,0.95); border: 2px solid var(--wood-dark);
+  background: #fff; border: 2px solid var(--wood-dark);
   border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  max-width: 94vw; overflow-x: auto; z-index: 16;
+  max-width: min(378px, 94vw); overflow-x: auto; z-index: 16; flex-wrap: nowrap;
 }
 .seed-item {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -377,6 +377,13 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
     flex-wrap: wrap; justify-content: center;
     font-size: 13px;
   }
+  #tut-bar {
+    top: calc(112px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    max-width: calc(100vw - 20px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
   #modal { max-height: 88vh; max-height: 88dvh; }
 }
 
@@ -414,7 +421,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   .side-icon { font-size: 16px; }
 
 
-  #seed-bar { bottom: 84px; padding: 6px 8px; gap: 6px; max-width: 94vw; }
+  #seed-bar { bottom: 84px; padding: 6px 8px; gap: 6px; max-width: min(334px, 92vw); }
   .seed-item { min-width: 58px; padding: 5px 6px; }
   .seed-icon { font-size: 19px; }
   .seed-name { font-size: 10px; }
@@ -423,7 +430,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   #confirm-bar { bottom: 84px; padding: 7px 10px; gap: 7px; font-size: 12px; border-width: 2px; }
   .btn-ok, .btn-cancel { padding: 7px 12px; font-size: 12px; }
 
-  #toast { top: 132px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
+  #toast { top: 190px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
 
   #modal { width: 96vw; max-height: 90dvh; border-width: 3px; border-radius: 14px; }
   #modal-title { font-size: 16px; }

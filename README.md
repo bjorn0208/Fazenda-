@@ -166,6 +166,16 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 
 - **Calendário e estações pelos meses**: o ano agora tem 12 meses de 30 dias (360 dias) e a estação segue o calendário de verdade no hemisfério sul: verão em dezembro/janeiro/fevereiro, outono em março/abril/maio, inverno em junho/julho/agosto e primavera em setembro/outubro/novembro. Toque no relógio do topo para abrir o calendário com o mês atual destacado.
 
+## Revisão 30 — Cutscene do carro, jogo começando do zero e tutorial responsível
+
+- **Cutscene de abertura**: no jogo novo, um **carro chega** com o fazendeiro e um **amigo motorista**, que deixa o jogador com o balão de despedida e vai embora. Só depois começa o tutorial — e o jogador começa com **1 fazendeiro**.
+- **Jogo começa vazio**: sem casa, sem poço e **sem animais** — construa e compre tudo você mesmo. Saves antigos continuam intactos (recebem introDone automático).
+- **Botões só ao comprar**: Arar e Plantar aparecem só com a **enxada**, Regar com o **regador**, Colher Tudo só com plantação ativa, Recolher e Curral só com animais na fazenda; Construir, Pá, Mover, Remover, Girar e Comprar ficam sempre visíveis.
+- **Tutorial responsivo**: em telas estreitas a barra do tutorial sobe para **baixo do HUD** (em cima), com quebra de texto, deixando de sobrepor menus; e ganhou o passo **Abra a Loja** para comprar a enxada e as sementes antes de arar (o jogo já começa sem ferramentas).
+- **Roleta branca com 5 itens**: a barra de sementes (roleta lateral) ficou **branca como os painéis** e mostra no máximo **5 sementes** de uma vez, com rolagem para ver as demais.
+- **Correção**: botão mostrava o texto cru “build.till” — chave de tradução faltante adicionada (Arar/Till).
+- Versão **v37** (service worker e PWA atualizados).
+
 ## Revisão 29 — Loja de ferramentas, perfil, tarefas de nível e dia de trabalho
 
 - **Você começa sem nada**: enxada (🪙120), regador (🪙180), trator (🪙8000) e pacote de sementes (🪙12 por cultura liberada) agora ficam em uma **aba Ferramentas 🚜** na loja. Arar e regar só funcionam com a ferramenta comprada.

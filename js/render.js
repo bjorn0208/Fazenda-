@@ -57,6 +57,7 @@ function render(ctx, cam, cw, ch, state) {
   }
   if (na > 0.12 && game.settings.quality !== 'baixa') drawFireflies(ctx, cam, cw, ch, na);
   drawParticles(ctx, cam, cw, ch);
+  drawIntroCar(ctx, cam, cw, ch);
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
@@ -97,6 +98,87 @@ function drawParticles(ctx, cam, cw, ch) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+
+/* ---------- Cutscene inicial: carro trazendo o fazendeiro ---------- */
+function drawIntroCar(ctx, cam, cw, ch) {
+  if (!game.intro || game.visiting) return;
+  const it = game.intro;
+  const now = performance.now();
+  if (it.phase === 'drop' || it.phase === 'leave') {
+    const fp = {
+      gx: it.x + 1.3, gy: it.y + 0.2, walking: false,
+      phase: now / 1000, face: Math.PI, lastDir: 1,
+      shirt: '#1e88e5', shirtDark: '#0d47a1'
+    };
+    const a = it.phase === 'leave' ? Math.max(0, 1 - it.t / 1.5) : Math.min(1, it.t / 0.8);
+    ctx.save();
+    ctx.globalAlpha = a;
+    drawFarmer(ctx, cam, cw, ch, fp);
+    ctx.restore();
+  }
+  const pp = projectPoint(it.x, it.y, 0);
+  const p = worldToScreen(cam, pp.x, pp.y, cw, ch);
+  const pa = projectPoint(it.x + 0.4, it.y + 0.3, 0);
+  const pb = worldToScreen(cam, pa.x, pa.y, cw, ch);
+  const ang = Math.atan2(pb.y - p.y, pb.x - p.x);
+  const z = cam.zoom;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  const L = 62 * z, H = 30 * z;
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, 4 * z, L * 0.55, H * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.fillRect(-L * 0.34, H * 0.30, 13 * z, 8 * z);
+  ctx.fillRect(L * 0.12, H * 0.30, 13 * z, 8 * z);
+  ctx.fillStyle = '#d84315';
+  roundRectPath(ctx, -L / 2, -H / 2, L, H, 8 * z);
+  ctx.fill();
+  ctx.strokeStyle = '#8d2f0c'; ctx.lineWidth = 2 * z; ctx.stroke();
+  ctx.fillStyle = 'rgba(160,220,255,0.9)';
+  roundRectPath(ctx, -L * 0.10, -H * 0.38, L * 0.30, H * 0.66, 5 * z);
+  ctx.fill();
+  ctx.fillStyle = '#b71c1c';
+  roundRectPath(ctx, -L * 0.10, -H * 0.38, 4 * z, H * 0.66, 2 * z);
+  ctx.fill();
+  ctx.fillStyle = '#fff59d';
+  ctx.beginPath(); ctx.arc(L / 2 - 3 * z, -H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(L / 2 - 3 * z, H * 0.22, 3.2 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ef5350';
+  ctx.beginPath(); ctx.arc(-L / 2 + 3 * z, -H * 0.22, 2.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-L / 2 + 3 * z, H * 0.22, 2.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (it.phase === 'drop' && it.t < 2.2) drawCarSpeech(ctx, cam, cw, ch, p, t('intro.friend'));
+}
+
+function drawCarSpeech(ctx, cam, cw, ch, p, text) {
+  ctx.save();
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  const lines = [];
+  let cur = '';
+  for (const w of text.split(' ')) {
+    if ((cur + ' ' + w).trim().length > 22 && cur) { lines.push(cur.trim()); cur = w; }
+    else cur += ' ' + w;
+  }
+  if (cur.trim()) lines.push(cur.trim());
+  const lh = 13, bh = lines.length * lh + 8;
+  const lw = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 14;
+  const bx = p.x - lw / 2, by = p.y - 44 - bh;
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.strokeStyle = 'rgba(93,64,55,0.8)';
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, bx, by, lw, bh, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x - 4, by + bh); ctx.lineTo(p.x + 4, by + bh); ctx.lineTo(p.x, by + bh + 6);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+  ctx.fillStyle = '#4e342e';
+  lines.forEach((l, i) => ctx.fillText(l, p.x, by + 12 + i * lh));
+  ctx.restore();
 }
 
 /* Faixa de grid visível (culling simples). */
