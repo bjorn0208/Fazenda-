@@ -179,6 +179,14 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 35 — Comprar/Construir corrigidos, barra com 3 ferramentas + setas, peixes e varas de pescar desenhadas
+
+- **Botão Comprar (e Construir) funcionando de novo**: um bug da Revisão 33 fazia o menu lateral genérico sobrescrever as ações desses dois botões — corrigido (as ações deles agora são preservadas).
+- **Barra de ferramentas inteligente**: em vez de rolagem livre (que bugava ao girar), a barra de baixo agora mostra **apenas as 3 ferramentas usadas por último** — ao tocar numa ferramenta ela vai para a frente da barra — com **setas ◀ ▶ nas laterais** para navegar entre todas.
+- **Pescadores com vara na mão**: no domingo, o fazendeiro pescador aparece **segurando a vara de pescar** com a **linha** descendo até a boia vermelha e branca balançando na água do lugar onde ele está pescando.
+- **Peixes de verdade no lago**: os peixinhos submersos foram redesenhados — corpo arredondado, rabo e olho, nadando na direção do movimento — para não parecerem mais linhas de pesca largadas no lago.
+- Versão **v43** (service worker, cache-busting e standalone atualizados).
+
 ## Revisão 34 — Ferramentas na base sem fundo, pato, pesca, domingo e lago maior
 
 - **Ferramentas no rodapé, sem fundo**: a coluna da direita saiu — os botões de ação (Pá, Arar, Plantar, Regar, Colher Tudo, Recolher, Curral, Lote, Cachorro, Trator e o novo **Pescar**) agora ficam **abaixo, numa única barra horizontal sem fundo**, só com os botões; continua com rolagem infinita e dá para minimizar com a seta.

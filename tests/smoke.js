@@ -879,6 +879,19 @@ vm.runInContext(`
     removeBuilding(lkB.id);
   }
 
+  // R35: comprar/construir ligados, barra com janela de 3 ferramentas e setas
+  try { bindUi(uiHandlers); } catch (e) { throw new Error('bindUi falhou: ' + e.message); }
+  if (typeof $('btn-buy').onclick !== 'function') throw new Error('btn-buy sem onclick (comprar quebrado)');
+  if (typeof $('btn-build').onclick !== 'function') throw new Error('btn-build sem onclick (construir quebrado)');
+  if (typeof showToolWindow !== 'function' || typeof promoteTool !== 'function' || typeof updateToolArrows !== 'function') throw new Error('janela da barra de ferramentas ausente');
+  showToolWindow(1); showToolWindow(0); showToolWindow(99);
+  try { promoteTool($('btn-till')); } catch (e) { throw new Error('promoteTool lancou erro: ' + e.message); }
+  if (typeof drawFarmerFishingGear !== 'function') throw new Error('vara do fazendeiro pescador ausente');
+  const fr35 = game.farmers[0];
+  fr35.fishing = true;
+  render(ctx, cam, 800, 600, state);
+  fr35.fishing = false;
+
   // R32: lote arado compravel
   game.coins = 999999;
   let plotDone = false;

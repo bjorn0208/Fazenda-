@@ -761,3 +761,57 @@ function drawFarmer(ctx, cam, cw, ch, f) {
 
   ctx.restore();
 }
+
+function drawFarmerFishingGear(ctx, cam, cw, ch, f) {
+  if (!f.fishing) return;
+  const lk = lakeBuilding();
+  if (!lk) return;
+  const ldef = BUILDINGS[lk.type];
+  const z = cam.zoom;
+  if (z < 0.3) return;
+  const fp = projectPoint(f.gx, f.gy, 0);
+  const fs = worldToScreen(cam, fp.x, fp.y, cw, ch);
+  let spotX = null, spotY = null;
+  if (f.fishSpot) {
+    const sp = projectPoint(f.fishSpot.gx + 0.5, f.fishSpot.gy + 0.5, 0.02);
+    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
+    spotX = ss.x; spotY = ss.y;
+  }
+  const sway = Math.sin(performance.now() / 1000 * 1.7) * 0.045;
+  const bx = fs.x, by = fs.y - 16 * z;
+  let tipX, tipY;
+  if (spotX !== null) {
+    const tdx = spotX - bx, tdy = spotY - by;
+    const tlen = Math.max(1, Math.hypot(tdx, tdy));
+    const ux = tdx / tlen, uy = tdy / tlen;
+    const rl = Math.min(30 * z, tlen * 0.8);
+    tipX = bx + ux * rl - uy * rl * sway;
+    tipY = by + uy * rl + ux * rl * sway;
+  } else {
+    tipX = bx + 14 * z; tipY = by - 14 * z;
+  }
+  ctx.strokeStyle = '#795548';
+  ctx.lineWidth = Math.max(1, 1.6 * z);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  if (spotX !== null) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = Math.max(0.6, 0.8 * z);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo((tipX + spotX) / 2 + 3 * z, (tipY + spotY) / 2, spotX, spotY - 3 * z);
+    ctx.stroke();
+    ctx.fillStyle = '#e53935';
+    ctx.beginPath();
+    ctx.arc(spotX, spotY - 2 * z, Math.max(1.4, 2.6 * z), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(spotX, spotY - 3.2 * z, Math.max(0.9, 1.6 * z), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.lineCap = 'butt';
+}

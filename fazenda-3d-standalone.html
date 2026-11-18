@@ -165,15 +165,37 @@ html, body {
   top: auto; right: auto;
   left: 50%; transform: translateX(-50%);
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: row; align-items: stretch; justify-content: center;
-  justify-content: safe center;
+  display: flex; flex-direction: row; align-items: stretch; justify-content: flex-start;
   gap: 8px; z-index: 15;
-  max-width: min(96vw, 760px);
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  --tbw: 68px;
+  width: calc(var(--tbw) * 3 + 16px + 12px);
+  overflow-x: hidden; overflow-y: hidden; scrollbar-width: none;
   background: transparent; border: none; box-shadow: none;
   padding: 4px 6px;
 }
 #build-bar::-webkit-scrollbar { display: none; }
+
+/* Setas de navegacao da barra de ferramentas */
+.bar-arrow {
+  position: absolute;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  width: 40px; height: 56px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  color: #4e342e;
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  border-radius: 13px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.22);
+  font-weight: bold; font-size: 15px; cursor: pointer;
+  z-index: 15;
+}
+#bar-arrow-right { left: auto; right: calc(12px + env(safe-area-inset-right, 0px)); }
+.bar-arrow:hover { filter: brightness(1.05); }
+.bar-arrow:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
+.bar-arrow.dim { opacity: 0.35; }
+body.tools-right-hidden .bar-arrow { transform: translateY(calc(100% + 48px)); opacity: 0; pointer-events: none; }
 
 #seed-bar {
   position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
@@ -414,7 +436,7 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
 }
 
 @media (max-width: 480px) {
-  #build-bar { gap: 6px; padding: 3px 4px; }
+  #build-bar { gap: 6px; padding: 3px 4px; --tbw: 54px; }
   .build-btn { width: 54px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
   .build-icon { font-size: 16px; }
 }
@@ -466,7 +488,8 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
-  #build-bar { max-width: 94vw; padding: 3px; gap: 6px; }
+  #build-bar { padding: 3px; gap: 6px; --tbw: 54px; }
+  .bar-arrow { width: 32px; height: 46px; font-size: 13px; }
   #avatar { width: 34px; height: 34px; font-size: 18px; }
   #farm-name { font-size: 10px; }
   #xp-bar { width: 50px; height: 8px; }
@@ -755,12 +778,16 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
   <button class="build-btn hidden" id="btn-fish"><span class="build-icon">🎣</span><span class="build-label" data-i18n="build.fish">Pescar</span></button>
 </div>
 
+<!-- Setas de navegacao da barra de ferramentas (3 visiveis por vez) -->
+<button class="bar-arrow" id="bar-arrow-left" aria-label="Ferramentas anteriores">◀</button>
+<button class="bar-arrow" id="bar-arrow-right" aria-label="Próximas ferramentas">▶</button>
+
 <!-- Botões de minimizar as colunas de ferramentas -->
 <button id="btn-collapse-left" class="collapse-btn" title="Minimizar menus"><span class="collapse-arrow">▼</span></button>
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v42</div>
+<div id="debug-badge">v43</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -3869,6 +3896,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawCrop(ctx, cam, cw, ch, b);
     } else if (it.kind === 'f') {
       drawFarmer(ctx, cam, cw, ch, b);
+      drawFarmerFishingGear(ctx, cam, cw, ch, b);
     } else if (it.kind === 'd') {
       drawDog(ctx, cam, cw, ch, b);
     } else if (it.kind === 'm') {
@@ -4454,25 +4482,46 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       ctx.fill();
     }
 
-    ctx.fillStyle = '#263238';
-    for (let i = 0; i < 4; i++) {
-      const ang = i * 1.65 + 0.4;
-      const sp = Math.sin(t * (0.5 + i * 0.13) + i * 2);
-      const fx = cxw + Math.cos(t * (0.22 + i * 0.05) + ang) * (rw - 0.6) * sp;
-      const fy = cyw + Math.sin(t * (0.3 + i * 0.07) + ang) * (rd - 0.6) * sp;
-      const p = projectPoint(fx, fy, -0.02);
-      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
-      ctx.globalAlpha = 0.45;
+    for (let i = 0; i < 3; i++) {
+      const ang = i * 2.1 + 0.4, a1 = 0.22 + i * 0.05, a2 = 0.3 + i * 0.07;
+      const sp1 = Math.sin(t * (0.5 + i * 0.13) + i * 2);
+      const px = cxw + Math.cos(t * a1 + ang) * (rw - 0.8) * sp1;
+      const py = cyw + Math.sin(t * a2 + ang) * (rd - 0.8) * sp1;
+      const tq = t + 0.1;
+      const sp2 = Math.sin(tq * (0.5 + i * 0.13) + i * 2);
+      const qx = cxw + Math.cos(tq * a1 + ang) * (rw - 0.8) * sp2;
+      const qy = cyw + Math.sin(tq * a2 + ang) * (rd - 0.8) * sp2;
+      const pp1 = projectPoint(px, py, -0.02);
+      const pp2 = projectPoint(qx, qy, -0.02);
+      const ps = worldToScreen(cam, pp1.x, pp1.y, cw, ch);
+      const qs = worldToScreen(cam, pp2.x, pp2.y, cw, ch);
+      const head = Math.atan2(qs.y - ps.y, qs.x - ps.x);
+      const sc = 0.9 + 0.2 * Math.sin(i * 3);
+      const z2 = cam.zoom, L = 5.5 * z2 * sc, H = 2.3 * z2 * sc;
+      ctx.save();
+      ctx.translate(ps.x, ps.y);
+      ctx.rotate(head);
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = '#37474f';
       ctx.beginPath();
-      ctx.ellipse(ps.x, ps.y, 4.5 * cam.zoom, 1.6 * cam.zoom, 0.3 * sp, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, L, H, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(ps.x + 4 * cam.zoom, ps.y);
-      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y - 2 * cam.zoom);
-      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y + 2 * cam.zoom);
+      ctx.moveTo(-L * 0.85, 0);
+      ctx.lineTo(-L * 1.45, -H * 1.1);
+      ctx.lineTo(-L * 1.45, H * 1.1);
       ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = '#546e7a';
+      ctx.beginPath();
+      ctx.ellipse(-L * 0.1, 0, L * 0.5, H * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#263238';
+      ctx.beginPath();
+      ctx.arc(L * 0.55, -H * 0.25, Math.max(0.5, H * 0.22), 0, Math.PI * 2);
+      ctx.fill();
       ctx.globalAlpha = 1;
+      ctx.restore();
     }
 
     const pads = [[0.4, 0.9], [0.75, 0.62], [2.0, 0.7], [3.4, 0.85], [4.6, 0.5]];
@@ -6814,6 +6863,60 @@ function drawFarmer(ctx, cam, cw, ch, f) {
   ctx.restore();
 }
 
+function drawFarmerFishingGear(ctx, cam, cw, ch, f) {
+  if (!f.fishing) return;
+  const lk = lakeBuilding();
+  if (!lk) return;
+  const ldef = BUILDINGS[lk.type];
+  const z = cam.zoom;
+  if (z < 0.3) return;
+  const fp = projectPoint(f.gx, f.gy, 0);
+  const fs = worldToScreen(cam, fp.x, fp.y, cw, ch);
+  let spotX = null, spotY = null;
+  if (f.fishSpot) {
+    const sp = projectPoint(f.fishSpot.gx + 0.5, f.fishSpot.gy + 0.5, 0.02);
+    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
+    spotX = ss.x; spotY = ss.y;
+  }
+  const sway = Math.sin(performance.now() / 1000 * 1.7) * 0.045;
+  const bx = fs.x, by = fs.y - 16 * z;
+  let tipX, tipY;
+  if (spotX !== null) {
+    const tdx = spotX - bx, tdy = spotY - by;
+    const tlen = Math.max(1, Math.hypot(tdx, tdy));
+    const ux = tdx / tlen, uy = tdy / tlen;
+    const rl = Math.min(30 * z, tlen * 0.8);
+    tipX = bx + ux * rl - uy * rl * sway;
+    tipY = by + uy * rl + ux * rl * sway;
+  } else {
+    tipX = bx + 14 * z; tipY = by - 14 * z;
+  }
+  ctx.strokeStyle = '#795548';
+  ctx.lineWidth = Math.max(1, 1.6 * z);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  if (spotX !== null) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = Math.max(0.6, 0.8 * z);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo((tipX + spotX) / 2 + 3 * z, (tipY + spotY) / 2, spotX, spotY - 3 * z);
+    ctx.stroke();
+    ctx.fillStyle = '#e53935';
+    ctx.beginPath();
+    ctx.arc(spotX, spotY - 2 * z, Math.max(1.4, 2.6 * z), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(spotX, spotY - 3.2 * z, Math.max(0.9, 1.6 * z), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.lineCap = 'butt';
+}
+
 </script>
 <script>
 /* ================= FAZENDA 3D — INTERFACE (DOM) =================
@@ -8751,6 +8854,7 @@ function bindUi(handlers) {
   };
 
   for (const btn of document.querySelectorAll('.side-btn')) {
+    if (btn.id === 'btn-buy' || btn.id === 'btn-build') continue;
     btn.onclick = () => {
       const panel = btn.dataset.panel;
       if (panel === 'missions') openMissions();
@@ -8762,8 +8866,11 @@ function bindUi(handlers) {
     };
   }
 
-  setupWheel($('build-bar'));
   setupWheel($('side-menu'));
+
+  $('bar-arrow-left').onclick = () => { playSound('click'); showToolWindow(toolsWin - 1); };
+  $('bar-arrow-right').onclick = () => { playSound('click'); showToolWindow(toolsWin + 1); };
+  showToolWindow(0);
 
   const dchip = $('day-chip');
   if (dchip) dchip.onclick = () => openCalendar();
@@ -9032,7 +9139,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v42';
+const GAME_VERSION = 'v43';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -9509,6 +9616,39 @@ function setMode(mode) {
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
+/* ---------- Janela da barra de ferramentas: 3 visiveis + setas ---------- */
+let toolsWin = 0;
+function toolBarItems() {
+  const bar = $('build-bar');
+  if (!bar) return [];
+  return Array.from(bar.children || []).filter(el => el.classList && !el.classList.contains('hidden'));
+}
+function updateToolArrows() {
+  const l = $('bar-arrow-left'), r = $('bar-arrow-right');
+  const maxWin = Math.max(0, toolBarItems().length - 3);
+  if (l) l.classList.toggle('dim', toolsWin <= 0);
+  if (r) r.classList.toggle('dim', toolsWin >= maxWin);
+}
+function showToolWindow(i) {
+  const bar = $('build-bar');
+  const items = toolBarItems();
+  const maxWin = Math.max(0, items.length - 3);
+  toolsWin = Math.max(0, Math.min(i, maxWin));
+  const tgt = items[toolsWin];
+  if (bar && tgt) {
+    const dest = tgt.offsetLeft || (toolsWin * ((tgt.offsetWidth || 62) + 8));
+    if (bar.scrollTo) bar.scrollTo({ left: dest, behavior: 'smooth' });
+    else bar.scrollLeft = dest;
+  }
+  updateToolArrows();
+}
+function promoteTool(btn) {
+  const bar = $('build-bar');
+  if (!bar || !btn || !bar.children || btn === bar.children[0]) { showToolWindow(0); return; }
+  try { bar.insertBefore(btn, bar.children[0]); } catch (e) {}
+  showToolWindow(0);
+}
+
 function enterBuildMode(typeId) {
   setMode('build');
   const def = BUILDINGS[typeId];
@@ -9868,6 +10008,10 @@ function init() {
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
   dbgShowZoom();
   bindUi(uiHandlers);
+  $('build-bar').addEventListener('click', e => {
+    const btn = e.target && e.target.closest ? e.target.closest('.build-btn') : null;
+    if (btn && !btn.classList.contains('hidden')) promoteTool(btn);
+  });
   refreshHud();
   requestAnimationFrame(loop);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

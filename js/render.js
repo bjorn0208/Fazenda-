@@ -1078,6 +1078,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawCrop(ctx, cam, cw, ch, b);
     } else if (it.kind === 'f') {
       drawFarmer(ctx, cam, cw, ch, b);
+      drawFarmerFishingGear(ctx, cam, cw, ch, b);
     } else if (it.kind === 'd') {
       drawDog(ctx, cam, cw, ch, b);
     } else if (it.kind === 'm') {
@@ -1663,25 +1664,46 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       ctx.fill();
     }
 
-    ctx.fillStyle = '#263238';
-    for (let i = 0; i < 4; i++) {
-      const ang = i * 1.65 + 0.4;
-      const sp = Math.sin(t * (0.5 + i * 0.13) + i * 2);
-      const fx = cxw + Math.cos(t * (0.22 + i * 0.05) + ang) * (rw - 0.6) * sp;
-      const fy = cyw + Math.sin(t * (0.3 + i * 0.07) + ang) * (rd - 0.6) * sp;
-      const p = projectPoint(fx, fy, -0.02);
-      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
-      ctx.globalAlpha = 0.45;
+    for (let i = 0; i < 3; i++) {
+      const ang = i * 2.1 + 0.4, a1 = 0.22 + i * 0.05, a2 = 0.3 + i * 0.07;
+      const sp1 = Math.sin(t * (0.5 + i * 0.13) + i * 2);
+      const px = cxw + Math.cos(t * a1 + ang) * (rw - 0.8) * sp1;
+      const py = cyw + Math.sin(t * a2 + ang) * (rd - 0.8) * sp1;
+      const tq = t + 0.1;
+      const sp2 = Math.sin(tq * (0.5 + i * 0.13) + i * 2);
+      const qx = cxw + Math.cos(tq * a1 + ang) * (rw - 0.8) * sp2;
+      const qy = cyw + Math.sin(tq * a2 + ang) * (rd - 0.8) * sp2;
+      const pp1 = projectPoint(px, py, -0.02);
+      const pp2 = projectPoint(qx, qy, -0.02);
+      const ps = worldToScreen(cam, pp1.x, pp1.y, cw, ch);
+      const qs = worldToScreen(cam, pp2.x, pp2.y, cw, ch);
+      const head = Math.atan2(qs.y - ps.y, qs.x - ps.x);
+      const sc = 0.9 + 0.2 * Math.sin(i * 3);
+      const z2 = cam.zoom, L = 5.5 * z2 * sc, H = 2.3 * z2 * sc;
+      ctx.save();
+      ctx.translate(ps.x, ps.y);
+      ctx.rotate(head);
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = '#37474f';
       ctx.beginPath();
-      ctx.ellipse(ps.x, ps.y, 4.5 * cam.zoom, 1.6 * cam.zoom, 0.3 * sp, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, L, H, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(ps.x + 4 * cam.zoom, ps.y);
-      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y - 2 * cam.zoom);
-      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y + 2 * cam.zoom);
+      ctx.moveTo(-L * 0.85, 0);
+      ctx.lineTo(-L * 1.45, -H * 1.1);
+      ctx.lineTo(-L * 1.45, H * 1.1);
       ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = '#546e7a';
+      ctx.beginPath();
+      ctx.ellipse(-L * 0.1, 0, L * 0.5, H * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#263238';
+      ctx.beginPath();
+      ctx.arc(L * 0.55, -H * 0.25, Math.max(0.5, H * 0.22), 0, Math.PI * 2);
+      ctx.fill();
       ctx.globalAlpha = 1;
+      ctx.restore();
     }
 
     const pads = [[0.4, 0.9], [0.75, 0.62], [2.0, 0.7], [3.4, 0.85], [4.6, 0.5]];

@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=42">
+<link rel="stylesheet" href="css/style.css?v=43">
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
@@ -73,12 +73,16 @@
   <button class="build-btn hidden" id="btn-fish"><span class="build-icon">🎣</span><span class="build-label" data-i18n="build.fish">Pescar</span></button>
 </div>
 
+<!-- Setas de navegacao da barra de ferramentas (3 visiveis por vez) -->
+<button class="bar-arrow" id="bar-arrow-left" aria-label="Ferramentas anteriores">◀</button>
+<button class="bar-arrow" id="bar-arrow-right" aria-label="Próximas ferramentas">▶</button>
+
 <!-- Botões de minimizar as colunas de ferramentas -->
 <button id="btn-collapse-left" class="collapse-btn" title="Minimizar menus"><span class="collapse-arrow">▼</span></button>
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v42</div>
+<div id="debug-badge">v43</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -123,14 +127,14 @@
   </div>
 </div>
 
-<script src="js/data.js?v=42"></script>
-<script src="js/iso.js?v=42"></script>
-<script src="js/game.js?v=42"></script>
-<script src="js/render.js?v=42"></script>
-<script src="js/animals.js?v=42"></script>
-<script src="js/farmers.js?v=42"></script>
-<script src="js/ui.js?v=42"></script>
-<script src="js/multiplayer.js?v=42"></script>
-<script src="js/main.js?v=42"></script>
+<script src="js/data.js?v=43"></script>
+<script src="js/iso.js?v=43"></script>
+<script src="js/game.js?v=43"></script>
+<script src="js/render.js?v=43"></script>
+<script src="js/animals.js?v=43"></script>
+<script src="js/farmers.js?v=43"></script>
+<script src="js/ui.js?v=43"></script>
+<script src="js/multiplayer.js?v=43"></script>
+<script src="js/main.js?v=43"></script>
 </body>
 </html>

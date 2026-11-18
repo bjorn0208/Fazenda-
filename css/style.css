@@ -152,15 +152,37 @@ html, body {
   top: auto; right: auto;
   left: 50%; transform: translateX(-50%);
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: row; align-items: stretch; justify-content: center;
-  justify-content: safe center;
+  display: flex; flex-direction: row; align-items: stretch; justify-content: flex-start;
   gap: 8px; z-index: 15;
-  max-width: min(96vw, 760px);
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  --tbw: 68px;
+  width: calc(var(--tbw) * 3 + 16px + 12px);
+  overflow-x: hidden; overflow-y: hidden; scrollbar-width: none;
   background: transparent; border: none; box-shadow: none;
   padding: 4px 6px;
 }
 #build-bar::-webkit-scrollbar { display: none; }
+
+/* Setas de navegacao da barra de ferramentas */
+.bar-arrow {
+  position: absolute;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  width: 40px; height: 56px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #ffffff, #f1e7d3);
+  color: #4e342e;
+  border: 2px solid #d9c8a9;
+  border-bottom-width: 4px;
+  border-radius: 13px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.22);
+  font-weight: bold; font-size: 15px; cursor: pointer;
+  z-index: 15;
+}
+#bar-arrow-right { left: auto; right: calc(12px + env(safe-area-inset-right, 0px)); }
+.bar-arrow:hover { filter: brightness(1.05); }
+.bar-arrow:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
+.bar-arrow.dim { opacity: 0.35; }
+body.tools-right-hidden .bar-arrow { transform: translateY(calc(100% + 48px)); opacity: 0; pointer-events: none; }
 
 #seed-bar {
   position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
@@ -401,7 +423,7 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
 }
 
 @media (max-width: 480px) {
-  #build-bar { gap: 6px; padding: 3px 4px; }
+  #build-bar { gap: 6px; padding: 3px 4px; --tbw: 54px; }
   .build-btn { width: 54px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
   .build-icon { font-size: 16px; }
 }
@@ -453,7 +475,8 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
-  #build-bar { max-width: 94vw; padding: 3px; gap: 6px; }
+  #build-bar { padding: 3px; gap: 6px; --tbw: 54px; }
+  .bar-arrow { width: 32px; height: 46px; font-size: 13px; }
   #avatar { width: 34px; height: 34px; font-size: 18px; }
   #farm-name { font-size: 10px; }
   #xp-bar { width: 50px; height: 8px; }

@@ -1933,6 +1933,7 @@ function bindUi(handlers) {
   };
 
   for (const btn of document.querySelectorAll('.side-btn')) {
+    if (btn.id === 'btn-buy' || btn.id === 'btn-build') continue;
     btn.onclick = () => {
       const panel = btn.dataset.panel;
       if (panel === 'missions') openMissions();
@@ -1944,8 +1945,11 @@ function bindUi(handlers) {
     };
   }
 
-  setupWheel($('build-bar'));
   setupWheel($('side-menu'));
+
+  $('bar-arrow-left').onclick = () => { playSound('click'); showToolWindow(toolsWin - 1); };
+  $('bar-arrow-right').onclick = () => { playSound('click'); showToolWindow(toolsWin + 1); };
+  showToolWindow(0);
 
   const dchip = $('day-chip');
   if (dchip) dchip.onclick = () => openCalendar();

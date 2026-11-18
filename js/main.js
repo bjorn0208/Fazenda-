@@ -54,7 +54,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v42';
+const GAME_VERSION = 'v43';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -531,6 +531,39 @@ function setMode(mode) {
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
+/* ---------- Janela da barra de ferramentas: 3 visiveis + setas ---------- */
+let toolsWin = 0;
+function toolBarItems() {
+  const bar = $('build-bar');
+  if (!bar) return [];
+  return Array.from(bar.children || []).filter(el => el.classList && !el.classList.contains('hidden'));
+}
+function updateToolArrows() {
+  const l = $('bar-arrow-left'), r = $('bar-arrow-right');
+  const maxWin = Math.max(0, toolBarItems().length - 3);
+  if (l) l.classList.toggle('dim', toolsWin <= 0);
+  if (r) r.classList.toggle('dim', toolsWin >= maxWin);
+}
+function showToolWindow(i) {
+  const bar = $('build-bar');
+  const items = toolBarItems();
+  const maxWin = Math.max(0, items.length - 3);
+  toolsWin = Math.max(0, Math.min(i, maxWin));
+  const tgt = items[toolsWin];
+  if (bar && tgt) {
+    const dest = tgt.offsetLeft || (toolsWin * ((tgt.offsetWidth || 62) + 8));
+    if (bar.scrollTo) bar.scrollTo({ left: dest, behavior: 'smooth' });
+    else bar.scrollLeft = dest;
+  }
+  updateToolArrows();
+}
+function promoteTool(btn) {
+  const bar = $('build-bar');
+  if (!bar || !btn || !bar.children || btn === bar.children[0]) { showToolWindow(0); return; }
+  try { bar.insertBefore(btn, bar.children[0]); } catch (e) {}
+  showToolWindow(0);
+}
+
 function enterBuildMode(typeId) {
   setMode('build');
   const def = BUILDINGS[typeId];
@@ -890,6 +923,10 @@ function init() {
   if (canvas.clientWidth < 520) cam.zoom = 0.72;
   dbgShowZoom();
   bindUi(uiHandlers);
+  $('build-bar').addEventListener('click', e => {
+    const btn = e.target && e.target.closest ? e.target.closest('.build-btn') : null;
+    if (btn && !btn.classList.contains('hidden')) promoteTool(btn);
+  });
   refreshHud();
   requestAnimationFrame(loop);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
