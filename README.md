@@ -166,6 +166,16 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 
 - **Calendário e estações pelos meses**: o ano agora tem 12 meses de 30 dias (360 dias) e a estação segue o calendário de verdade no hemisfério sul: verão em dezembro/janeiro/fevereiro, outono em março/abril/maio, inverno em junho/julho/agosto e primavera em setembro/outubro/novembro. Toque no relógio do topo para abrir o calendário com o mês atual destacado.
 
+## Revisão 29 — Loja de ferramentas, perfil, tarefas de nível e dia de trabalho
+
+- **Você começa sem nada**: enxada (🪙120), regador (🪙180), trator (🪙8000) e pacote de sementes (🪙12 por cultura liberada) agora ficam em uma **aba Ferramentas 🚜** na loja. Arar e regar só funcionam com a ferramenta comprada.
+- **Perfil do jogador**: mude o **nome** e escolha a **foto** (8 avatares) nas Configurações; o perfil salva automaticamente e aparece no HUD.
+- **Tarefas por nível**: cada nível (atê o **50**) gera **3 tarefas** (colher, plantar, coletar produtos) que pagam moedas e XP ao concluir.
+- **Dia de trabalho real**: fazendeiros acordam às **07:30**, trabalham das **08:30 às 12:00**, almoçam no **Restaurante** (🪙250) das **12:00 às 13:00**, voltam ao trabalho atê as **19:00**, e quem tem bar vai bebêr atê às **03:00** antes de dormir.
+- **Ovelha** 🐑 na loja: colha a **lã** quando estiver pronta (🪙40), que cresce de novo no dia seguinte.
+- **Trator colheitadeira**: comprado o trator, o botão 🚜 aparece na coluna de ações — ele sai, colhe fileira por fileira com fumaçã e para sozinho no fim.
+- **Correções**: bug do trator (variável t sombreava a função de tradução e derrubaria o jogo ao apertar o botão), compra de pacote de sementes sempre recusada, melhorias compráveis de graçã s/ ferramenta base e flutuante errado (-moedas quando o plantio usava semente).
+
 ## Revisão 25 — Nova economia, vida na fazenda e PWA
 
 - **Celeiro 🧺 e nova economia**: a colheita agora vai para o **Celeiro** (menu 🧺) — venda ali dentro (individual ou Vender Tudo) para receber moedas. Assim dá para estocar e vender na hora certa.

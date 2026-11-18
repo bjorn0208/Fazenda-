@@ -678,6 +678,28 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   line-height: 1.35;
 }
 
+.face-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 2px solid #d7ccc8;
+  background: #fff;
+  font-size: 17px;
+  cursor: pointer;
+  line-height: 1;
+}
+.face-btn.active {
+  border-color: #43a047;
+  background: #e8f5e9;
+}
+.settings-row input[type="text"] {
+  width: 140px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d7ccc8;
+  background: #fff;
+}
+
 </style>
 </head>
 <body>
@@ -735,6 +757,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   <button class="build-btn" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
   <button class="build-btn" id="btn-pen"><span class="build-icon">🚧</span><span class="build-label" data-i18n="build.pen">Curral</span></button>
   <button class="build-btn hidden" id="btn-dog"><span class="build-icon">🐕</span><span class="build-label" data-i18n="build.dog">Cachorro</span></button>
+  <button class="build-btn hidden" id="btn-tractor"><span class="build-icon">🚜</span><span class="build-label" data-i18n="build.tractor">Trator</span></button>
   <button class="build-btn" id="btn-move"><span class="build-icon">✥</span><span class="build-label" data-i18n="build.move">Mover</span></button>
   <button class="build-btn" id="btn-remove"><span class="build-icon">✖</span><span class="build-label" data-i18n="build.remove">Remover</span></button>
   <button class="build-btn" id="btn-rotate"><span class="build-icon">🔄</span><span class="build-label" data-i18n="build.rotate">Girar</span></button>
@@ -753,7 +776,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v35</div>
+<div id="debug-badge">v36</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -900,6 +923,11 @@ const BUILDINGS = {
     price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
     desc: 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
     refund: 0.5
+  },
+  restaurant: {
+    id: 'restaurant', name: 'Restaurante', icon: '🍽️',
+    price: 250, w: 2, d: 2, level: 3, category: 'construcoes',
+    desc: 'Os fazendeiros almçam aqui ao meio-dia: trabalham até as 12:00, almoçam e voltam às 13:00.'
   }
 };
 
@@ -919,6 +947,11 @@ const ANIMALS = {
     id: 'cow', name: 'Vaca', icon: '🐄',
     price: 600, level: 3, desc: 'Dá leite a cada 60s (toque para coletar e vender).',
     product: '🥛', cycle: 60, value: 25
+  },
+  sheep: {
+    id: 'sheep', name: 'Ovelha', icon: '🐑',
+    price: 550, level: 4, desc: 'Esquila e dá lã a cada 70s; a lã cresce de novo no dia seguinte.',
+    product: '🧶', cycle: 70, value: 40
   },
   horse: {
     id: 'horse', name: 'Cavalo', icon: '🐎',
@@ -980,6 +1013,7 @@ const CROPS = {
 };
 
 const SHOP_CATEGORIES = [
+  { id: 'ferramentas', name: 'Ferramentas' },
   { id: 'construcoes', name: 'Construções' },
   { id: 'animais', name: 'Animais' },
   { id: 'natureza', name: 'Natureza' },
@@ -1021,6 +1055,18 @@ const UPGRADES = [
   { id: 'till', icon: '⛏', max: 2,
     prices: [0, 1800],
     names: ['Enxada simples', 'Enxada de Aço (3x3)'] }
+];
+
+/* Ferramentas compráveis — o jogador começa sem nada. */
+const TOOLS = [
+  { id: 'hoe', icon: '⛏️', name: 'Enxada', price: 120, level: 1,
+    desc: 'Permite arar a terra para plantar.' },
+  { id: 'can', icon: '🚿', name: 'Regador', price: 180, level: 2,
+    desc: 'Permite regar as plantas para crescerem mais rapido.' },
+  { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
+    desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+  { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
+    desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];
 
 /* Curral: tamanhos disponiveis e preco por segmento de cerca. */
@@ -1303,7 +1349,15 @@ const game = {
   tutorialDone: false,    // tutorial da primeira vez ja visto
   barn: {},               // celeiro: id de colheita/produto -> quantidade
   orders: [],             // pedidos do mercado: {id, items, coins, xp}
-  upgrades: { water: 1, till: 1 },
+  upgrades: { water: 0, till: 0 },   // 0 = ferramenta ainda nao comprada
+  seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
+  tractorOwned: false,    // trator comprado na loja de ferramentas
+  tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
+  snow: 0,                // camada de neve acumulada no inverno (0 a 1)
+  playerName: 'Fazendeiro',
+  playerFace: '👨‍🌾',
+  levelTasks: [],         // 3 tarefas por nivel
+  tasksLevel: 1,
   day: 0,                 // dias completos (define a estacao)
   weather: 'clear',       // clear | rain
   weatherT: 0,
@@ -1370,16 +1424,44 @@ function addCoins(n) {
 
 function addGems(n) { game.gems = Math.max(0, game.gems + n); uiDirty.gems = true; }
 
+const MAX_LEVEL = 50;
+
 function addXp(n) {
   game.xp += n;
   uiDirty.xp = true;
-  while (game.xp >= xpForLevel(game.level)) {
+  while (game.level < MAX_LEVEL && game.xp >= xpForLevel(game.level)) {
     game.xp -= xpForLevel(game.level);
     game.level++;
     game.stats.level = game.level;
+    spawnLevelTasks(game.level);
     showToast(t('toast.levelUp', { n: game.level }));
     playSound('level');
   }
+  if (game.level >= MAX_LEVEL) game.xp = Math.min(game.xp, xpForLevel(MAX_LEVEL));
+}
+
+/* ---------- Tarefas por nivel (3 por nivel, ate 50) ---------- */
+function spawnLevelTasks(lvl) {
+  const c = 80 + lvl * 40;
+  const x = 15 + lvl * 5;
+  game.levelTasks = [
+    { icon: '🌾', label: 'Colher ' + (2 + lvl * 2) + ' planta\u00e7\u00f5es', stat: 'harvested', base: game.stats.harvested || 0, target: 2 + lvl * 2, coins: c, xp: x },
+    { icon: '🌱', label: 'Plantar ' + (4 + lvl) + ' sementes', stat: 'planted', base: game.stats.planted || 0, target: 4 + lvl, coins: Math.round(c * 0.8), xp: x },
+    { icon: '🐑', label: 'Animais: coletar ' + (3 + lvl) + ' produtos', stat: 'collected', base: game.stats.collected || 0, target: 3 + lvl, coins: c, xp: x }
+  ];
+  game.tasksLevel = lvl;
+}
+
+function checkLevelTasks() {
+  if (!game.levelTasks.length) return;
+  const done = game.levelTasks.filter(m => (game.stats[m.stat] || 0) - m.base >= m.target);
+  if (!done.length) return;
+  for (const m of done) {
+    addCoins(m.coins);
+    addXp(m.xp);
+    showToast(t('toast.taskDone', { label: m.label, c: m.coins }));
+  }
+  game.levelTasks = game.levelTasks.filter(m => !done.includes(m));
 }
 
 /* ---------- Construções ---------- */
@@ -1457,9 +1539,14 @@ function plantCrop(type, gx, gy, free) {
   if (!def) return null;
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
   if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
-  if (!free) {
-    if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
-    addCoins(-def.seedCost);
+  if (!free && !game.visiting) {
+    if (game.seeds[type] > 0) {
+      game.seeds[type]--;
+      if (game.seeds[type] <= 0) delete game.seeds[type];
+    } else {
+      if (game.coins < def.seedCost) { showToast(t('toast.noSeeds')); return null; }
+      addCoins(-def.seedCost);
+    }
   }
   const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
@@ -1513,18 +1600,20 @@ function sellBarnItem(id, n) {
   const value = barnItemValue(id) * n;
   game.barn[id] -= n;
   if (game.barn[id] <= 0) delete game.barn[id];
+  game.stats.barn_sold = (game.stats.barn_sold || 0) + n;
   addCoins(value);
   playSound('harvest');
   return true;
 }
 
 function sellAllBarn() {
-  let coins = 0;
+  let coins = 0, sold = 0;
   for (const id of Object.keys(game.barn)) {
-    const value = barnItemValue(id) * game.barn[id];
-    coins += value;
+    coins += barnItemValue(id) * game.barn[id];
+    sold += game.barn[id];
     delete game.barn[id];
   }
+  if (sold > 0) game.stats.barn_sold = (game.stats.barn_sold || 0) + sold;
   if (coins > 0) { addCoins(coins); playSound('level'); }
   return coins;
 }
@@ -1563,6 +1652,122 @@ function deliverOrder(orderId) {
   spawnCourier(o);
   showToast(t('toast.courierGoing'));
   return true;
+}
+
+/* ---------- Ferramentas ---------- */
+function toolOwned(id) {
+  if (id === 'hoe') return upgradeLevel('till') > 0;
+  if (id === 'can') return upgradeLevel('water') > 0;
+  if (id === 'tractor') return game.tractorOwned;
+  return true;
+}
+
+function buyTool(id) {
+  const def = TOOLS.find(x => x.id === id);
+  if (!def) return false;
+  if (id !== 'seeds' && toolOwned(id)) { showToast(t('toast.toolOwned')); return false; }
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  const price = id === 'seeds' ? 12 * Object.values(CROPS).filter(c => c.level <= game.level).length : def.price;
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
+  if (id === 'hoe') game.upgrades.till = 1;
+  else if (id === 'can') game.upgrades.water = 1;
+  else if (id === 'tractor') {
+    game.tractorOwned = true;
+    game.tractor = null;
+  } else if (id === 'seeds') {
+    for (const c of Object.values(CROPS)) {
+      if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
+    }
+  }
+  playSound('place');
+  return true;
+}
+
+/* ---------- Trator colheitadeira ---------- */
+function tractorWalkable(x, y) {
+  if (!inBounds(x, y) || !inOwnedArea(x, y)) return false;
+  const occ = occupancy[occIndex(x, y)];
+  return !occ || occ.isCrop;
+}
+
+function startTractor() {
+  if (!game.tractorOwned) return false;
+  const ready = game.crops.find(c => cropProgress(c) >= 1);
+  if (!ready) { showToast(t('toast.tractorNone')); return false; }
+  if (!game.tractor) {
+    const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
+    for (let tries = 0; tries < 200; tries++) {
+      const x = game.ownedArea.x0 + Math.floor(Math.random() * (game.ownedArea.x1 - game.ownedArea.x0 + 1));
+      const y = game.ownedArea.y0 + Math.floor(Math.random() * (game.ownedArea.y1 - game.ownedArea.y0 + 1));
+      if (tractorWalkable(x, y)) { spot.x = x; spot.y = y; break; }
+    }
+    game.tractor = { gx: spot.x + 0.5, gy: spot.y + 0.5, tx: spot.x + 0.5, ty: spot.y + 0.5, path: [], phase: 0, smokeT: 0, walking: false };
+  }
+  const tr = game.tractor;
+  tr.target = null;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), Math.floor(ready.gx + 0.5), Math.floor(ready.gy + 0.5), tractorWalkable) || [];
+  tr.tx = ready.gx + 0.5; tr.ty = ready.gy + 0.5;
+  if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
+  tr.walking = true;
+  tr.active = true;
+  showToast(t('toast.tractorGo'));
+  return true;
+}
+
+function tractorNextTarget(t) {
+  let best = null, bestD = Infinity;
+  for (const c of game.crops) {
+    if (cropProgress(c) < 1) continue;
+    const d = Math.hypot(c.gx + 0.5 - t.gx, c.gy + 0.5 - t.gy);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+function updateTractor(dt) {
+  const tr = game.tractor;
+  if (!tr || !tr.active) return;
+  tr.phase += dt;
+  if (tr.walking) {
+    const dx = tr.tx - tr.gx, dy = tr.ty - tr.gy;
+    const dist = Math.hypot(dx, dy);
+    const step = 2.4 * dt;
+    tr.smokeT += dt;
+    if (tr.smokeT > 0.3) {
+      tr.smokeT = 0;
+      if (Math.random() < 0.7) spawnParticle(tr.gx - 0.3, tr.gy, 0.5, -0.3, -0.1, 0.3, 0.9, 'rgba(90,90,90,0.5)', 2.5, -0.12);
+    }
+    if (dist <= step) {
+      tr.gx = tr.tx; tr.gy = tr.ty;
+      const occ = occupancy[occIndex(Math.floor(tr.gx), Math.floor(tr.gy))];
+      if (occ && occ.isCrop && cropProgress(occ) >= 1 && !game.visiting) {
+        harvestCrop(occ);
+        spawnFloater(occ.gx, occ.gy, '🌾', '#c5e1a5');
+      }
+      if (tr.path && tr.path.length) {
+        const w = tr.path.shift();
+        tr.tx = w.x + 0.5; tr.ty = w.y + 0.5;
+      } else {
+        tr.walking = false;
+      }
+    } else {
+      tr.gx += dx / dist * step;
+      tr.gy += dy / dist * step;
+    }
+    return;
+  }
+  const next = tractorNextTarget(tr);
+  if (!next) {
+    tr.active = false;
+    showToast(t('toast.tractorDone'));
+    playSound('level');
+    return;
+  }
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.gx, next.gy, tractorWalkable) || [];
+  tr.tx = next.gx + 0.5; tr.ty = next.gy + 0.5;
+  if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
+  tr.walking = true;
 }
 
 /* ---------- Entregador de moto ---------- */
@@ -1651,6 +1856,7 @@ function updateCourierOne(c, dt) {
     return;
   }
   if (c.stage === 'in') {
+    game.stats.orders_done = (game.stats.orders_done || 0) + 1;
     addCoins(c.coins);
     addXp(c.xp);
     spawnFloater(c.gx, c.gy - 0.5, '+' + c.coins + ' \u{1FA99}', '#ffd54f');
@@ -1717,13 +1923,14 @@ function cookRecipe(id) {
 
 /* ---------- Melhorias de ferramentas ---------- */
 function upgradeLevel(id) {
-  return (game.upgrades && game.upgrades[id]) || 1;
+  return (game.upgrades && game.upgrades[id]) || 0;
 }
 
 function buyUpgrade(id) {
   const def = UPGRADES.find(u => u.id === id);
   if (!def) return false;
   const lvl = upgradeLevel(id);
+  if (lvl === 0) { showToast(t('toast.toolNeed', { name: t(id === 'water' ? 'tool.can' : 'tool.hoe') })); return false; }
   if (lvl >= def.max) return false;
   const price = def.prices[lvl];
   if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
@@ -1738,6 +1945,7 @@ function waterRadius() { return upgradeLevel('water') >= 3 ? 2 : (upgradeLevel('
 function tillRadius() { return upgradeLevel('till') >= 2 ? 1 : 0; }
 
 function waterAreaAt(gx, gy) {
+  if (upgradeLevel('water') === 0) return 0;
   const r = waterRadius();
   let n = 0;
   for (let dx = -r; dx <= r; dx++) {
@@ -1751,6 +1959,7 @@ function waterAreaAt(gx, gy) {
 }
 
 function tillAreaAt(gx, gy) {
+  if (upgradeLevel('till') === 0) return 0;
   const r = tillRadius();
   let n = 0;
   for (let dx = -r; dx <= r; dx++) {
@@ -1776,6 +1985,9 @@ function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
   if (game.time < prev) { game.meetingDone = false; game.day++; }
+  if (seasonIndex() === 3) game.snow = Math.min(1, game.snow + dt / 180);
+  else game.snow = Math.max(0, game.snow - dt / 20);
+  checkLevelTasks();
 }
 
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
@@ -2026,6 +2238,7 @@ function collectAnimal(a) {
   if (!a.product) return false;
   const def = ANIMALS[a.kind];
   const value = def.value * a.product;
+  game.stats.collected = (game.stats.collected || 0) + a.product;
   addCoins(value);
   spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
   a.product = 0;
@@ -2214,6 +2427,12 @@ function autoClaimReady() {
 }
 
 /* ---------- Salvamento ---------- */
+function applyToolMigration(data) {
+  const legacy = (data.day || 0) > 0 || (data.level || 1) > 1;
+  if (!data.upgrades) return legacy ? { water: 2, till: 2 } : { water: 0, till: 0 };
+  return { water: 0, till: 0, ...data.upgrades };
+}
+
 function snapshotData() {
   return {
     coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
@@ -2225,6 +2444,9 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
+    playerName: game.playerName, playerFace: game.playerFace,
+    levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
     farmCode: game.farmCode
@@ -2277,16 +2499,30 @@ function applySaveData(data) {
       landExpansions: data.landExpansions ?? 0,
       farmCode: data.farmCode ?? null,
       barn: data.barn ?? {}, orders: data.orders ?? [],
-      upgrades: { water: 1, till: 1, ...(data.upgrades ?? {}) },
+      upgrades: applyToolMigration(data), 
       tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
+      seeds: data.seeds ?? {},
+      tractorOwned: data.tractorOwned ?? false, tractor: null,
+      snow: data.snow ?? 0,
+      playerName: data.playerName ?? 'Fazendeiro',
+      playerFace: data.playerFace ?? '👨‍🌾',
+      levelTasks: data.levelTasks ?? [], tasksLevel: data.tasksLevel ?? 1,
       particles: [],
       couriers: []
     });
     for (const a of game.animals) {
       if (a.age === undefined) a.age = 999;
       if (a.bornAt === undefined) a.bornAt = Date.now();
+    }
+    if (!data.upgrades && ((data.day || 0) > 0 || (data.level || 1) > 1)) {
+      game.upgrades = { water: 2, till: 2 };
+    }
+    if (!data.seeds && ((data.day || 0) > 0 || (data.level || 1) > 1)) {
+      for (const c of Object.values(CROPS)) {
+        if (c.level <= game.level) game.seeds[c.id] = 5;
+      }
     }
     if (!data.orders) ensureOrders();
     game.stats.level = game.level;
@@ -2450,6 +2686,7 @@ function render(ctx, cam, cw, ch, state) {
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
+  if (seasonIndex() === 3) drawSnow(ctx, cam, cw, ch);
 }
 
 /* ---------- Chuva ---------- */
@@ -2560,6 +2797,10 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       if (st === 2) { b *= 0.72; r = Math.min(255, r * 1.12); }
       else if (st === 3) { g = g * 0.82 + 40; b = b * 0.9 + 18; r = r * 0.92 + 20; }
       else if (st === 1) { r = Math.min(255, r * 1.05); b *= 0.94; }
+      if (game.snow > 0) {
+        const k = game.snow * 0.85;
+        r += (238 - r) * k; g += (242 - g) * k; b += (250 - b) * k;
+      }
 
       // manchas de sol e de sombra sobrepostas ao ruído
       const n2 = smoothNoise(x / 4.5 + 97, y / 4.5 + 53);
@@ -2874,6 +3115,151 @@ function drawShadow(ctx, cam, cw, ch, gx, gy, w, d, strength) {
   ctx.fill();
 }
 
+function drawRestaurant(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.18);
+  const wallH = 0.78;
+  drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, wallH, '#fff8ee');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.05, gy + 0.05, w - 0.1, d - 0.1, 0.1, '#a8a8a8');
+
+  drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + 0.12, 0.1, d - 0.24, wallH, '#efe2cf');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.12, gy + 0.12, w - 0.24, d - 0.24, 0.14, '#8d6e63');
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.08, gy + 0.08, w - 0.16, d - 0.16, wallH, 0.42, '#c62828', 'x');
+
+  const z = cam.zoom;
+  const door = [projectPoint(gx + 0.55, gy + d + 0.01, 0.02), projectPoint(gx + 1.45, gy + d + 0.01, 0.02)];
+  const d1 = worldToScreen(cam, door[0].x, door[0].y, cw, ch);
+  const d2 = worldToScreen(cam, door[1].x, door[1].y, cw, ch);
+  ctx.fillStyle = '#6d4c41';
+  ctx.beginPath();
+  ctx.moveTo(d1.x, d1.y);
+  ctx.lineTo(d2.x, d2.y);
+  ctx.lineTo(d2.x, d2.y - 20 * z);
+  ctx.lineTo(d1.x, d1.y - 20 * z);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffca28';
+  ctx.beginPath();
+  ctx.arc((d1.x + d2.x) / 2 + 6 * z, (d1.y + d2.y) / 2 - 10 * z, 1.3 * z, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (q !== 'baixa') {
+    const stripe = 5;
+    for (let i = 0; i < stripe; i++) {
+      const x0a = gx + 0.12 + i * (w - 0.24) / stripe;
+      const x1a = gx + 0.12 + (i + 1) * (w - 0.24) / stripe;
+      const p1 = projectPoint(x0a, gy + d - 0.02, 0.42);
+      const p2 = projectPoint(x1a, gy + d - 0.02, 0.42);
+      const p3 = projectPoint(x1a, gy + d + 0.08, 0.42 - 0.0);
+      const p4 = projectPoint(x0a, gy + d + 0.08, 0.42);
+      const s1 = worldToScreen(cam, p1.x, p1.y, cw, ch);
+      const s2 = worldToScreen(cam, p2.x, p2.y, cw, ch);
+      const s3 = worldToScreen(cam, p3.x, p3.y, cw, ch);
+      const s4 = worldToScreen(cam, p4.x, p4.y, cw, ch);
+      ctx.fillStyle = i % 2 === 0 ? '#e53935' : '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.lineTo(s3.x, s3.y); ctx.lineTo(s4.x, s4.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    const sign = projectPoint(gx + w / 2, gy + d + 0.02, 0.55);
+    const ss = worldToScreen(cam, sign.x, sign.y, cw, ch);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.roundRect(ss.x - 10 * z, ss.y - 26 * z, 20 * z, 9 * z, 2 * z);
+    ctx.fill();
+    ctx.strokeStyle = '#c62828';
+    ctx.lineWidth = Math.max(1, z);
+    ctx.stroke();
+    ctx.fillStyle = '#c62828';
+    ctx.font = Math.max(7, 7 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('RESTAURANTE', ss.x, ss.y - 19.5 * z);
+  }
+}
+
+/* ---------- Neve e trator ---------- */
+function drawSnow(ctx, cam, cw, ch) {
+  const t = performance.now() / 1000;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = 'rgba(250,252,255,0.85)';
+  for (let i = 0; i < 64; i++) {
+    const sd = (i * 137.5 + t * 26 + Math.sin(t * 0.9 + i) * 22) % (ch + 30);
+    const sx = (i * 97 + t * 9 + Math.sin(t * 0.7 + i * 1.7) * 26) % cw;
+    const sz = 1.1 + (i % 3) * 0.9;
+    ctx.beginPath();
+    ctx.arc(sx, sd - 15, sz, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawTractor(ctx, cam, cw, ch, t) {
+  const p = projectPoint(t.gx, t.gy, 0);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const dir = t.movingDir || 1;
+  const bob = t.walking ? Math.abs(Math.sin(t.phase * 12)) * 1.2 * z : Math.sin(t.phase * 2) * 0.4 * z;
+  const spin = t.walking ? t.phase * 24 : 0;
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.scale(z * dir, z);
+  ctx.lineJoin = 'round';
+
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.26 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 4.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.translate(0, -bob);
+
+  const bigWheel = (wx, wy, wr) => {
+    ctx.fillStyle = '#212121';
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fdd835';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#616161';
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 4; i++) {
+      const a = spin + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + Math.cos(a) * wr * 0.85, wy + Math.sin(a) * wr * 0.85);
+      ctx.stroke();
+    }
+  };
+  bigWheel(-6, -6, 6.5);
+  bigWheel(9.5, -4, 3.4);
+
+  ctx.fillStyle = '#2e7d32';
+  ctx.beginPath();
+  ctx.roundRect(-10, -13.5, 15, 6, 2);
+  ctx.fill();
+  ctx.fillStyle = '#1b5e20';
+  ctx.fillRect(-10, -10, 15, 2);
+
+  ctx.fillStyle = '#37474f';
+  ctx.beginPath();
+  ctx.roundRect(-8, -21.5, 8.5, 9, 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(135,206,235,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(-6.7, -20.2, 5.6, 4.4, 1.2);
+  ctx.fill();
+
+  ctx.fillStyle = '#455a64';
+  ctx.fillRect(-8.8, -23.4, 1.6, 3);
+
+  ctx.fillStyle = '#ffca28';
+  ctx.beginPath();
+  ctx.arc(10.5, -8.5, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /* ---------- Entregador de moto ---------- */
 function drawCourier(ctx, cam, cw, ch, c) {
   const p = projectPoint(c.gx, c.gy, 0);
@@ -3012,6 +3398,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
   for (const cr of game.couriers) items.push({ key: cr.gx + cr.gy + 1, kind: 'm', ref: cr });
+  if (game.tractor) items.push({ key: game.tractor.gx + game.tractor.gy + 2, kind: 't', ref: game.tractor });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -3029,6 +3416,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawDog(ctx, cam, cw, ch, b);
     } else if (it.kind === 'm') {
       drawCourier(ctx, cam, cw, ch, b);
+    } else if (it.kind === 't') {
+      drawTractor(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }
@@ -3070,6 +3459,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'doghouse': drawDoghouse(ctx, cam, cw, ch, gx, gy, q); break;
     case 'bar':     drawBar(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'restaurant': drawRestaurant(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 
@@ -4022,12 +4412,13 @@ const ANIMAL_KINDS = {
   chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
   cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 },
-  horse:   { speed: 1.4, scale: 1.05 }
+  horse:   { speed: 1.4, scale: 1.05 },
+  sheep:   { speed: 0.5, scale: 0.92, cycle: 70 }
 };
 
 const MAX_PRODUCT = 3;
 
-const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
+const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow', 'cow', 'sheep'];
 
 function lerpAngle(a, b, t) {
   let d = b - a;
@@ -4324,12 +4715,13 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'cow') drawCow(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'horse') drawHorse(ctx, bob, dir, a.walking, a.phase);
+  else if (a.kind === 'sheep') drawSheep(ctx, bob, dir, a.walking, a.phase, a);
   else drawPig(ctx, bob, dir, a.walking, a.phase);
 
   ctx.restore();
 
   if (grazing) {
-    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22] };
+    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22], sheep: [21, -18] };
     const hp = heads[a.kind] || [14, -14];
     drawGrazingBits(ctx, s.x + dir * hp[0] * z * k.scale * squash, s.y + hp[1] * z * k.scale, z, dir, a.phase);
   }
@@ -4346,6 +4738,47 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+}
+
+function drawSheep(ctx, bob, dir, walking, phase, a) {
+  const legSwing = walking ? Math.sin(phase * 9) * 3 : 0;
+  const woolOut = (!isAdult(a)) ? 0.5 : (a.product > 0 ? 1 : 0.35);
+  const L = -1 + legSwing, R = 1 - legSwing;
+  ctx.strokeStyle = '#4a4a4a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-5, -8); ctx.lineTo(-5 + L, 0);
+  ctx.moveTo(5, -8); ctx.lineTo(5 + R, 0);
+  ctx.stroke();
+
+  ctx.fillStyle = '#78909c';
+  ctx.beginPath();
+  ctx.ellipse(0, -11, 11.5 * (0.75 + 0.25 * woolOut), 8.5 * (0.75 + 0.25 * woolOut), 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (woolOut > 0.2) {
+    ctx.fillStyle = '#eceff1';
+    for (const [wx, wy, wr] of [[-8, -11, 4.2], [-3.5, -14.5, 4.6], [1.5, -15.5, 4.8], [6.5, -14, 4.4], [9.5, -10.5, 3.8], [-9, -6.5, 3.6], [-1, -4.8, 4.6], [6, -6.2, 4]]) {
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr * (0.55 + 0.45 * woolOut), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const faceDir = dir >= 0 ? 1 : -1;
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.ellipse(dir * 11.5, -15.5, 3.6, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(dir * 14.5 * 0 + dir * 10.5, -19, 2.8, 2.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.arc(dir * 12.6, -15.8, 0.75, 0, Math.PI * 2);
+  ctx.arc(dir * 13.4, -15.2, 0.75, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawChicken(ctx, bob, dir, walking, phase) {
@@ -5006,6 +5439,10 @@ function drawHorse(ctx, bob, dir, walking, phase) {
 
 const FARMER_SPEED = 1.1;
 
+function gameHour() {
+  return (6 + game.time * 24) % 24;
+}
+
 /* ================= MENTE DOS FAZENDEIROS =================
    Cada fazendeiro tem nome, personalidade, energia, humor,
    amizades e pensa/fala por conta propria. */
@@ -5139,7 +5576,8 @@ function startMeetingDiscussion() {
 
 function updateMeeting(dt) {
   if (game.meetingDone) return;
-  if (dayPhase() !== 'day' || !game.farmers.length) return;
+  const Hm = gameHour();
+  if (Hm < 7.5 || Hm >= 19 || !game.farmers.length) return;
   const point = meetingPoint();
   let allHere = true;
   for (const f of game.farmers) {
@@ -5203,6 +5641,18 @@ function barSpotFor(f, bar) {
     if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
   }
   if (!cands.length) return { x: bar.gx + 1, y: bar.gy + 2 };
+  return cands[(f.id || 0) % cands.length];
+}
+
+function restaurantSpotFor(f, rest) {
+  const cands = [];
+  for (let x = rest.gx; x < rest.gx + 2; x++) {
+    if (inBounds(x, rest.gy + 2) && inOwnedArea(x, rest.gy + 2) && !occupancy[occIndex(x, rest.gy + 2)]) cands.push({ x, y: rest.gy + 2 });
+  }
+  for (const [x, y] of [[rest.gx - 1, rest.gy + 1], [rest.gx + 2, rest.gy + 1]]) {
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
+  }
+  if (!cands.length) return { x: rest.gx, y: rest.gy + 2 };
   return cands[(f.id || 0) % cands.length];
 }
 
@@ -5273,17 +5723,17 @@ function hasHorse() {
 /* Escolhe o proximo trabalho respeitando a fase do dia e a funcao do fazendeiro. */
 function farmerFindJob(f) {
   const role = f.role || 'all';
-  const phase = dayPhase();
-  if (phase === 'night') return null;
+  const H = gameHour();
+  if (H >= 19 || H < 8.5) return null;
   if (role !== 'animal') {
-    if (phase === 'day') {
+    if (H < 12) {
       for (const type of Object.keys(f.chest)) {
         if (f.chest[type] > 0) return { kind: 'plant', type };
       }
       const dry = farmerFindWaterTarget(f);
       if (dry) return { kind: 'water', target: dry };
     }
-    if (phase === 'afternoon') {
+    if (H >= 13) {
       let best = null, bestD = Infinity;
       let bestFree = null, bestFreeD = Infinity;
       for (const c of game.crops) {
@@ -5382,7 +5832,8 @@ function updateFarmers(dt) {
     }
 
     if (f.inside) {
-      if (dayPhase() !== 'night') {
+      const Hw = gameHour();
+      if (Hw >= 7.5 && Hw < 19) {
         f.inside = false;
         f.wait = 0.5;
         f.barTonight = Math.random() < 0.65;
@@ -5422,11 +5873,33 @@ function updateFarmers(dt) {
     f.wait -= dt;
     if (f.wait > 0) continue;
 
-    if (!game.meetingDone && dayPhase() === 'day') continue;
+    const H = gameHour();
 
-    if (dayPhase() === 'night') {
+    if (H >= 12 && H < 13) {
+      const rest = game.buildings.find(b => b.type === 'restaurant');
+      if (rest) {
+        const spot = restaurantSpotFor(f, rest);
+        if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
+          f.walking = false;
+          f.riding = false;
+          f.energy = Math.min(100, (f.energy || 60) + 28 * dt);
+          f.wait = 0.5;
+          if (Math.random() < dt * 0.2) spawnFloater(spot.x, spot.y, '\uD83C\uDF7D', '#ffcc80');
+        } else {
+          f.riding = false;
+          f.tx = spot.x + 0.5;
+          f.ty = spot.y + 0.5;
+          f.walking = true;
+        }
+      }
+      continue;
+    }
+
+    if (!game.meetingDone && H >= 7.5 && H < 19) continue;
+
+    if (H >= 19 || H < 7.5) {
       const bar = game.buildings.find(b => b.type === 'bar');
-      if (bar && f.barTonight && !f.barDone) {
+      if (bar && f.barTonight && !f.barDone && (H >= 19 || H < 3)) {
         f.atBar = true;
         const spot = barSpotFor(f, bar);
         if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
@@ -5436,7 +5909,7 @@ function updateFarmers(dt) {
           f.wait = 0.5;
           f.barT = (f.barT || 0) + dt;
           if (Math.random() < dt * 0.25) farmerSay(f, mindLine('bar'), 4500);
-          if (f.barT > 40 || game.time > 0.97) f.barDone = true;
+          if (f.barT > 40 || (H >= 3 && H < 19)) f.barDone = true;
         } else {
           f.riding = false;
           f.tx = spot.x + 0.5;
@@ -5460,6 +5933,7 @@ function updateFarmers(dt) {
         continue;
       }
     }
+    if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);
 
     if (job && job.kind === 'water') {
@@ -5820,6 +6294,25 @@ const I18N = {
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias, taboas e sapos.',
     'b_doghouse': 'Casinha do Cachorro', 'b_doghouse_desc': 'Quando você desliga o cachorro, ele volta para cá dormir.',
     'b_bar': 'Bar da Fazenda', 'b_bar_desc': 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
+    'cat.ferramentas': 'Ferramentas',
+    'b_restaurant': 'Restaurante', 'b_restaurant_desc': 'Os fazendeiros almoçam aqui ao meio-dia: param de trabalhar às 12:00 e voltam às 13:00.',
+    'an_sheep': 'Ovelha', 'an_sheep_desc': 'Colha a lã das adultas; a lã cresce de novo no dia seguinte.',
+    'toast.noSeeds': 'Sem sementes e sem moedas para comprar mais! Adquira um pacote de sementes na loja.',
+    'toast.toolNeed': 'Você precisa de {name}. Compre na loja de Ferramentas!',
+    'toast.toolOwned': 'Ferramenta já comprada.',
+    'toast.toolBought': '{icon} {name} comprada!',
+    'toast.seedsBought': '{icon} +2 sementes de cada cultura liberada!',
+    'toast.tractorNone': 'Nenhuma plantação pronta para colher.',
+    'toast.tractorGo': 'Trator a caminho! Ele colhe fileira por fileira.',
+    'toast.tractorDone': 'Trator terminou a colheita.',
+    'toast.taskDone': '{icon} Tarefa do nível concluída: {label}! +{c} moedas 🪙',
+    'tool.hoe': 'Enxada', 'tool.hoe_desc': 'Permite arar a terra para plantar.',
+    'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
+    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
+    'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
+    'upg.baseFirst': 'Comprar ferramenta base', 'upg.baseHint': 'Compre a ferramenta base na aba Ferramentas!',
+    'profile.name': 'Nome do personagem', 'profile.face': 'Foto do personagem',
+    'tasks.title': 'Tarefas do nível {n}',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
@@ -5846,7 +6339,7 @@ const I18N = {
     'farmers.chest': 'Baú',
     'farmers.hire': 'Contratar fazendeiro — 🪙 {price}',
     'farmers.roleSet': '{name} agora trabalha com: {role}',
-    'build.pen': 'Montar curral', 'build.dog': 'Cachorro',
+    'build.pen': 'Montar curral', 'build.dog': 'Cachorro', 'build.tractor': 'Trator',
     'pen.title': 'Curral', 'pen.desc': 'Cerca pronta com porteiro; os animais ficam dentro.',
     'pen.current': 'Curral atual: {n}×{n}',
     'pen.remove': 'Remover curral (reembolso 🪙 {price})',
@@ -6047,6 +6540,25 @@ const I18N = {
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads, cattails and frogs.',
     'b_doghouse': 'Doghouse', 'b_doghouse_desc': 'When you switch the dog off, he comes here to sleep.',
     'b_bar': 'Farm Bar', 'b_bar_desc': 'At night the farmers come for a cold one, barbecue and music.',
+    'cat.ferramentas': 'Tools',
+    'b_restaurant': 'Restaurant', 'b_restaurant_desc': 'The farmers have lunch here at noon and go back to work at 13:00.',
+    'an_sheep': 'Sheep', 'an_sheep_desc': 'Shear the adults for wool; it grows back the next day.',
+    'toast.noSeeds': 'No seeds and not enough coins to buy more! Get a seed pack in the shop.',
+    'toast.toolNeed': 'You need the {name}. Buy it in the Tools shop!',
+    'toast.toolOwned': 'Tool already owned.',
+    'toast.toolBought': '{icon} {name} bought!',
+    'toast.seedsBought': '{icon} +2 seeds of every unlocked crop!',
+    'toast.tractorNone': 'No ready crops to harvest.',
+    'toast.tractorGo': 'Tractor on the way! It harvests row by row.',
+    'toast.tractorDone': 'The tractor finished harvesting.',
+    'toast.taskDone': '{icon} Level task done: {label}! +{c} coins 🪙',
+    'tool.hoe': 'Hoe', 'tool.hoe_desc': 'Lets you till the soil for planting.',
+    'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
+    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
+    'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
+    'upg.baseFirst': 'Buy the base tool first', 'upg.baseHint': 'Buy the base tool in the Tools tab!',
+    'profile.name': 'Character name', 'profile.face': 'Character photo',
+    'tasks.title': 'Level {n} tasks',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.shovel': 'Shovel',
@@ -6072,7 +6584,7 @@ const I18N = {
     'farmers.chest': 'Chest',
     'farmers.hire': 'Hire farmhand — 🪙 {price}',
     'farmers.roleSet': '{name} now works as: {role}',
-    'build.pen': 'Build pen', 'build.dog': 'Dog',
+    'build.pen': 'Build pen', 'build.dog': 'Dog', 'build.tractor': 'Tractor',
     'pen.title': 'Pen', 'pen.desc': 'Ready-made fence with a gate; animals stay inside.',
     'pen.current': 'Current pen: {n}×{n}',
     'pen.remove': 'Remove pen (refund 🪙 {price})',
@@ -6230,10 +6742,12 @@ function refreshHud() {
     dogBtn.classList.toggle('hidden', !game.dogs.length);
     dogBtn.classList.toggle('active', game.dogs.some(d => d.active));
   }
+  const tractorBtn = $('btn-tractor');
+  if (tractorBtn) tractorBtn.classList.toggle('hidden', !game.tractorOwned);
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
-    $('level-text').textContent = t('hud.level', { n: game.level });
+    $('level-text').textContent = (game.playerFace || '') + ' ' + t('hud.level', { n: game.level });
     $('farm-name').textContent = game.farmName;
     const need = xpForLevel(game.level);
     $('xp-fill').style.width = Math.min(100, (game.xp / need) * 100) + '%';
@@ -6349,22 +6863,59 @@ function openShop() {
       for (const def of UPGRADES) {
         const lvl = upgradeLevel(def.id);
         const maxed = lvl >= def.max;
-        const price = maxed ? 0 : def.prices[lvl];
+        const noTool = lvl === 0;
+        const price = maxed || noTool ? 0 : def.prices[lvl];
         const name = def.names[Math.min(lvl, def.names.length - 1)];
         const item = document.createElement('div');
         item.className = 'shop-item';
         item.innerHTML = `
           <div class="shop-item-icon">${def.icon}</div>
           <div class="shop-item-name">${name}</div>
-          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : t('upg.next', { name: def.names[lvl] })}</div>
-          <div class="shop-item-price">${maxed ? '⭐' : '🪙 ' + price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : (noTool ? t('upg.baseHint') : t('upg.next', { name: def.names[lvl] }))}</div>
+          <div class="shop-item-price">${maxed ? '⭐' : (noTool ? '—' : '🪙 ' + price.toLocaleString('pt-BR'))}</div>
         `;
         const btn = document.createElement('button');
         btn.className = 'shop-buy-btn';
-        btn.disabled = maxed || game.coins < price;
-        btn.textContent = maxed ? t('shop.maxed') : t('shop.buyUpgrade');
+        btn.disabled = maxed || noTool || game.coins < price;
+        btn.textContent = maxed ? t('shop.maxed') : (noTool ? t('upg.baseFirst') : t('shop.buyUpgrade'));
         btn.onclick = () => {
           if (buyUpgrade(def.id)) { showToast(t('toast.upgraded')); refreshHud(); openShop(); }
+        };
+        item.appendChild(btn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'ferramentas') {
+      const unlockedCrops = Object.values(CROPS).filter(c => c.level <= game.level).length;
+      const seedsPrice = 12 * unlockedCrops;
+      for (const def of TOOLS) {
+        const locked = game.level < def.level;
+        const owned = def.id !== 'seeds' && toolOwned(def.id);
+        const price = def.id === 'seeds' ? seedsPrice : def.price;
+        const afford = game.coins >= price;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('tool.' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('tool.' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.disabled = locked || !afford || owned;
+        btn.textContent = locked ? t('shop.locked', { n: def.level }) : (owned ? t('toast.toolOwned') : (!afford ? t('shop.noCoins') : t('shop.buyUpgrade')));
+        btn.onclick = () => {
+          if (buyTool(def.id)) {
+            showToast(def.id === 'seeds'
+              ? t('toast.seedsBought', { icon: def.icon })
+              : t('toast.toolBought', { icon: def.icon, name: t('tool.' + def.id) }));
+            refreshHud();
+            openShop();
+          }
         };
         item.appendChild(btn);
         grid.appendChild(item);
@@ -6627,6 +7178,27 @@ function openFarmersPanel() {
 function openMissions() {
   openModal(t('modal.missions'), body => {
     for (const m of MISSIONS) {
+    const lt = game.levelTasks;
+    if (lt && lt.length) {
+      const head = document.createElement('div');
+      head.className = 'mission-title';
+      head.style.cssText = 'text-align:center;margin:2px 0 10px';
+      head.textContent = t('tasks.title', { n: game.level });
+      body.appendChild(head);
+      for (const m of lt) {
+        const prog = Math.min(m.target, (game.stats[m.stat] || 0) - m.base);
+        const item = document.createElement('div');
+        item.className = 'mission-item';
+        item.innerHTML = `
+          <div class="mission-info">
+            <div class="mission-title">${m.icon} ${m.label}</div>
+            <div class="mission-progress">Progresso: ${prog}/${m.target}</div>
+          </div>
+          <div class="mission-reward">🪙 ${m.coins}<br>\u2b50 ${m.xp} XP</div>
+        `;
+        body.appendChild(item);
+      }
+    }
       const done = game.missionsClaimed.includes(m.id);
       const prog = missionProgress(m);
       const item = document.createElement('div');
@@ -6665,6 +7237,8 @@ function openAchievements() {
 }
 
 /* ---------- Configurações ---------- */
+const PLAYER_FACES = ['👨‍🌾', '👩‍🌾', '🧑‍🌾', '👴', '👵', '🧔', '👨‍🦰', '👩‍🦰'];
+
 function openSettings() {
   openModal(t('modal.settings'), body => {
     const rows = [
@@ -6711,6 +7285,40 @@ function openSettings() {
       row.appendChild(input);
       body.appendChild(row);
     }
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'settings-row';
+    nameRow.innerHTML = `<span>${t('profile.name')}</span>`;
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.maxLength = 16;
+    nameInput.value = game.playerName || 'Fazendeiro';
+    nameInput.onchange = () => {
+      game.playerName = nameInput.value.trim() || 'Fazendeiro';
+      saveGame(false);
+      refreshHud();
+    };
+    nameRow.appendChild(nameInput);
+    body.appendChild(nameRow);
+
+    const faceRow = document.createElement('div');
+    faceRow.className = 'settings-row';
+    faceRow.innerHTML = `<span>${t('profile.face')}</span>`;
+    const facePick = document.createElement('div');
+    facePick.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:160px';
+    for (const face of PLAYER_FACES) {
+      const fb = document.createElement('button');
+      fb.className = 'face-btn' + (game.playerFace === face ? ' active' : '');
+      fb.textContent = face;
+      fb.onclick = () => {
+        game.playerFace = face;
+        saveGame(false);
+        openSettings();
+      };
+      facePick.appendChild(fb);
+    }
+    faceRow.appendChild(facePick);
+    body.appendChild(faceRow);
 
     const saveBtn = document.createElement('button');
     saveBtn.className = 'settings-btn';
@@ -7240,6 +7848,7 @@ function bindUi(handlers) {
   $('btn-collectall').onclick = () => handlers.collectAll();
   $('btn-pen').onclick = () => handlers.pen();
   $('btn-dog').onclick = () => handlers.dog();
+  $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();
@@ -7538,7 +8147,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v35';
+const GAME_VERSION = 'v36';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -7755,6 +8364,7 @@ function handleClick(e) {
   if (state.mode === 'till') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    if (upgradeLevel('till') === 0) { showToast(t('toast.toolNeed', { name: t('tool.hoe') })); return; }
     if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
       tutAdvance('till');
@@ -7765,10 +8375,11 @@ function handleClick(e) {
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    const usedSeed = !game.visiting && (game.seeds[state.selectedSeed] || 0) > 0;
     const crop = plantCrop(state.selectedSeed, g.gx, g.gy);
     if (crop) {
       const def = CROPS[crop.type];
-      spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
+      spawnFloater(g.gx, g.gy, usedSeed ? '-1 🌱' : '-' + def.seedCost + ' 🪙', usedSeed ? '#aed581' : '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
       tutAdvance('plant');
@@ -7778,6 +8389,7 @@ function handleClick(e) {
   }
 
   if (state.mode === 'water') {
+    if (upgradeLevel('water') === 0) { showToast(t('toast.toolNeed', { name: t('tool.can') })); return; }
     const occ = buildingAt(g.gx, g.gy);
     if (occ && occ.isCrop) {
       if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
@@ -8159,6 +8771,7 @@ function loop(ts) {
       updateFarmers(dt);
       updateDogs(dt);
       updateCouriers(dt);
+      updateTractor(dt);
       updateParticles(dt);
       updateAmbient(dt);
     }

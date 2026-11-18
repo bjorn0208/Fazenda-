@@ -207,7 +207,8 @@ vm.runInContext(`
   const plantedBefore = game.stats.planted || 0;
   const harvestedBefore = game.stats.harvested || 0;
   for (const [tx2, ty2] of [[31, 30], [32, 30], [30, 31], [31, 31], [32, 31]]) tillSoil(tx2, ty2);
-  game.time = 0.1;
+  game.meetingDone = true;
+  game.time = 0.2;
   for (let i = 0; i < 900; i++) updateFarmers(0.1);
   if ((game.stats.planted || 0) <= plantedBefore) throw new Error('fazendeiro nao plantou');
   game.time = 0.5;
@@ -261,7 +262,7 @@ vm.runInContext(`
   if (game.farmers.length && game.farmers[0].face === undefined) throw new Error('face do fazendeiro ausente');
 
   // funcoes dos fazendeiros: role filtra os trabalhos
-  game.time = 0.1;
+  game.time = 0.2;
   const fRole = game.farmers[0];
   const henR = game.animals.find(a => a.kind === 'chicken');
   if (henR) henR.product = 2;
@@ -298,7 +299,8 @@ vm.runInContext(`
   if (refund <= 0) throw new Error('reembolso zerado');
 
   // fazendeiro coleta produtos e planta em fileiras adjacentes
-  game.time = 0.1;
+  game.meetingDone = true;
+  game.time = 0.2;
   buyFarmer();
   const fm2 = game.farmers[game.farmers.length - 1];
   depositSeed(fm2, 'wheat', 6);
@@ -423,7 +425,7 @@ vm.runInContext(`
   for (let i = 0; i < 600; i++) updateFarmers(0.1);
   if (!game.farmers.length || !game.farmers.every(f => f.inside)) throw new Error('fazendeiro nao entrou na casa a noite');
   render(ctx, cam, 800, 600, state);
-  game.time = 0.02;
+  game.time = 0.1;
   for (let i = 0; i < 60; i++) updateFarmers(0.1);
   if (!game.farmers.every(f => !f.inside)) throw new Error('fazendeiro nao voltou ao amanhecer');
   game.time = 0.1;
@@ -566,7 +568,7 @@ vm.runInContext(`
     f.inside = false; f.walking = false; f.wait = 0; f.riding = false;
   }
   game.meetingDone = true;
-  game.time = 0.9;
+  game.time = 0.6;
   for (let i = 0; i < 600; i++) updateFarmers(0.1);
   const atBar = game.farmers.filter(f => f.atBar && Math.hypot(f.gx - (barSpot.x + 1.5), f.gy - (barSpot.y + 1)) < 3).length;
   if (atBar === 0) throw new Error('nenhum fazendeiro foi ao bar a noite');
@@ -667,14 +669,23 @@ vm.runInContext(`
   if ((game.barn.bread || 0) !== 1 || (game.barn.wheat || 0) !== 6) throw new Error('receita consumiu/produziu errado');
   if (barnItemValue('bread') !== PRODUCTS.bread.sell) throw new Error('valor do produto errado');
 
-  // melhorias: regador 3x3 e enxada 3x3
+  // ferramentas: jogo novo comeca sem nada, melhoria exige a ferramenta base
   game.coins = 999999;
-  if (upgradeLevel('water') !== 1) throw new Error('nivel inicial do regador errado');
-  if (!buyUpgrade('water')) throw new Error('compra de melhoria falhou');
+  if (upgradeLevel('water') !== 0 || upgradeLevel('till') !== 0) throw new Error('jogo novo deveria comecar sem ferramentas');
+  if (toolOwned('hoe') || toolOwned('can')) throw new Error('ferramentas deveriam comecar sem dono');
+  if (buyUpgrade('water')) throw new Error('melhorias deveriam exigir a ferramenta base');
+  if (!buyTool('can')) throw new Error('compra do regador falhou');
+  if (upgradeLevel('water') !== 1) throw new Error('regador nao virou nivel 1');
+  if (waterRadius() !== 0) throw new Error('raio do regador lvl1 errado');
+  if (!buyUpgrade('water')) throw new Error('compra do regador lvl2 falhou');
   if (waterRadius() !== 1) throw new Error('raio do regador lvl2 errado');
   if (!buyUpgrade('water')) throw new Error('compra do regador lvl3 falhou');
   if (waterRadius() !== 2) throw new Error('raio do regador lvl3 errado');
-  if (!buyUpgrade('till')) throw new Error('compra da enxada falhou');
+  if (buyTool('can')) throw new Error('compra duplicada do regador deveria falhar');
+  if (!buyTool('hoe')) throw new Error('compra da enxada falhou');
+  if (upgradeLevel('till') !== 1) throw new Error('enxada nao virou nivel 1');
+  if (tillRadius() !== 0) throw new Error('raio da enxada lvl1 errado');
+  if (!buyUpgrade('till')) throw new Error('compra da enxada lvl2 falhou');
   if (tillRadius() !== 1) throw new Error('raio da enxada lvl2 errado');
 
   // filhote: nasce pequeno, cresce com o tempo e so produz adulto
@@ -701,6 +712,8 @@ vm.runInContext(`
   if (game.particles.length) throw new Error('particulas nao morreram');
   updateAmbient(0.6);
 
+  const dayTol = game.time;
+
   // estacoes: dia avanca e estacao gira
   const dayBefore = game.day;
   game.time = 0.99;
@@ -717,6 +730,105 @@ vm.runInContext(`
   if (gameDate().day !== 30 || gameDate().name !== 'Dezembro' || seasonName() !== 'summer') throw new Error('dezembro deveria fechar o ano no verao');
   game.day = dayBefore + 1;
   if (typeof t('season.summer') !== 'string' || t('season.summer').length < 5) throw new Error('nomes de estacao faltando no i18n');
+
+  // R29: niveis (max 50), 3 tarefas por nivel e recompensa
+  game.level = 49;
+  spawnLevelTasks(49);
+  if (game.levelTasks.length !== 3) throw new Error('nivel deveria ter 3 tarefas');
+  const t0z = game.levelTasks[0];
+  const coinsT = game.coins;
+  game.stats[t0z.stat] = (game.stats[t0z.stat] || 0) + t0z.target;
+  checkLevelTasks();
+  if (game.levelTasks.length !== 2) throw new Error('tarefa concluida nao saiu da lista');
+  if (game.coins !== coinsT + t0z.coins) throw new Error('recompensa da tarefa errada');
+  game.level = 49; game.xp = 0;
+  addXp(1000000000000);
+  if (game.level !== 50) throw new Error('nivel maximo deveria ser 50: ' + game.level);
+
+  // R29: plantio consome semente do estoque ou cobra seedCost
+  game.seeds.wheat = 0;
+  game.coins = 5000;
+  const seedCoins = game.coins;
+  const sfa = randomFreeTile();
+  const sfb = randomFreeTile();
+  const w7 = sfa && plantCrop('wheat', sfa.x, sfa.y);
+  if (!w7) throw new Error('plantio sem semente deveria pagar em moedas');
+  if (game.coins !== seedCoins - CROPS.wheat.seedCost) throw new Error('seedCost nao cobrado no plantio');
+  game.seeds.wheat = 1;
+  const w8 = sfb && plantCrop('wheat', sfb.x, sfb.y);
+  if (!w8) throw new Error('plantio com semente falhou');
+  if (game.seeds.wheat !== undefined) throw new Error('semente do estoque nao consumida');
+  if (game.coins !== seedCoins - CROPS.wheat.seedCost) throw new Error('plantio com semente pagou moedas');
+
+  // R29: ovelha produz la colhivel
+  game.coins = 999999;
+  if (!buyAnimal('sheep')) throw new Error('compra de ovelha falhou');
+  const sheep1 = game.animals.find(a => a.kind === 'sheep');
+  if (!sheep1) throw new Error('ovelha nao criada');
+  sheep1.age = 999;
+  sheep1.product = 1;
+  if (!collectAnimal(sheep1)) throw new Error('colheita de la falhou');
+  if (sheep1.product !== 0) throw new Error('la nao zerou');
+  updateAnimals(0.016);
+  render(ctx, cam, 800, 600, state);
+
+  // R29: trator colhe fileira por fileira sozinho
+  game.coins = 999999;
+  game.level = 9;
+  if (!buyTool('tractor')) throw new Error('compra do trator falhou');
+  if (!game.tractorOwned) throw new Error('trator nao registrado');
+  game.tilled['35,34'] = 1;
+  const wch = plantCrop('wheat', 35, 34);
+  wch.plantedAt -= CROPS.wheat.growTime * 1000;
+  if (!startTractor()) throw new Error('trator nao partiu');
+  for (let i = 0; i < 3000 && game.tractor.active; i++) updateTractor(0.05);
+  if (game.tractor.active) throw new Error('trator nao terminou');
+  if (game.crops.some(c => c.type === 'wheat' && c.gx === 35 && c.gy === 34)) throw new Error('trator nao colheu a fileira');
+
+  // R29: neve acumula no inverno derrete fora dele
+  game.day = 150; game.snow = 0;
+  advanceClock(20);
+  if (!(game.snow > 0)) throw new Error('neve nao acumulou no inverno');
+  game.snow = 1;
+  game.day = 0; game.weather = 'clear';
+  advanceClock(2);
+  if (game.snow >= 1) throw new Error('neve nao derreteu fora do inverno');
+  game.day = dayBefore + 1;
+
+  // R29: relgio de 24h mapeia 12:00/03:00
+  game.time = 0.25;
+  if (Math.abs(gameHour() - 12) > 1e-9) throw new Error('12:00 deveria ser t=0.25');
+  game.time = 0.875;
+  if (Math.abs(gameHour() - 3) > 1e-9) throw new Error('03:00 deveria ser t=0.875');
+
+  // R29: almoao no restaurante das 12h as 13h
+  game.coins = 999999;
+  let restSpot = null;
+  for (let y = 2; y < 46 && !restSpot; y++) {
+    for (let x = 2; x < 46 && !restSpot; x++) {
+      if (canPlace('restaurant', x, y, 0) && placeBuilding('restaurant', x, y, 0, true)) restSpot = { x, y };
+    }
+  }
+  if (!restSpot) throw new Error('sem lugar para o restaurante');
+  const fl = game.farmers[0];
+  fl.chest = { wheat: 4 };
+  fl.inside = false; fl.walking = false; fl.wait = 0;
+  fl.gx = restSpot.x + 0.5; fl.gy = restSpot.y + 2.5;
+  game.meetingDone = true;
+  const plantedLunch = game.stats.planted || 0;
+  game.time = 0.26;
+  for (let i = 0; i < 120; i++) updateFarmers(0.1);
+  if ((game.stats.planted || 0) !== plantedLunch) throw new Error('fazendeiro trabalhou durante o almoco');
+  if (Math.hypot(fl.gx - (restSpot.x + 0.5), fl.gy - (restSpot.y + 2.5)) > 2.6) throw new Error('fazendeiro ficou longe do restaurante: ' + fl.gx.toFixed(1) + ',' + fl.gy.toFixed(1));
+  game.time = dayTol;
+
+  // R29: perfil (nome e foto) persiste
+  game.playerName = 'Dono Teste';
+  game.playerFace = PLAYER_FACES[3];
+  const snapP = JSON.stringify(snapshotData());
+  applySaveData(JSON.parse(snapP));
+  if (game.playerName !== 'Dono Teste') throw new Error('nome do jogador nao persistiu');
+  if (!PLAYER_FACES.includes(game.playerFace)) throw new Error('foto do jogador invalida');
 
   // tutorial: avanca por acoes e terminal por skip
   tutAdvance('till');
@@ -750,7 +862,7 @@ vm.runInContext(`
   game.coins = 999999;
   const beforeLoad = game.animals.length;
   for (let i = game.animals.length; i < 300; i++) {
-    const kindsA = ['chicken', 'pig', 'cow', 'horse'];
+    const kindsA = ['chicken', 'pig', 'cow', 'horse', 'sheep'];
     game.animals.push(makeAnimal(kindsA[i % 4], { x: 30 + (i % 12), y: 20 + (i % 12) }));
     game.animals[game.animals.length - 1].age = 999;
   }

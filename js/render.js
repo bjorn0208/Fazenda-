@@ -60,6 +60,7 @@ function render(ctx, cam, cw, ch, state) {
   drawFloaters(ctx, cam, cw, ch, performance.now());
   drawMindBubbles(ctx, cam, cw, ch);
   if (game.weather === 'rain') drawRain(ctx, cam, cw, ch);
+  if (seasonIndex() === 3) drawSnow(ctx, cam, cw, ch);
 }
 
 /* ---------- Chuva ---------- */
@@ -170,6 +171,10 @@ function drawTerrain(ctx, cam, cw, ch, view) {
       if (st === 2) { b *= 0.72; r = Math.min(255, r * 1.12); }
       else if (st === 3) { g = g * 0.82 + 40; b = b * 0.9 + 18; r = r * 0.92 + 20; }
       else if (st === 1) { r = Math.min(255, r * 1.05); b *= 0.94; }
+      if (game.snow > 0) {
+        const k = game.snow * 0.85;
+        r += (238 - r) * k; g += (242 - g) * k; b += (250 - b) * k;
+      }
 
       // manchas de sol e de sombra sobrepostas ao ruído
       const n2 = smoothNoise(x / 4.5 + 97, y / 4.5 + 53);
@@ -484,6 +489,151 @@ function drawShadow(ctx, cam, cw, ch, gx, gy, w, d, strength) {
   ctx.fill();
 }
 
+function drawRestaurant(ctx, cam, cw, ch, gx, gy, w, d, q) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.18);
+  const wallH = 0.78;
+  drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, wallH, '#fff8ee');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.05, gy + 0.05, w - 0.1, d - 0.1, 0.1, '#a8a8a8');
+
+  drawPrism(ctx, cam, cw, ch, gx + w - 0.2, gy + 0.12, 0.1, d - 0.24, wallH, '#efe2cf');
+
+  drawPrism(ctx, cam, cw, ch, gx + 0.12, gy + 0.12, w - 0.24, d - 0.24, 0.14, '#8d6e63');
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.08, gy + 0.08, w - 0.16, d - 0.16, wallH, 0.42, '#c62828', 'x');
+
+  const z = cam.zoom;
+  const door = [projectPoint(gx + 0.55, gy + d + 0.01, 0.02), projectPoint(gx + 1.45, gy + d + 0.01, 0.02)];
+  const d1 = worldToScreen(cam, door[0].x, door[0].y, cw, ch);
+  const d2 = worldToScreen(cam, door[1].x, door[1].y, cw, ch);
+  ctx.fillStyle = '#6d4c41';
+  ctx.beginPath();
+  ctx.moveTo(d1.x, d1.y);
+  ctx.lineTo(d2.x, d2.y);
+  ctx.lineTo(d2.x, d2.y - 20 * z);
+  ctx.lineTo(d1.x, d1.y - 20 * z);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffca28';
+  ctx.beginPath();
+  ctx.arc((d1.x + d2.x) / 2 + 6 * z, (d1.y + d2.y) / 2 - 10 * z, 1.3 * z, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (q !== 'baixa') {
+    const stripe = 5;
+    for (let i = 0; i < stripe; i++) {
+      const x0a = gx + 0.12 + i * (w - 0.24) / stripe;
+      const x1a = gx + 0.12 + (i + 1) * (w - 0.24) / stripe;
+      const p1 = projectPoint(x0a, gy + d - 0.02, 0.42);
+      const p2 = projectPoint(x1a, gy + d - 0.02, 0.42);
+      const p3 = projectPoint(x1a, gy + d + 0.08, 0.42 - 0.0);
+      const p4 = projectPoint(x0a, gy + d + 0.08, 0.42);
+      const s1 = worldToScreen(cam, p1.x, p1.y, cw, ch);
+      const s2 = worldToScreen(cam, p2.x, p2.y, cw, ch);
+      const s3 = worldToScreen(cam, p3.x, p3.y, cw, ch);
+      const s4 = worldToScreen(cam, p4.x, p4.y, cw, ch);
+      ctx.fillStyle = i % 2 === 0 ? '#e53935' : '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.lineTo(s3.x, s3.y); ctx.lineTo(s4.x, s4.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    const sign = projectPoint(gx + w / 2, gy + d + 0.02, 0.55);
+    const ss = worldToScreen(cam, sign.x, sign.y, cw, ch);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.roundRect(ss.x - 10 * z, ss.y - 26 * z, 20 * z, 9 * z, 2 * z);
+    ctx.fill();
+    ctx.strokeStyle = '#c62828';
+    ctx.lineWidth = Math.max(1, z);
+    ctx.stroke();
+    ctx.fillStyle = '#c62828';
+    ctx.font = Math.max(7, 7 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('RESTAURANTE', ss.x, ss.y - 19.5 * z);
+  }
+}
+
+/* ---------- Neve e trator ---------- */
+function drawSnow(ctx, cam, cw, ch) {
+  const t = performance.now() / 1000;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = 'rgba(250,252,255,0.85)';
+  for (let i = 0; i < 64; i++) {
+    const sd = (i * 137.5 + t * 26 + Math.sin(t * 0.9 + i) * 22) % (ch + 30);
+    const sx = (i * 97 + t * 9 + Math.sin(t * 0.7 + i * 1.7) * 26) % cw;
+    const sz = 1.1 + (i % 3) * 0.9;
+    ctx.beginPath();
+    ctx.arc(sx, sd - 15, sz, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawTractor(ctx, cam, cw, ch, t) {
+  const p = projectPoint(t.gx, t.gy, 0);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const dir = t.movingDir || 1;
+  const bob = t.walking ? Math.abs(Math.sin(t.phase * 12)) * 1.2 * z : Math.sin(t.phase * 2) * 0.4 * z;
+  const spin = t.walking ? t.phase * 24 : 0;
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.scale(z * dir, z);
+  ctx.lineJoin = 'round';
+
+  ctx.fillStyle = 'rgba(20,40,10,' + (0.26 * (0.35 + 0.65 * dayLight())).toFixed(3) + ')';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 4.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.translate(0, -bob);
+
+  const bigWheel = (wx, wy, wr) => {
+    ctx.fillStyle = '#212121';
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fdd835';
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#616161';
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 4; i++) {
+      const a = spin + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + Math.cos(a) * wr * 0.85, wy + Math.sin(a) * wr * 0.85);
+      ctx.stroke();
+    }
+  };
+  bigWheel(-6, -6, 6.5);
+  bigWheel(9.5, -4, 3.4);
+
+  ctx.fillStyle = '#2e7d32';
+  ctx.beginPath();
+  ctx.roundRect(-10, -13.5, 15, 6, 2);
+  ctx.fill();
+  ctx.fillStyle = '#1b5e20';
+  ctx.fillRect(-10, -10, 15, 2);
+
+  ctx.fillStyle = '#37474f';
+  ctx.beginPath();
+  ctx.roundRect(-8, -21.5, 8.5, 9, 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(135,206,235,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(-6.7, -20.2, 5.6, 4.4, 1.2);
+  ctx.fill();
+
+  ctx.fillStyle = '#455a64';
+  ctx.fillRect(-8.8, -23.4, 1.6, 3);
+
+  ctx.fillStyle = '#ffca28';
+  ctx.beginPath();
+  ctx.arc(10.5, -8.5, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /* ---------- Entregador de moto ---------- */
 function drawCourier(ctx, cam, cw, ch, c) {
   const p = projectPoint(c.gx, c.gy, 0);
@@ -622,6 +772,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
   for (const cr of game.couriers) items.push({ key: cr.gx + cr.gy + 1, kind: 'm', ref: cr });
+  if (game.tractor) items.push({ key: game.tractor.gx + game.tractor.gy + 2, kind: 't', ref: game.tractor });
   items.sort((x, y) => x.key - y.key);
 
   let selected = null;
@@ -639,6 +790,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawDog(ctx, cam, cw, ch, b);
     } else if (it.kind === 'm') {
       drawCourier(ctx, cam, cw, ch, b);
+    } else if (it.kind === 't') {
+      drawTractor(ctx, cam, cw, ch, b);
     } else {
       drawAnimal(ctx, cam, cw, ch, b);
     }
@@ -680,6 +833,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'lake':    drawLake(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'doghouse': drawDoghouse(ctx, cam, cw, ch, gx, gy, q); break;
     case 'bar':     drawBar(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'restaurant': drawRestaurant(ctx, cam, cw, ch, gx, gy, w, d, q); break;
   }
 }
 

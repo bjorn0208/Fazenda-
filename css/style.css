@@ -664,3 +664,25 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   margin-top: 6px;
   line-height: 1.35;
 }
+
+.face-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 2px solid #d7ccc8;
+  background: #fff;
+  font-size: 17px;
+  cursor: pointer;
+  line-height: 1;
+}
+.face-btn.active {
+  border-color: #43a047;
+  background: #e8f5e9;
+}
+.settings-row input[type="text"] {
+  width: 140px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d7ccc8;
+  background: #fff;
+}

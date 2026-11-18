@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v35';
+const GAME_VERSION = 'v36';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -269,6 +269,7 @@ function handleClick(e) {
   if (state.mode === 'till') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    if (upgradeLevel('till') === 0) { showToast(t('toast.toolNeed', { name: t('tool.hoe') })); return; }
     if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
       tutAdvance('till');
@@ -279,10 +280,11 @@ function handleClick(e) {
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
+    const usedSeed = !game.visiting && (game.seeds[state.selectedSeed] || 0) > 0;
     const crop = plantCrop(state.selectedSeed, g.gx, g.gy);
     if (crop) {
       const def = CROPS[crop.type];
-      spawnFloater(g.gx, g.gy, '-' + def.seedCost + ' 🪙', '#ffd54f');
+      spawnFloater(g.gx, g.gy, usedSeed ? '-1 🌱' : '-' + def.seedCost + ' 🪙', usedSeed ? '#aed581' : '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
       tutAdvance('plant');
@@ -292,6 +294,7 @@ function handleClick(e) {
   }
 
   if (state.mode === 'water') {
+    if (upgradeLevel('water') === 0) { showToast(t('toast.toolNeed', { name: t('tool.can') })); return; }
     const occ = buildingAt(g.gx, g.gy);
     if (occ && occ.isCrop) {
       if (cropProgress(occ) >= 1) { doHarvest(occ); return; }
@@ -673,6 +676,7 @@ function loop(ts) {
       updateFarmers(dt);
       updateDogs(dt);
       updateCouriers(dt);
+      updateTractor(dt);
       updateParticles(dt);
       updateAmbient(dt);
     }

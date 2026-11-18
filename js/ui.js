@@ -177,6 +177,25 @@ const I18N = {
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias, taboas e sapos.',
     'b_doghouse': 'Casinha do Cachorro', 'b_doghouse_desc': 'Quando você desliga o cachorro, ele volta para cá dormir.',
     'b_bar': 'Bar da Fazenda', 'b_bar_desc': 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
+    'cat.ferramentas': 'Ferramentas',
+    'b_restaurant': 'Restaurante', 'b_restaurant_desc': 'Os fazendeiros almoçam aqui ao meio-dia: param de trabalhar às 12:00 e voltam às 13:00.',
+    'an_sheep': 'Ovelha', 'an_sheep_desc': 'Colha a lã das adultas; a lã cresce de novo no dia seguinte.',
+    'toast.noSeeds': 'Sem sementes e sem moedas para comprar mais! Adquira um pacote de sementes na loja.',
+    'toast.toolNeed': 'Você precisa de {name}. Compre na loja de Ferramentas!',
+    'toast.toolOwned': 'Ferramenta já comprada.',
+    'toast.toolBought': '{icon} {name} comprada!',
+    'toast.seedsBought': '{icon} +2 sementes de cada cultura liberada!',
+    'toast.tractorNone': 'Nenhuma plantação pronta para colher.',
+    'toast.tractorGo': 'Trator a caminho! Ele colhe fileira por fileira.',
+    'toast.tractorDone': 'Trator terminou a colheita.',
+    'toast.taskDone': '{icon} Tarefa do nível concluída: {label}! +{c} moedas 🪙',
+    'tool.hoe': 'Enxada', 'tool.hoe_desc': 'Permite arar a terra para plantar.',
+    'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
+    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
+    'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
+    'upg.baseFirst': 'Comprar ferramenta base', 'upg.baseHint': 'Compre a ferramenta base na aba Ferramentas!',
+    'profile.name': 'Nome do personagem', 'profile.face': 'Foto do personagem',
+    'tasks.title': 'Tarefas do nível {n}',
     'shop.buyAnimal': 'Comprar animal',
     'toast.animalBought': '{icon} {name} chegou à fazenda!',
     'toast.animalLimit': 'Máximo de 100 animais de cada tipo!',
@@ -203,7 +222,7 @@ const I18N = {
     'farmers.chest': 'Baú',
     'farmers.hire': 'Contratar fazendeiro — 🪙 {price}',
     'farmers.roleSet': '{name} agora trabalha com: {role}',
-    'build.pen': 'Montar curral', 'build.dog': 'Cachorro',
+    'build.pen': 'Montar curral', 'build.dog': 'Cachorro', 'build.tractor': 'Trator',
     'pen.title': 'Curral', 'pen.desc': 'Cerca pronta com porteiro; os animais ficam dentro.',
     'pen.current': 'Curral atual: {n}×{n}',
     'pen.remove': 'Remover curral (reembolso 🪙 {price})',
@@ -404,6 +423,25 @@ const I18N = {
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads, cattails and frogs.',
     'b_doghouse': 'Doghouse', 'b_doghouse_desc': 'When you switch the dog off, he comes here to sleep.',
     'b_bar': 'Farm Bar', 'b_bar_desc': 'At night the farmers come for a cold one, barbecue and music.',
+    'cat.ferramentas': 'Tools',
+    'b_restaurant': 'Restaurant', 'b_restaurant_desc': 'The farmers have lunch here at noon and go back to work at 13:00.',
+    'an_sheep': 'Sheep', 'an_sheep_desc': 'Shear the adults for wool; it grows back the next day.',
+    'toast.noSeeds': 'No seeds and not enough coins to buy more! Get a seed pack in the shop.',
+    'toast.toolNeed': 'You need the {name}. Buy it in the Tools shop!',
+    'toast.toolOwned': 'Tool already owned.',
+    'toast.toolBought': '{icon} {name} bought!',
+    'toast.seedsBought': '{icon} +2 seeds of every unlocked crop!',
+    'toast.tractorNone': 'No ready crops to harvest.',
+    'toast.tractorGo': 'Tractor on the way! It harvests row by row.',
+    'toast.tractorDone': 'The tractor finished harvesting.',
+    'toast.taskDone': '{icon} Level task done: {label}! +{c} coins 🪙',
+    'tool.hoe': 'Hoe', 'tool.hoe_desc': 'Lets you till the soil for planting.',
+    'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
+    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
+    'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
+    'upg.baseFirst': 'Buy the base tool first', 'upg.baseHint': 'Buy the base tool in the Tools tab!',
+    'profile.name': 'Character name', 'profile.face': 'Character photo',
+    'tasks.title': 'Level {n} tasks',
     'shop.buyAnimal': 'Buy animal',
     'toast.animalLimit': 'Maximum of 100 animals of each kind!',
     'build.shovel': 'Shovel',
@@ -429,7 +467,7 @@ const I18N = {
     'farmers.chest': 'Chest',
     'farmers.hire': 'Hire farmhand — 🪙 {price}',
     'farmers.roleSet': '{name} now works as: {role}',
-    'build.pen': 'Build pen', 'build.dog': 'Dog',
+    'build.pen': 'Build pen', 'build.dog': 'Dog', 'build.tractor': 'Tractor',
     'pen.title': 'Pen', 'pen.desc': 'Ready-made fence with a gate; animals stay inside.',
     'pen.current': 'Current pen: {n}×{n}',
     'pen.remove': 'Remove pen (refund 🪙 {price})',
@@ -587,10 +625,12 @@ function refreshHud() {
     dogBtn.classList.toggle('hidden', !game.dogs.length);
     dogBtn.classList.toggle('active', game.dogs.some(d => d.active));
   }
+  const tractorBtn = $('btn-tractor');
+  if (tractorBtn) tractorBtn.classList.toggle('hidden', !game.tractorOwned);
   if (uiDirty.coins) { $('coins-value').textContent = game.coins.toLocaleString('pt-BR'); uiDirty.coins = false; }
   if (uiDirty.gems) { $('gems-value').textContent = game.gems; uiDirty.gems = false; }
   if (uiDirty.xp) {
-    $('level-text').textContent = t('hud.level', { n: game.level });
+    $('level-text').textContent = (game.playerFace || '') + ' ' + t('hud.level', { n: game.level });
     $('farm-name').textContent = game.farmName;
     const need = xpForLevel(game.level);
     $('xp-fill').style.width = Math.min(100, (game.xp / need) * 100) + '%';
@@ -706,22 +746,59 @@ function openShop() {
       for (const def of UPGRADES) {
         const lvl = upgradeLevel(def.id);
         const maxed = lvl >= def.max;
-        const price = maxed ? 0 : def.prices[lvl];
+        const noTool = lvl === 0;
+        const price = maxed || noTool ? 0 : def.prices[lvl];
         const name = def.names[Math.min(lvl, def.names.length - 1)];
         const item = document.createElement('div');
         item.className = 'shop-item';
         item.innerHTML = `
           <div class="shop-item-icon">${def.icon}</div>
           <div class="shop-item-name">${name}</div>
-          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : t('upg.next', { name: def.names[lvl] })}</div>
-          <div class="shop-item-price">${maxed ? '⭐' : '🪙 ' + price.toLocaleString('pt-BR')}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${maxed ? '' : (noTool ? t('upg.baseHint') : t('upg.next', { name: def.names[lvl] }))}</div>
+          <div class="shop-item-price">${maxed ? '⭐' : (noTool ? '—' : '🪙 ' + price.toLocaleString('pt-BR'))}</div>
         `;
         const btn = document.createElement('button');
         btn.className = 'shop-buy-btn';
-        btn.disabled = maxed || game.coins < price;
-        btn.textContent = maxed ? t('shop.maxed') : t('shop.buyUpgrade');
+        btn.disabled = maxed || noTool || game.coins < price;
+        btn.textContent = maxed ? t('shop.maxed') : (noTool ? t('upg.baseFirst') : t('shop.buyUpgrade'));
         btn.onclick = () => {
           if (buyUpgrade(def.id)) { showToast(t('toast.upgraded')); refreshHud(); openShop(); }
+        };
+        item.appendChild(btn);
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+      return;
+    }
+    if (currentShopTab === 'ferramentas') {
+      const unlockedCrops = Object.values(CROPS).filter(c => c.level <= game.level).length;
+      const seedsPrice = 12 * unlockedCrops;
+      for (const def of TOOLS) {
+        const locked = game.level < def.level;
+        const owned = def.id !== 'seeds' && toolOwned(def.id);
+        const price = def.id === 'seeds' ? seedsPrice : def.price;
+        const afford = game.coins >= price;
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+          <div class="shop-item-icon">${def.icon}</div>
+          <div class="shop-item-name">${t('tool.' + def.id)}</div>
+          <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${t('tool.' + def.id + '_desc')}</div>
+          <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+          ${locked ? `<div class="shop-item-locked">${t('shop.locked', { n: def.level })}</div>` : ''}
+        `;
+        const btn = document.createElement('button');
+        btn.className = 'shop-buy-btn';
+        btn.disabled = locked || !afford || owned;
+        btn.textContent = locked ? t('shop.locked', { n: def.level }) : (owned ? t('toast.toolOwned') : (!afford ? t('shop.noCoins') : t('shop.buyUpgrade')));
+        btn.onclick = () => {
+          if (buyTool(def.id)) {
+            showToast(def.id === 'seeds'
+              ? t('toast.seedsBought', { icon: def.icon })
+              : t('toast.toolBought', { icon: def.icon, name: t('tool.' + def.id) }));
+            refreshHud();
+            openShop();
+          }
         };
         item.appendChild(btn);
         grid.appendChild(item);
@@ -984,6 +1061,27 @@ function openFarmersPanel() {
 function openMissions() {
   openModal(t('modal.missions'), body => {
     for (const m of MISSIONS) {
+    const lt = game.levelTasks;
+    if (lt && lt.length) {
+      const head = document.createElement('div');
+      head.className = 'mission-title';
+      head.style.cssText = 'text-align:center;margin:2px 0 10px';
+      head.textContent = t('tasks.title', { n: game.level });
+      body.appendChild(head);
+      for (const m of lt) {
+        const prog = Math.min(m.target, (game.stats[m.stat] || 0) - m.base);
+        const item = document.createElement('div');
+        item.className = 'mission-item';
+        item.innerHTML = `
+          <div class="mission-info">
+            <div class="mission-title">${m.icon} ${m.label}</div>
+            <div class="mission-progress">Progresso: ${prog}/${m.target}</div>
+          </div>
+          <div class="mission-reward">🪙 ${m.coins}<br>\u2b50 ${m.xp} XP</div>
+        `;
+        body.appendChild(item);
+      }
+    }
       const done = game.missionsClaimed.includes(m.id);
       const prog = missionProgress(m);
       const item = document.createElement('div');
@@ -1022,6 +1120,8 @@ function openAchievements() {
 }
 
 /* ---------- Configurações ---------- */
+const PLAYER_FACES = ['👨‍🌾', '👩‍🌾', '🧑‍🌾', '👴', '👵', '🧔', '👨‍🦰', '👩‍🦰'];
+
 function openSettings() {
   openModal(t('modal.settings'), body => {
     const rows = [
@@ -1068,6 +1168,40 @@ function openSettings() {
       row.appendChild(input);
       body.appendChild(row);
     }
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'settings-row';
+    nameRow.innerHTML = `<span>${t('profile.name')}</span>`;
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.maxLength = 16;
+    nameInput.value = game.playerName || 'Fazendeiro';
+    nameInput.onchange = () => {
+      game.playerName = nameInput.value.trim() || 'Fazendeiro';
+      saveGame(false);
+      refreshHud();
+    };
+    nameRow.appendChild(nameInput);
+    body.appendChild(nameRow);
+
+    const faceRow = document.createElement('div');
+    faceRow.className = 'settings-row';
+    faceRow.innerHTML = `<span>${t('profile.face')}</span>`;
+    const facePick = document.createElement('div');
+    facePick.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:160px';
+    for (const face of PLAYER_FACES) {
+      const fb = document.createElement('button');
+      fb.className = 'face-btn' + (game.playerFace === face ? ' active' : '');
+      fb.textContent = face;
+      fb.onclick = () => {
+        game.playerFace = face;
+        saveGame(false);
+        openSettings();
+      };
+      facePick.appendChild(fb);
+    }
+    faceRow.appendChild(facePick);
+    body.appendChild(faceRow);
 
     const saveBtn = document.createElement('button');
     saveBtn.className = 'settings-btn';
@@ -1597,6 +1731,7 @@ function bindUi(handlers) {
   $('btn-collectall').onclick = () => handlers.collectAll();
   $('btn-pen').onclick = () => handlers.pen();
   $('btn-dog').onclick = () => handlers.dog();
+  $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
   $('btn-move').onclick = () => handlers.move();
   $('btn-remove').onclick = () => handlers.remove();
   $('btn-rotate').onclick = () => handlers.rotate();

@@ -4,6 +4,10 @@
 
 const FARMER_SPEED = 1.1;
 
+function gameHour() {
+  return (6 + game.time * 24) % 24;
+}
+
 /* ================= MENTE DOS FAZENDEIROS =================
    Cada fazendeiro tem nome, personalidade, energia, humor,
    amizades e pensa/fala por conta propria. */
@@ -137,7 +141,8 @@ function startMeetingDiscussion() {
 
 function updateMeeting(dt) {
   if (game.meetingDone) return;
-  if (dayPhase() !== 'day' || !game.farmers.length) return;
+  const Hm = gameHour();
+  if (Hm < 7.5 || Hm >= 19 || !game.farmers.length) return;
   const point = meetingPoint();
   let allHere = true;
   for (const f of game.farmers) {
@@ -201,6 +206,18 @@ function barSpotFor(f, bar) {
     if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
   }
   if (!cands.length) return { x: bar.gx + 1, y: bar.gy + 2 };
+  return cands[(f.id || 0) % cands.length];
+}
+
+function restaurantSpotFor(f, rest) {
+  const cands = [];
+  for (let x = rest.gx; x < rest.gx + 2; x++) {
+    if (inBounds(x, rest.gy + 2) && inOwnedArea(x, rest.gy + 2) && !occupancy[occIndex(x, rest.gy + 2)]) cands.push({ x, y: rest.gy + 2 });
+  }
+  for (const [x, y] of [[rest.gx - 1, rest.gy + 1], [rest.gx + 2, rest.gy + 1]]) {
+    if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) cands.push({ x, y });
+  }
+  if (!cands.length) return { x: rest.gx, y: rest.gy + 2 };
   return cands[(f.id || 0) % cands.length];
 }
 
@@ -271,17 +288,17 @@ function hasHorse() {
 /* Escolhe o proximo trabalho respeitando a fase do dia e a funcao do fazendeiro. */
 function farmerFindJob(f) {
   const role = f.role || 'all';
-  const phase = dayPhase();
-  if (phase === 'night') return null;
+  const H = gameHour();
+  if (H >= 19 || H < 8.5) return null;
   if (role !== 'animal') {
-    if (phase === 'day') {
+    if (H < 12) {
       for (const type of Object.keys(f.chest)) {
         if (f.chest[type] > 0) return { kind: 'plant', type };
       }
       const dry = farmerFindWaterTarget(f);
       if (dry) return { kind: 'water', target: dry };
     }
-    if (phase === 'afternoon') {
+    if (H >= 13) {
       let best = null, bestD = Infinity;
       let bestFree = null, bestFreeD = Infinity;
       for (const c of game.crops) {
@@ -380,7 +397,8 @@ function updateFarmers(dt) {
     }
 
     if (f.inside) {
-      if (dayPhase() !== 'night') {
+      const Hw = gameHour();
+      if (Hw >= 7.5 && Hw < 19) {
         f.inside = false;
         f.wait = 0.5;
         f.barTonight = Math.random() < 0.65;
@@ -420,11 +438,33 @@ function updateFarmers(dt) {
     f.wait -= dt;
     if (f.wait > 0) continue;
 
-    if (!game.meetingDone && dayPhase() === 'day') continue;
+    const H = gameHour();
 
-    if (dayPhase() === 'night') {
+    if (H >= 12 && H < 13) {
+      const rest = game.buildings.find(b => b.type === 'restaurant');
+      if (rest) {
+        const spot = restaurantSpotFor(f, rest);
+        if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
+          f.walking = false;
+          f.riding = false;
+          f.energy = Math.min(100, (f.energy || 60) + 28 * dt);
+          f.wait = 0.5;
+          if (Math.random() < dt * 0.2) spawnFloater(spot.x, spot.y, '\uD83C\uDF7D', '#ffcc80');
+        } else {
+          f.riding = false;
+          f.tx = spot.x + 0.5;
+          f.ty = spot.y + 0.5;
+          f.walking = true;
+        }
+      }
+      continue;
+    }
+
+    if (!game.meetingDone && H >= 7.5 && H < 19) continue;
+
+    if (H >= 19 || H < 7.5) {
       const bar = game.buildings.find(b => b.type === 'bar');
-      if (bar && f.barTonight && !f.barDone) {
+      if (bar && f.barTonight && !f.barDone && (H >= 19 || H < 3)) {
         f.atBar = true;
         const spot = barSpotFor(f, bar);
         if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.7) {
@@ -434,7 +474,7 @@ function updateFarmers(dt) {
           f.wait = 0.5;
           f.barT = (f.barT || 0) + dt;
           if (Math.random() < dt * 0.25) farmerSay(f, mindLine('bar'), 4500);
-          if (f.barT > 40 || game.time > 0.97) f.barDone = true;
+          if (f.barT > 40 || (H >= 3 && H < 19)) f.barDone = true;
         } else {
           f.riding = false;
           f.tx = spot.x + 0.5;
@@ -458,6 +498,7 @@ function updateFarmers(dt) {
         continue;
       }
     }
+    if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);
 
     if (job && job.kind === 'water') {

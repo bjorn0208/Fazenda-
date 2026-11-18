@@ -6,12 +6,13 @@ const ANIMAL_KINDS = {
   chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
   cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 },
-  horse:   { speed: 1.4, scale: 1.05 }
+  horse:   { speed: 1.4, scale: 1.05 },
+  sheep:   { speed: 0.5, scale: 0.92, cycle: 70 }
 };
 
 const MAX_PRODUCT = 3;
 
-const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow'];
+const ANIMAL_SPAWN = ['chicken', 'chicken', 'pig', 'cow', 'cow', 'cow', 'sheep'];
 
 function lerpAngle(a, b, t) {
   let d = b - a;
@@ -308,12 +309,13 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'cow') drawCow(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'horse') drawHorse(ctx, bob, dir, a.walking, a.phase);
+  else if (a.kind === 'sheep') drawSheep(ctx, bob, dir, a.walking, a.phase, a);
   else drawPig(ctx, bob, dir, a.walking, a.phase);
 
   ctx.restore();
 
   if (grazing) {
-    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22] };
+    const heads = { chicken: [13, -14.5], cow: [23, -22], pig: [15, -13], horse: [24, -22], sheep: [21, -18] };
     const hp = heads[a.kind] || [14, -14];
     drawGrazingBits(ctx, s.x + dir * hp[0] * z * k.scale * squash, s.y + hp[1] * z * k.scale, z, dir, a.phase);
   }
@@ -330,6 +332,47 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+}
+
+function drawSheep(ctx, bob, dir, walking, phase, a) {
+  const legSwing = walking ? Math.sin(phase * 9) * 3 : 0;
+  const woolOut = (!isAdult(a)) ? 0.5 : (a.product > 0 ? 1 : 0.35);
+  const L = -1 + legSwing, R = 1 - legSwing;
+  ctx.strokeStyle = '#4a4a4a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-5, -8); ctx.lineTo(-5 + L, 0);
+  ctx.moveTo(5, -8); ctx.lineTo(5 + R, 0);
+  ctx.stroke();
+
+  ctx.fillStyle = '#78909c';
+  ctx.beginPath();
+  ctx.ellipse(0, -11, 11.5 * (0.75 + 0.25 * woolOut), 8.5 * (0.75 + 0.25 * woolOut), 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (woolOut > 0.2) {
+    ctx.fillStyle = '#eceff1';
+    for (const [wx, wy, wr] of [[-8, -11, 4.2], [-3.5, -14.5, 4.6], [1.5, -15.5, 4.8], [6.5, -14, 4.4], [9.5, -10.5, 3.8], [-9, -6.5, 3.6], [-1, -4.8, 4.6], [6, -6.2, 4]]) {
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr * (0.55 + 0.45 * woolOut), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const faceDir = dir >= 0 ? 1 : -1;
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.ellipse(dir * 11.5, -15.5, 3.6, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(dir * 14.5 * 0 + dir * 10.5, -19, 2.8, 2.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.arc(dir * 12.6, -15.8, 0.75, 0, Math.PI * 2);
+  ctx.arc(dir * 13.4, -15.2, 0.75, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawChicken(ctx, bob, dir, walking, phase) {

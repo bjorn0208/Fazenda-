@@ -33,7 +33,15 @@ const game = {
   tutorialDone: false,    // tutorial da primeira vez ja visto
   barn: {},               // celeiro: id de colheita/produto -> quantidade
   orders: [],             // pedidos do mercado: {id, items, coins, xp}
-  upgrades: { water: 1, till: 1 },
+  upgrades: { water: 0, till: 0 },   // 0 = ferramenta ainda nao comprada
+  seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
+  tractorOwned: false,    // trator comprado na loja de ferramentas
+  tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
+  snow: 0,                // camada de neve acumulada no inverno (0 a 1)
+  playerName: 'Fazendeiro',
+  playerFace: '👨‍🌾',
+  levelTasks: [],         // 3 tarefas por nivel
+  tasksLevel: 1,
   day: 0,                 // dias completos (define a estacao)
   weather: 'clear',       // clear | rain
   weatherT: 0,
@@ -100,16 +108,44 @@ function addCoins(n) {
 
 function addGems(n) { game.gems = Math.max(0, game.gems + n); uiDirty.gems = true; }
 
+const MAX_LEVEL = 50;
+
 function addXp(n) {
   game.xp += n;
   uiDirty.xp = true;
-  while (game.xp >= xpForLevel(game.level)) {
+  while (game.level < MAX_LEVEL && game.xp >= xpForLevel(game.level)) {
     game.xp -= xpForLevel(game.level);
     game.level++;
     game.stats.level = game.level;
+    spawnLevelTasks(game.level);
     showToast(t('toast.levelUp', { n: game.level }));
     playSound('level');
   }
+  if (game.level >= MAX_LEVEL) game.xp = Math.min(game.xp, xpForLevel(MAX_LEVEL));
+}
+
+/* ---------- Tarefas por nivel (3 por nivel, ate 50) ---------- */
+function spawnLevelTasks(lvl) {
+  const c = 80 + lvl * 40;
+  const x = 15 + lvl * 5;
+  game.levelTasks = [
+    { icon: '🌾', label: 'Colher ' + (2 + lvl * 2) + ' planta\u00e7\u00f5es', stat: 'harvested', base: game.stats.harvested || 0, target: 2 + lvl * 2, coins: c, xp: x },
+    { icon: '🌱', label: 'Plantar ' + (4 + lvl) + ' sementes', stat: 'planted', base: game.stats.planted || 0, target: 4 + lvl, coins: Math.round(c * 0.8), xp: x },
+    { icon: '🐑', label: 'Animais: coletar ' + (3 + lvl) + ' produtos', stat: 'collected', base: game.stats.collected || 0, target: 3 + lvl, coins: c, xp: x }
+  ];
+  game.tasksLevel = lvl;
+}
+
+function checkLevelTasks() {
+  if (!game.levelTasks.length) return;
+  const done = game.levelTasks.filter(m => (game.stats[m.stat] || 0) - m.base >= m.target);
+  if (!done.length) return;
+  for (const m of done) {
+    addCoins(m.coins);
+    addXp(m.xp);
+    showToast(t('toast.taskDone', { label: m.label, c: m.coins }));
+  }
+  game.levelTasks = game.levelTasks.filter(m => !done.includes(m));
 }
 
 /* ---------- Construções ---------- */
@@ -187,9 +223,14 @@ function plantCrop(type, gx, gy, free) {
   if (!def) return null;
   if (!inBounds(gx, gy) || !inOwnedArea(gx, gy)) { showToast(t('toast.invalid')); return null; }
   if (occupancy[occIndex(gx, gy)]) { showToast(t('toast.tileBusy')); return null; }
-  if (!free) {
-    if (game.coins < def.seedCost) { showToast(t('toast.noCoins')); return null; }
-    addCoins(-def.seedCost);
+  if (!free && !game.visiting) {
+    if (game.seeds[type] > 0) {
+      game.seeds[type]--;
+      if (game.seeds[type] <= 0) delete game.seeds[type];
+    } else {
+      if (game.coins < def.seedCost) { showToast(t('toast.noSeeds')); return null; }
+      addCoins(-def.seedCost);
+    }
   }
   const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
@@ -243,18 +284,20 @@ function sellBarnItem(id, n) {
   const value = barnItemValue(id) * n;
   game.barn[id] -= n;
   if (game.barn[id] <= 0) delete game.barn[id];
+  game.stats.barn_sold = (game.stats.barn_sold || 0) + n;
   addCoins(value);
   playSound('harvest');
   return true;
 }
 
 function sellAllBarn() {
-  let coins = 0;
+  let coins = 0, sold = 0;
   for (const id of Object.keys(game.barn)) {
-    const value = barnItemValue(id) * game.barn[id];
-    coins += value;
+    coins += barnItemValue(id) * game.barn[id];
+    sold += game.barn[id];
     delete game.barn[id];
   }
+  if (sold > 0) game.stats.barn_sold = (game.stats.barn_sold || 0) + sold;
   if (coins > 0) { addCoins(coins); playSound('level'); }
   return coins;
 }
@@ -293,6 +336,122 @@ function deliverOrder(orderId) {
   spawnCourier(o);
   showToast(t('toast.courierGoing'));
   return true;
+}
+
+/* ---------- Ferramentas ---------- */
+function toolOwned(id) {
+  if (id === 'hoe') return upgradeLevel('till') > 0;
+  if (id === 'can') return upgradeLevel('water') > 0;
+  if (id === 'tractor') return game.tractorOwned;
+  return true;
+}
+
+function buyTool(id) {
+  const def = TOOLS.find(x => x.id === id);
+  if (!def) return false;
+  if (id !== 'seeds' && toolOwned(id)) { showToast(t('toast.toolOwned')); return false; }
+  if (game.level < def.level) { showToast(t('shop.locked', { n: def.level })); return false; }
+  const price = id === 'seeds' ? 12 * Object.values(CROPS).filter(c => c.level <= game.level).length : def.price;
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
+  if (id === 'hoe') game.upgrades.till = 1;
+  else if (id === 'can') game.upgrades.water = 1;
+  else if (id === 'tractor') {
+    game.tractorOwned = true;
+    game.tractor = null;
+  } else if (id === 'seeds') {
+    for (const c of Object.values(CROPS)) {
+      if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
+    }
+  }
+  playSound('place');
+  return true;
+}
+
+/* ---------- Trator colheitadeira ---------- */
+function tractorWalkable(x, y) {
+  if (!inBounds(x, y) || !inOwnedArea(x, y)) return false;
+  const occ = occupancy[occIndex(x, y)];
+  return !occ || occ.isCrop;
+}
+
+function startTractor() {
+  if (!game.tractorOwned) return false;
+  const ready = game.crops.find(c => cropProgress(c) >= 1);
+  if (!ready) { showToast(t('toast.tractorNone')); return false; }
+  if (!game.tractor) {
+    const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
+    for (let tries = 0; tries < 200; tries++) {
+      const x = game.ownedArea.x0 + Math.floor(Math.random() * (game.ownedArea.x1 - game.ownedArea.x0 + 1));
+      const y = game.ownedArea.y0 + Math.floor(Math.random() * (game.ownedArea.y1 - game.ownedArea.y0 + 1));
+      if (tractorWalkable(x, y)) { spot.x = x; spot.y = y; break; }
+    }
+    game.tractor = { gx: spot.x + 0.5, gy: spot.y + 0.5, tx: spot.x + 0.5, ty: spot.y + 0.5, path: [], phase: 0, smokeT: 0, walking: false };
+  }
+  const tr = game.tractor;
+  tr.target = null;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), Math.floor(ready.gx + 0.5), Math.floor(ready.gy + 0.5), tractorWalkable) || [];
+  tr.tx = ready.gx + 0.5; tr.ty = ready.gy + 0.5;
+  if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
+  tr.walking = true;
+  tr.active = true;
+  showToast(t('toast.tractorGo'));
+  return true;
+}
+
+function tractorNextTarget(t) {
+  let best = null, bestD = Infinity;
+  for (const c of game.crops) {
+    if (cropProgress(c) < 1) continue;
+    const d = Math.hypot(c.gx + 0.5 - t.gx, c.gy + 0.5 - t.gy);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+function updateTractor(dt) {
+  const tr = game.tractor;
+  if (!tr || !tr.active) return;
+  tr.phase += dt;
+  if (tr.walking) {
+    const dx = tr.tx - tr.gx, dy = tr.ty - tr.gy;
+    const dist = Math.hypot(dx, dy);
+    const step = 2.4 * dt;
+    tr.smokeT += dt;
+    if (tr.smokeT > 0.3) {
+      tr.smokeT = 0;
+      if (Math.random() < 0.7) spawnParticle(tr.gx - 0.3, tr.gy, 0.5, -0.3, -0.1, 0.3, 0.9, 'rgba(90,90,90,0.5)', 2.5, -0.12);
+    }
+    if (dist <= step) {
+      tr.gx = tr.tx; tr.gy = tr.ty;
+      const occ = occupancy[occIndex(Math.floor(tr.gx), Math.floor(tr.gy))];
+      if (occ && occ.isCrop && cropProgress(occ) >= 1 && !game.visiting) {
+        harvestCrop(occ);
+        spawnFloater(occ.gx, occ.gy, '🌾', '#c5e1a5');
+      }
+      if (tr.path && tr.path.length) {
+        const w = tr.path.shift();
+        tr.tx = w.x + 0.5; tr.ty = w.y + 0.5;
+      } else {
+        tr.walking = false;
+      }
+    } else {
+      tr.gx += dx / dist * step;
+      tr.gy += dy / dist * step;
+    }
+    return;
+  }
+  const next = tractorNextTarget(tr);
+  if (!next) {
+    tr.active = false;
+    showToast(t('toast.tractorDone'));
+    playSound('level');
+    return;
+  }
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.gx, next.gy, tractorWalkable) || [];
+  tr.tx = next.gx + 0.5; tr.ty = next.gy + 0.5;
+  if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
+  tr.walking = true;
 }
 
 /* ---------- Entregador de moto ---------- */
@@ -381,6 +540,7 @@ function updateCourierOne(c, dt) {
     return;
   }
   if (c.stage === 'in') {
+    game.stats.orders_done = (game.stats.orders_done || 0) + 1;
     addCoins(c.coins);
     addXp(c.xp);
     spawnFloater(c.gx, c.gy - 0.5, '+' + c.coins + ' \u{1FA99}', '#ffd54f');
@@ -447,13 +607,14 @@ function cookRecipe(id) {
 
 /* ---------- Melhorias de ferramentas ---------- */
 function upgradeLevel(id) {
-  return (game.upgrades && game.upgrades[id]) || 1;
+  return (game.upgrades && game.upgrades[id]) || 0;
 }
 
 function buyUpgrade(id) {
   const def = UPGRADES.find(u => u.id === id);
   if (!def) return false;
   const lvl = upgradeLevel(id);
+  if (lvl === 0) { showToast(t('toast.toolNeed', { name: t(id === 'water' ? 'tool.can' : 'tool.hoe') })); return false; }
   if (lvl >= def.max) return false;
   const price = def.prices[lvl];
   if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
@@ -468,6 +629,7 @@ function waterRadius() { return upgradeLevel('water') >= 3 ? 2 : (upgradeLevel('
 function tillRadius() { return upgradeLevel('till') >= 2 ? 1 : 0; }
 
 function waterAreaAt(gx, gy) {
+  if (upgradeLevel('water') === 0) return 0;
   const r = waterRadius();
   let n = 0;
   for (let dx = -r; dx <= r; dx++) {
@@ -481,6 +643,7 @@ function waterAreaAt(gx, gy) {
 }
 
 function tillAreaAt(gx, gy) {
+  if (upgradeLevel('till') === 0) return 0;
   const r = tillRadius();
   let n = 0;
   for (let dx = -r; dx <= r; dx++) {
@@ -506,6 +669,9 @@ function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
   if (game.time < prev) { game.meetingDone = false; game.day++; }
+  if (seasonIndex() === 3) game.snow = Math.min(1, game.snow + dt / 180);
+  else game.snow = Math.max(0, game.snow - dt / 20);
+  checkLevelTasks();
 }
 
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
@@ -756,6 +922,7 @@ function collectAnimal(a) {
   if (!a.product) return false;
   const def = ANIMALS[a.kind];
   const value = def.value * a.product;
+  game.stats.collected = (game.stats.collected || 0) + a.product;
   addCoins(value);
   spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
   a.product = 0;
@@ -944,6 +1111,12 @@ function autoClaimReady() {
 }
 
 /* ---------- Salvamento ---------- */
+function applyToolMigration(data) {
+  const legacy = (data.day || 0) > 0 || (data.level || 1) > 1;
+  if (!data.upgrades) return legacy ? { water: 2, till: 2 } : { water: 0, till: 0 };
+  return { water: 0, till: 0, ...data.upgrades };
+}
+
 function snapshotData() {
   return {
     coins: game.coins, gems: game.gems, xp: game.xp, level: game.level,
@@ -955,6 +1128,9 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
+    playerName: game.playerName, playerFace: game.playerFace,
+    levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
     settings: game.settings, landExpansions: game.landExpansions,
     farmCode: game.farmCode
@@ -1007,16 +1183,30 @@ function applySaveData(data) {
       landExpansions: data.landExpansions ?? 0,
       farmCode: data.farmCode ?? null,
       barn: data.barn ?? {}, orders: data.orders ?? [],
-      upgrades: { water: 1, till: 1, ...(data.upgrades ?? {}) },
+      upgrades: applyToolMigration(data), 
       tutorialDone: data.tutorialDone ?? ((data.day || 0) > 0 || (data.level || 1) > 1),
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
+      seeds: data.seeds ?? {},
+      tractorOwned: data.tractorOwned ?? false, tractor: null,
+      snow: data.snow ?? 0,
+      playerName: data.playerName ?? 'Fazendeiro',
+      playerFace: data.playerFace ?? '👨‍🌾',
+      levelTasks: data.levelTasks ?? [], tasksLevel: data.tasksLevel ?? 1,
       particles: [],
       couriers: []
     });
     for (const a of game.animals) {
       if (a.age === undefined) a.age = 999;
       if (a.bornAt === undefined) a.bornAt = Date.now();
+    }
+    if (!data.upgrades && ((data.day || 0) > 0 || (data.level || 1) > 1)) {
+      game.upgrades = { water: 2, till: 2 };
+    }
+    if (!data.seeds && ((data.day || 0) > 0 || (data.level || 1) > 1)) {
+      for (const c of Object.values(CROPS)) {
+        if (c.level <= game.level) game.seeds[c.id] = 5;
+      }
     }
     if (!data.orders) ensureOrders();
     game.stats.level = game.level;

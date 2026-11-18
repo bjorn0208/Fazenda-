@@ -99,6 +99,11 @@ const BUILDINGS = {
     price: 4500, w: 3, d: 2, level: 7, category: 'construcoes',
     desc: 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
     refund: 0.5
+  },
+  restaurant: {
+    id: 'restaurant', name: 'Restaurante', icon: '🍽️',
+    price: 250, w: 2, d: 2, level: 3, category: 'construcoes',
+    desc: 'Os fazendeiros almçam aqui ao meio-dia: trabalham até as 12:00, almoçam e voltam às 13:00.'
   }
 };
 
@@ -118,6 +123,11 @@ const ANIMALS = {
     id: 'cow', name: 'Vaca', icon: '🐄',
     price: 600, level: 3, desc: 'Dá leite a cada 60s (toque para coletar e vender).',
     product: '🥛', cycle: 60, value: 25
+  },
+  sheep: {
+    id: 'sheep', name: 'Ovelha', icon: '🐑',
+    price: 550, level: 4, desc: 'Esquila e dá lã a cada 70s; a lã cresce de novo no dia seguinte.',
+    product: '🧶', cycle: 70, value: 40
   },
   horse: {
     id: 'horse', name: 'Cavalo', icon: '🐎',
@@ -179,6 +189,7 @@ const CROPS = {
 };
 
 const SHOP_CATEGORIES = [
+  { id: 'ferramentas', name: 'Ferramentas' },
   { id: 'construcoes', name: 'Construções' },
   { id: 'animais', name: 'Animais' },
   { id: 'natureza', name: 'Natureza' },
@@ -220,6 +231,18 @@ const UPGRADES = [
   { id: 'till', icon: '⛏', max: 2,
     prices: [0, 1800],
     names: ['Enxada simples', 'Enxada de Aço (3x3)'] }
+];
+
+/* Ferramentas compráveis — o jogador começa sem nada. */
+const TOOLS = [
+  { id: 'hoe', icon: '⛏️', name: 'Enxada', price: 120, level: 1,
+    desc: 'Permite arar a terra para plantar.' },
+  { id: 'can', icon: '🚿', name: 'Regador', price: 180, level: 2,
+    desc: 'Permite regar as plantas para crescerem mais rapido.' },
+  { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
+    desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+  { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
+    desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];
 
 /* Curral: tamanhos disponiveis e preco por segmento de cerca. */
