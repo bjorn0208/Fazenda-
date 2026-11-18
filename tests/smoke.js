@@ -106,7 +106,7 @@ const sandbox = {
   },
   devicePixelRatio: 1,
   URLSearchParams: class { constructor() { this.p = {}; } get() { return null; } has() { return false; } },
-  location: { search: '', origin: 'https://fazenda.test', pathname: '/index.html', hostname: 'fazenda.test', protocol: 'https:' },
+  location: { search: '', origin: 'https://fazenda.test', pathname: '/index.html', hostname: 'fazenda.test', protocol: 'https:', reload: function () {} },
   navigator: { language: 'pt-BR' },
   document: {
     documentElement: makeEl(),
@@ -722,6 +722,15 @@ vm.runInContext(`
   localStorage.setItem(SAVE_KEY, '{quebrado');
   if (!loadGame()) throw new Error('loadGame falhou com save principal corrompido');
   if (game.coins !== coinsBak) throw new Error('backup rotativo nao restaurou o save anterior');
+
+  // reset: apaga os 3 slots e trava o autosave ate recarregar
+  saveGame(false);
+  resetGame();
+  if (!resetPending) throw new Error('resetPending nao marcado');
+  if (localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY + '_bak') || localStorage.getItem(SAVE_KEY + '_visit')) {
+    throw new Error('reset deixou save para tras');
+  }
+  if (saveGame(false)) throw new Error('autosave gravou durante o reset');
 
   // chat de visita: lista de frases existe; sendChat sem conexao retorna false
   if (!Array.isArray(t('chat.list')) || t('chat.list').length < 4) throw new Error('chat.list invalida');

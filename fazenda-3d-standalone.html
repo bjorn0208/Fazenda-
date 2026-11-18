@@ -725,7 +725,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v33</div>
+<div id="debug-badge">v34</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -2190,8 +2190,10 @@ function snapshotData() {
   };
 }
 
+let resetPending = false;
+
 function saveGame(showToastMsg) {
-  if (game.visiting) return false;
+  if (game.visiting || resetPending) return false;
   try {
     const prev = localStorage.getItem(SAVE_KEY);
     if (prev) localStorage.setItem(SAVE_KEY + '_bak', prev);
@@ -2336,7 +2338,10 @@ function receiveGift(gift) {
 }
 
 function resetGame() {
+  resetPending = true;
   localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(SAVE_KEY + '_bak');
+  localStorage.removeItem(SAVE_KEY + '_visit');
   location.reload();
 }
 
@@ -7464,7 +7469,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v33';
+const GAME_VERSION = 'v34';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {

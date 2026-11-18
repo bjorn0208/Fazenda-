@@ -948,8 +948,10 @@ function snapshotData() {
   };
 }
 
+let resetPending = false;
+
 function saveGame(showToastMsg) {
-  if (game.visiting) return false;
+  if (game.visiting || resetPending) return false;
   try {
     const prev = localStorage.getItem(SAVE_KEY);
     if (prev) localStorage.setItem(SAVE_KEY + '_bak', prev);
@@ -1094,6 +1096,9 @@ function receiveGift(gift) {
 }
 
 function resetGame() {
+  resetPending = true;
   localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(SAVE_KEY + '_bak');
+  localStorage.removeItem(SAVE_KEY + '_visit');
   location.reload();
 }

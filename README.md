@@ -162,6 +162,8 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Casa**: porta com ripas de madeira e jardineiras com flores sob as janelas.
 - **Celeiro**: paredes com tábuas de madeira.
 
+- **Reset que funciona de verdade**: o botão Reiniciar apagava so o save principal e o backup rotativo (e o salvamento automatico ao recarregar) o trazia de volta. Agora os 3 slots sao apagados e o autosave fica travado ate a pagina recarregar.
+
 ## Revisão 25 — Nova economia, vida na fazenda e PWA
 
 - **Celeiro 🧺 e nova economia**: a colheita agora vai para o **Celeiro** (menu 🧺) — venda ali dentro (individual ou Vender Tudo) para receber moedas. Assim dá para estocar e vender na hora certa.
