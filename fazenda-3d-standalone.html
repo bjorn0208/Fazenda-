@@ -74,6 +74,34 @@ html, body {
 }
 #hud-top > * { pointer-events: auto; }
 
+#day-chip {
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.cal-month {
+  background: #fff8e1;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #5d4037;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-cur {
+  border-color: #8bc34a;
+  background: #dcedc8;
+  font-weight: 700;
+  color: #33691e;
+}
 .hud-card {
   background: var(--panel);
   border: 3px solid var(--panel-border);
@@ -680,7 +708,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
       <span id="gems-value">0</span>
       <button id="btn-add-gems" title="Loja de diamantes">＋</button>
     </div>
-    <div id="day-chip" class="hud-card" title="Ciclo do dia">☀️</div>
+    <div id="day-chip" class="hud-card" title="Relógio e calendário">☀️</div>
     <button id="btn-settings" class="hud-card" title="Configurações">⚙️</button>
   </div>
 </div>
@@ -725,7 +753,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v34</div>
+<div id="debug-badge">v35</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1751,7 +1779,20 @@ function advanceClock(dt) {
 }
 
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
-function seasonIndex() { return Math.floor(game.day / 3) % 4; }
+const MONTH_LEN = 30;
+const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Out\u00faro', 'Novembro', 'Dezembro'];
+const SEASON_BY_MONTH = [1, 1, 2, 2, 2, 3, 3, 3, 0, 0, 0, 1];
+const SEASON_ICONS = { spring: '\u{1F338}', summer: '\u{1F506}', autumn: '\u{1F342}', winter: '\u{2744}\uFE0F' };
+
+let _dateCache = { day: -1, val: null };
+function gameDate() {
+  if (_dateCache.day === game.day) return _dateCache.val;
+  const d = ((game.day % 360) + 360) % 360;
+  const month = Math.floor(d / MONTH_LEN);
+  _dateCache = { day: game.day, val: { day: (d % MONTH_LEN) + 1, month, name: MONTH_NAMES[month] } };
+  return _dateCache.val;
+}
+function seasonIndex() { return SEASON_BY_MONTH[gameDate().month]; }
 function seasonName() { return SEASONS[seasonIndex()]; }
 
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
@@ -5623,6 +5664,7 @@ const I18N = {
     'settings.quality': '✨ Qualidade gráfica', 'settings.language': '🌐 Idioma',
     'settings.saveNow': '💾 Salvar progresso agora',
     'settings.reset': '🗑️ Reiniciar fazenda (apaga tudo)',
+    'cal.title': 'Calendário', 'season.spring': 'Primavera', 'season.summer': 'Verão', 'season.autumn': 'Outono', 'season.winter': 'Inverno',
     'settings.resetConfirm': 'Tem certeza? Todo o progresso será PERDIDO para sempre.',
     'q.baixa': 'baixa', 'q.média': 'média', 'q.alta': 'alta',
     'cat.construcoes': 'Construções', 'cat.decoracoes': 'Decorações',
@@ -5849,6 +5891,7 @@ const I18N = {
     'settings.quality': '✨ Graphics quality', 'settings.language': '🌐 Language',
     'settings.saveNow': '💾 Save progress now',
     'settings.reset': '🗑️ Reset farm (erases everything)',
+    'cal.title': 'Calendar', 'season.spring': 'Spring', 'season.summer': 'Summer', 'season.autumn': 'Autumn', 'season.winter': 'Winter',
     'settings.resetConfirm': 'Are you sure? All progress will be LOST forever.',
     'q.baixa': 'low', 'q.média': 'medium', 'q.alta': 'high',
     'cat.construcoes': 'Buildings', 'cat.decoracoes': 'Decorations',
@@ -6167,16 +6210,20 @@ function showToast(msg) {
 /* ---------- HUD ---------- */
 let lastDayPhase = null;
 let lastClockStr = '';
+let lastCalStr = '';
 const PHASE_ICONS = { dawn: '🌅', day: '☀', afternoon: '🌤', night: '🌙' };
 
 function refreshHud() {
   const phase = dayPhase();
   const clock = clockString(game.time);
-  if (phase !== lastDayPhase || clock !== lastClockStr) {
+  const gd = gameDate();
+  const calStr = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
+  if (phase !== lastDayPhase || clock !== lastClockStr || calStr !== lastCalStr) {
     lastDayPhase = phase;
     lastClockStr = clock;
+    lastCalStr = calStr;
     const chip = $('day-chip');
-    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock;
+    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock + '   ' + calStr;
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
@@ -6942,6 +6989,25 @@ function barnItemName(id) {
   return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
 }
 
+function openCalendar() {
+  openModal(t('cal.title'), body => {
+    const gd = gameDate();
+    const cur = document.createElement('div');
+    cur.className = 'mp-status';
+    cur.textContent = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name + '  ·  ' + t('season.' + seasonName());
+    body.appendChild(cur);
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    for (let i = 0; i < 12; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-month' + (i === gd.month ? ' cal-cur' : '');
+      cell.textContent = SEASON_ICONS[SEASONS[SEASON_BY_MONTH[i]]] + ' ' + MONTH_NAMES[i] + ' \u00b7 ' + t('season.' + SEASONS[SEASON_BY_MONTH[i]]);
+      grid.appendChild(cell);
+    }
+    body.appendChild(grid);
+  });
+}
+
 function openBarn() {
   tutAdvance('sell');
   openModal(t('modal.barn'), body => {
@@ -7207,6 +7273,9 @@ function bindUi(handlers) {
   setupWheel($('build-bar'));
   setupWheel($('side-menu'));
 
+  const dchip = $('day-chip');
+  if (dchip) dchip.onclick = () => openCalendar();
+
   $('modal-close').onclick = closeModal;
   $('modal-overlay').onclick = e => { if (e.target === $('modal-overlay')) closeModal(); };
 
@@ -7469,7 +7538,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v34';
+const GAME_VERSION = 'v35';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {

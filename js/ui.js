@@ -21,6 +21,7 @@ const I18N = {
     'settings.quality': '✨ Qualidade gráfica', 'settings.language': '🌐 Idioma',
     'settings.saveNow': '💾 Salvar progresso agora',
     'settings.reset': '🗑️ Reiniciar fazenda (apaga tudo)',
+    'cal.title': 'Calendário', 'season.spring': 'Primavera', 'season.summer': 'Verão', 'season.autumn': 'Outono', 'season.winter': 'Inverno',
     'settings.resetConfirm': 'Tem certeza? Todo o progresso será PERDIDO para sempre.',
     'q.baixa': 'baixa', 'q.média': 'média', 'q.alta': 'alta',
     'cat.construcoes': 'Construções', 'cat.decoracoes': 'Decorações',
@@ -247,6 +248,7 @@ const I18N = {
     'settings.quality': '✨ Graphics quality', 'settings.language': '🌐 Language',
     'settings.saveNow': '💾 Save progress now',
     'settings.reset': '🗑️ Reset farm (erases everything)',
+    'cal.title': 'Calendar', 'season.spring': 'Spring', 'season.summer': 'Summer', 'season.autumn': 'Autumn', 'season.winter': 'Winter',
     'settings.resetConfirm': 'Are you sure? All progress will be LOST forever.',
     'q.baixa': 'low', 'q.média': 'medium', 'q.alta': 'high',
     'cat.construcoes': 'Buildings', 'cat.decoracoes': 'Decorations',
@@ -565,16 +567,20 @@ function showToast(msg) {
 /* ---------- HUD ---------- */
 let lastDayPhase = null;
 let lastClockStr = '';
+let lastCalStr = '';
 const PHASE_ICONS = { dawn: '🌅', day: '☀', afternoon: '🌤', night: '🌙' };
 
 function refreshHud() {
   const phase = dayPhase();
   const clock = clockString(game.time);
-  if (phase !== lastDayPhase || clock !== lastClockStr) {
+  const gd = gameDate();
+  const calStr = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
+  if (phase !== lastDayPhase || clock !== lastClockStr || calStr !== lastCalStr) {
     lastDayPhase = phase;
     lastClockStr = clock;
+    lastCalStr = calStr;
     const chip = $('day-chip');
-    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock;
+    if (chip) chip.textContent = PHASE_ICONS[phase] + ' ' + clock + '   ' + calStr;
   }
   const dogBtn = $('btn-dog');
   if (dogBtn) {
@@ -1340,6 +1346,25 @@ function barnItemName(id) {
   return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
 }
 
+function openCalendar() {
+  openModal(t('cal.title'), body => {
+    const gd = gameDate();
+    const cur = document.createElement('div');
+    cur.className = 'mp-status';
+    cur.textContent = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name + '  ·  ' + t('season.' + seasonName());
+    body.appendChild(cur);
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    for (let i = 0; i < 12; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-month' + (i === gd.month ? ' cal-cur' : '');
+      cell.textContent = SEASON_ICONS[SEASONS[SEASON_BY_MONTH[i]]] + ' ' + MONTH_NAMES[i] + ' \u00b7 ' + t('season.' + SEASONS[SEASON_BY_MONTH[i]]);
+      grid.appendChild(cell);
+    }
+    body.appendChild(grid);
+  });
+}
+
 function openBarn() {
   tutAdvance('sell');
   openModal(t('modal.barn'), body => {
@@ -1604,6 +1629,9 @@ function bindUi(handlers) {
 
   setupWheel($('build-bar'));
   setupWheel($('side-menu'));
+
+  const dchip = $('day-chip');
+  if (dchip) dchip.onclick = () => openCalendar();
 
   $('modal-close').onclick = closeModal;
   $('modal-overlay').onclick = e => { if (e.target === $('modal-overlay')) closeModal(); };

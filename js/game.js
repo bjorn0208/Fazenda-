@@ -509,7 +509,20 @@ function advanceClock(dt) {
 }
 
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
-function seasonIndex() { return Math.floor(game.day / 3) % 4; }
+const MONTH_LEN = 30;
+const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Out\u00faro', 'Novembro', 'Dezembro'];
+const SEASON_BY_MONTH = [1, 1, 2, 2, 2, 3, 3, 3, 0, 0, 0, 1];
+const SEASON_ICONS = { spring: '\u{1F338}', summer: '\u{1F506}', autumn: '\u{1F342}', winter: '\u{2744}\uFE0F' };
+
+let _dateCache = { day: -1, val: null };
+function gameDate() {
+  if (_dateCache.day === game.day) return _dateCache.val;
+  const d = ((game.day % 360) + 360) % 360;
+  const month = Math.floor(d / MONTH_LEN);
+  _dateCache = { day: game.day, val: { day: (d % MONTH_LEN) + 1, month, name: MONTH_NAMES[month] } };
+  return _dateCache.val;
+}
+function seasonIndex() { return SEASON_BY_MONTH[gameDate().month]; }
 function seasonName() { return SEASONS[seasonIndex()]; }
 
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */

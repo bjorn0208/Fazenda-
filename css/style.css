@@ -61,6 +61,34 @@ html, body {
 }
 #hud-top > * { pointer-events: auto; }
 
+#day-chip {
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.cal-month {
+  background: #fff8e1;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #5d4037;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-cur {
+  border-color: #8bc34a;
+  background: #dcedc8;
+  font-weight: 700;
+  color: #33691e;
+}
 .hud-card {
   background: var(--panel);
   border: 3px solid var(--panel-border);

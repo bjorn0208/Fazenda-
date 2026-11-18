@@ -707,6 +707,16 @@ vm.runInContext(`
   advanceClock(0.2 * DAY_LENGTH);
   if (game.day !== dayBefore + 1) throw new Error('dia nao avancou');
   if (!['spring', 'summer', 'autumn', 'winter'].includes(seasonName())) throw new Error('estacao invalida');
+  game.day = 0;
+  if (gameDate().day !== 1 || gameDate().name !== 'Janeiro' || seasonName() !== 'summer') throw new Error('1 de janeiro deveria ser verao');
+  game.day = 150;
+  if (gameDate().name !== 'Junho' || seasonName() !== 'winter') throw new Error('junho deveria ser inverno');
+  game.day = 250;
+  if (gameDate().name !== 'Setembro' || seasonName() !== 'spring') throw new Error('setembro deveria ser primavera');
+  game.day = 359;
+  if (gameDate().day !== 30 || gameDate().name !== 'Dezembro' || seasonName() !== 'summer') throw new Error('dezembro deveria fechar o ano no verao');
+  game.day = dayBefore + 1;
+  if (typeof t('season.summer') !== 'string' || t('season.summer').length < 5) throw new Error('nomes de estacao faltando no i18n');
 
   // tutorial: avanca por acoes e terminal por skip
   tutAdvance('till');

@@ -164,6 +164,8 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 
 - **Reset que funciona de verdade**: o botão Reiniciar apagava so o save principal e o backup rotativo (e o salvamento automatico ao recarregar) o trazia de volta. Agora os 3 slots sao apagados e o autosave fica travado ate a pagina recarregar.
 
+- **Calendário e estações pelos meses**: o ano agora tem 12 meses de 30 dias (360 dias) e a estação segue o calendário de verdade no hemisfério sul: verão em dezembro/janeiro/fevereiro, outono em março/abril/maio, inverno em junho/julho/agosto e primavera em setembro/outubro/novembro. Toque no relógio do topo para abrir o calendário com o mês atual destacado.
+
 ## Revisão 25 — Nova economia, vida na fazenda e PWA
 
 - **Celeiro 🧺 e nova economia**: a colheita agora vai para o **Celeiro** (menu 🧺) — venda ali dentro (individual ou Vender Tudo) para receber moedas. Assim dá para estocar e vender na hora certa.
