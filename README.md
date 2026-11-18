@@ -175,6 +175,7 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Roleta branca com 5 itens**: a barra de sementes (roleta lateral) ficou **branca como os painéis** e mostra no máximo **5 sementes** de uma vez, com rolagem para ver as demais.
 - **Correção**: botão mostrava o texto cru “build.till” — chave de tradução faltante adicionada (Arar/Till).
 - Versão **v37** (service worker e PWA atualizados).
+- **Tutorial removido** (v38): a barra de instruções saiu do jogo — o carro com o amigo do fazendeiro continua chegando no jogo novo, e depois dele o jogador já fica livre para jogar.
 
 ## Revisão 29 — Loja de ferramentas, perfil, tarefas de nível e dia de trabalho
 

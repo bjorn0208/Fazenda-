@@ -390,13 +390,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
     flex-wrap: wrap; justify-content: center;
     font-size: 13px;
   }
-  #tut-bar {
-    top: calc(112px + env(safe-area-inset-top, 0px));
-    bottom: auto;
-    max-width: calc(100vw - 20px);
-    flex-wrap: wrap;
-    justify-content: center;
-  }
   #modal { max-height: 88vh; max-height: 88dvh; }
 }
 
@@ -443,7 +436,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   #confirm-bar { bottom: 84px; padding: 7px 10px; gap: 7px; font-size: 12px; border-width: 2px; }
   .btn-ok, .btn-cancel { padding: 7px 12px; font-size: 12px; }
 
-  #toast { top: 190px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
+  #toast { top: 132px; font-size: 12px; padding: 8px 14px; max-width: 90vw; text-align: center; }
 
   #modal { width: 96vw; max-height: 90dvh; border-width: 3px; border-radius: 14px; }
   #modal-title { font-size: 16px; }
@@ -588,54 +581,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   min-width: 0;
 }
 .mp-status { font-size: 12px; color: #5d4037; margin-top: 8px; text-align: center; }
-
-/* Tutorial da primeira vez */
-#tut-bar {
-  position: fixed;
-  left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(92vw, 420px);
-  background: rgba(255, 253, 245, 0.97);
-  border: 2px solid #8bc34a;
-  border-radius: 14px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  font-size: 12.5px;
-  color: #3e2723;
-}
-#tut-bar.hidden { display: none; }
-#tut-bar .tut-num {
-  font-weight: 800;
-  font-size: 11px;
-  background: #8bc34a;
-  color: #fff;
-  border-radius: 8px;
-  padding: 2px 7px;
-  flex-shrink: 0;
-}
-#tut-bar .tut-text { flex: 1; line-height: 1.35; }
-#tut-bar .tut-ok {
-  border: none;
-  background: #43a047;
-  color: #fff;
-  font-weight: 800;
-  border-radius: 8px;
-  padding: 6px 12px;
-  flex-shrink: 0;
-}
-#tut-bar .tut-skip {
-  border: none;
-  background: transparent;
-  color: #8d6e63;
-  font-weight: 700;
-  padding: 6px 4px;
-  flex-shrink: 0;
-}
 
 /* Celeiro & Mercado */
 .barn-row {
@@ -783,7 +728,7 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v37</div>
+<div id="debug-badge">v38</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -793,14 +738,6 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   <span id="confirm-info"></span>
   <button id="confirm-ok" class="btn-ok">✓ Confirmar</button>
   <button id="confirm-cancel" class="btn-cancel">✕ Cancelar</button>
-</div>
-
-<!-- Barra do tutorial (primeira vez) -->
-<div id="tut-bar" class="hidden">
-  <span class="tut-num">1/7</span>
-  <span class="tut-text"></span>
-  <button class="tut-ok">Entendi</button>
-  <button class="tut-skip">Pular</button>
 </div>
 
 <!-- Toast de avisos -->
@@ -6346,18 +6283,7 @@ const I18N = {
     'toast.chatSent': '💬 Enviado!',
     'toast.visitorSaid': '💬 Visitante: {msg}',
     'mp.chat': 'Conversar',
-    'tut.title': 'Como jogar',
-    'tut.next': 'Entendi',
-    'tut.skip': 'Pular',
-    'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
-    'tut.shop': 'Abra a Loja (menu esquerdo) e compre a enxada e o pacote de sementes.',
     'intro.friend': 'Pode descer! A fazenda \u00e9 toda sua. Boa sorte!',
-    'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
-    'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
-    'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
-    'tut.harvest': 'Quando a planta dourar, toque em 🧺 Colher Tudo. A colheita vai para o Celeiro.',
-    'tut.sell': 'Abra o 🧺 Celeiro no menu à esquerda: vender, cozinhar e entregar pedidos.',
-    'tut.done': 'Pronto! Compre animais na 🏪 Loja e contrate fazendeiros. Boa colheita!',
     'chat.list': ['👋 Oi!', '🌾 Que fazenda linda!', '🎁 Presente para você!', '😄 Divirta-se!'],
     'mp.host': 'Abrir minha fazenda para visitas',
     'mp.stop': 'Fechar minha fazenda',
@@ -6594,18 +6520,7 @@ const I18N = {
     'toast.chatSent': '💬 Sent!',
     'toast.visitorSaid': '💬 Visitor: {msg}',
     'mp.chat': 'Chat',
-    'tut.title': 'How to play',
-    'tut.next': 'Got it',
-    'tut.skip': 'Skip',
-    'tut.move': 'Drag your finger to move around and use Zoom on the left.',
-    'tut.shop': 'Open the Shop (left menu) and buy the hoe and the seed pack.',
     'intro.friend': 'Hop off! The farm is all yours. Good luck!',
-    'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
-    'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
-    'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
-    'tut.harvest': 'When golden, tap 🧺 Harvest All. Crops go to the Barn.',
-    'tut.sell': 'Open the 🧺 Barn on the left menu: sell, cook and deliver orders.',
-    'tut.done': 'Done! Buy animals at the 🏪 Shop and hire farmers. Happy farming!',
     'chat.list': ['👋 Hi!', '🌾 Nice farm!', '🎁 A gift for you!', '😄 Have fun!'],
     'mp.host': 'Open my farm for visits',
     'mp.stop': 'Close my farm',
@@ -6922,7 +6837,6 @@ function mkInfo(text) {
 let currentShopTab = 'construcoes';
 
 function openShop() {
-  tutAdvance('shop');
   openModal(t('modal.shop'), body => {
     const tabs = document.createElement('div');
     tabs.className = 'shop-tabs';
@@ -7650,59 +7564,6 @@ function openMultiplayer() {
   });
 }
 
-/* ---------- Tutorial da primeira vez ---------- */
-const TUT_STEPS = ['tut.move', 'tut.shop', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
-let tutStep = 0;
-
-function tutorialActive() {
-  return !game.tutorialDone && tutStep < TUT_STEPS.length;
-}
-
-function tutShow() {
-  const bar = document.getElementById('tut-bar');
-  if (!bar) return;
-  if (!tutorialActive()) { bar.classList.add('hidden'); return; }
-  bar.classList.remove('hidden');
-  const txt = bar.querySelector('.tut-text');
-  if (txt) txt.textContent = t(TUT_STEPS[tutStep]);
-  const num = bar.querySelector('.tut-num');
-  if (num) num.textContent = (tutStep + 1) + '/' + TUT_STEPS.length;
-}
-
-function tutNext() {
-  tutStep++;
-  if (tutStep >= TUT_STEPS.length) {
-    game.tutorialDone = true;
-    saveGame(false);
-  }
-  tutShow();
-}
-
-function tutSkip() {
-  tutStep = TUT_STEPS.length;
-  game.tutorialDone = true;
-  saveGame(false);
-  tutShow();
-}
-
-function tutAdvance(action) {
-  if (!tutorialActive()) return;
-  const map = { shop: 1, till: 2, plant: 3, water: 4, harvest: 5, sell: 6 };
-  if (map[action] === tutStep) tutNext();
-}
-
-function setupTutorial() {
-  const bar = document.getElementById('tut-bar');
-  if (!bar) return;
-  const ok = bar.querySelector('.tut-ok');
-  const skip = bar.querySelector('.tut-skip');
-  if (ok) ok.textContent = t('tut.next');
-  if (skip) skip.textContent = t('tut.skip');
-  if (ok) ok.onclick = () => { playSound('click'); tutNext(); };
-  if (skip) skip.onclick = () => { playSound('click'); tutSkip(); };
-  tutShow();
-}
-
 /* ---------- Celeiro & Mercado ---------- */
 function barnItemName(id) {
   return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
@@ -7728,7 +7589,6 @@ function openCalendar() {
 }
 
 function openBarn() {
-  tutAdvance('sell');
   openModal(t('modal.barn'), body => {
     ensureOrders();
 
@@ -8258,7 +8118,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v37';
+const GAME_VERSION = 'v38';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -8479,7 +8339,6 @@ function handleClick(e) {
     if (upgradeLevel('till') === 0) { showToast(t('toast.toolNeed', { name: t('tool.hoe') })); return; }
     if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
-      tutAdvance('till');
     }
     return;
   }
@@ -8494,7 +8353,6 @@ function handleClick(e) {
       spawnFloater(g.gx, g.gy, usedSeed ? '-1 🌱' : '-' + def.seedCost + ' 🪙', usedSeed ? '#aed581' : '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
-      tutAdvance('plant');
       autoClaimReady();
     }
     return;
@@ -8508,7 +8366,6 @@ function handleClick(e) {
       if (waterAreaAt(occ.gx, occ.gy) > 0) {
         spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
         showToast(t('toast.watered'));
-        tutAdvance('water');
       } else {
         showToast(t('toast.alreadyWatered'));
       }
@@ -8774,7 +8631,6 @@ const uiHandlers = {
     if (r.n > 0) {
       showToast(t('toast.harvestAllBarn', { n: r.n, x: r.xp }));
       refreshHud();
-      tutAdvance('harvest');
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
@@ -8827,7 +8683,6 @@ function doHarvest(crop) {
     spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
     showToast(t('toast.harvestedBarn', { icon: r.def.icon, name: t('c_' + r.def.id) }));
     refreshHud();
-    tutAdvance('harvest');
     autoClaimReady();
   }
 }
@@ -8885,7 +8740,6 @@ function finishIntro() {
   });
   saveGame(false);
   centerCamera();
-  setupTutorial();
   showToast(t('toast.welcome'));
 }
 
@@ -8974,7 +8828,6 @@ function init() {
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
-  if (!game.intro) setupTutorial();
   requestAnimationFrame(loop);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     try { navigator.serviceWorker.register('sw.js'); } catch (e) {}

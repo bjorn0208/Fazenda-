@@ -137,18 +137,7 @@ const I18N = {
     'toast.chatSent': '💬 Enviado!',
     'toast.visitorSaid': '💬 Visitante: {msg}',
     'mp.chat': 'Conversar',
-    'tut.title': 'Como jogar',
-    'tut.next': 'Entendi',
-    'tut.skip': 'Pular',
-    'tut.move': 'Arraste o dedo para navegar pelo mapa e use o Zoom à esquerda.',
-    'tut.shop': 'Abra a Loja (menu esquerdo) e compre a enxada e o pacote de sementes.',
     'intro.friend': 'Pode descer! A fazenda \u00e9 toda sua. Boa sorte!',
-    'tut.till': 'Toque em ⛏ Arar (coluna direita) e depois no chão para preparar a terra.',
-    'tut.plant': 'Toque em 🌱 Plantar, escolha uma semente e toque na terra arada.',
-    'tut.water': 'Toque em 💧 Regar e depois na plantação — cresce 40% mais rápido.',
-    'tut.harvest': 'Quando a planta dourar, toque em 🧺 Colher Tudo. A colheita vai para o Celeiro.',
-    'tut.sell': 'Abra o 🧺 Celeiro no menu à esquerda: vender, cozinhar e entregar pedidos.',
-    'tut.done': 'Pronto! Compre animais na 🏪 Loja e contrate fazendeiros. Boa colheita!',
     'chat.list': ['👋 Oi!', '🌾 Que fazenda linda!', '🎁 Presente para você!', '😄 Divirta-se!'],
     'mp.host': 'Abrir minha fazenda para visitas',
     'mp.stop': 'Fechar minha fazenda',
@@ -385,18 +374,7 @@ const I18N = {
     'toast.chatSent': '💬 Sent!',
     'toast.visitorSaid': '💬 Visitor: {msg}',
     'mp.chat': 'Chat',
-    'tut.title': 'How to play',
-    'tut.next': 'Got it',
-    'tut.skip': 'Skip',
-    'tut.move': 'Drag your finger to move around and use Zoom on the left.',
-    'tut.shop': 'Open the Shop (left menu) and buy the hoe and the seed pack.',
     'intro.friend': 'Hop off! The farm is all yours. Good luck!',
-    'tut.till': 'Tap ⛏ Till (right column) then tap the ground to prepare soil.',
-    'tut.plant': 'Tap 🌱 Plant, pick a seed and tap tilled soil.',
-    'tut.water': 'Tap 💧 Water then tap your crop — grows 40% faster.',
-    'tut.harvest': 'When golden, tap 🧺 Harvest All. Crops go to the Barn.',
-    'tut.sell': 'Open the 🧺 Barn on the left menu: sell, cook and deliver orders.',
-    'tut.done': 'Done! Buy animals at the 🏪 Shop and hire farmers. Happy farming!',
     'chat.list': ['👋 Hi!', '🌾 Nice farm!', '🎁 A gift for you!', '😄 Have fun!'],
     'mp.host': 'Open my farm for visits',
     'mp.stop': 'Close my farm',
@@ -713,7 +691,6 @@ function mkInfo(text) {
 let currentShopTab = 'construcoes';
 
 function openShop() {
-  tutAdvance('shop');
   openModal(t('modal.shop'), body => {
     const tabs = document.createElement('div');
     tabs.className = 'shop-tabs';
@@ -1441,59 +1418,6 @@ function openMultiplayer() {
   });
 }
 
-/* ---------- Tutorial da primeira vez ---------- */
-const TUT_STEPS = ['tut.move', 'tut.shop', 'tut.till', 'tut.plant', 'tut.water', 'tut.harvest', 'tut.sell', 'tut.done'];
-let tutStep = 0;
-
-function tutorialActive() {
-  return !game.tutorialDone && tutStep < TUT_STEPS.length;
-}
-
-function tutShow() {
-  const bar = document.getElementById('tut-bar');
-  if (!bar) return;
-  if (!tutorialActive()) { bar.classList.add('hidden'); return; }
-  bar.classList.remove('hidden');
-  const txt = bar.querySelector('.tut-text');
-  if (txt) txt.textContent = t(TUT_STEPS[tutStep]);
-  const num = bar.querySelector('.tut-num');
-  if (num) num.textContent = (tutStep + 1) + '/' + TUT_STEPS.length;
-}
-
-function tutNext() {
-  tutStep++;
-  if (tutStep >= TUT_STEPS.length) {
-    game.tutorialDone = true;
-    saveGame(false);
-  }
-  tutShow();
-}
-
-function tutSkip() {
-  tutStep = TUT_STEPS.length;
-  game.tutorialDone = true;
-  saveGame(false);
-  tutShow();
-}
-
-function tutAdvance(action) {
-  if (!tutorialActive()) return;
-  const map = { shop: 1, till: 2, plant: 3, water: 4, harvest: 5, sell: 6 };
-  if (map[action] === tutStep) tutNext();
-}
-
-function setupTutorial() {
-  const bar = document.getElementById('tut-bar');
-  if (!bar) return;
-  const ok = bar.querySelector('.tut-ok');
-  const skip = bar.querySelector('.tut-skip');
-  if (ok) ok.textContent = t('tut.next');
-  if (skip) skip.textContent = t('tut.skip');
-  if (ok) ok.onclick = () => { playSound('click'); tutNext(); };
-  if (skip) skip.onclick = () => { playSound('click'); tutSkip(); };
-  tutShow();
-}
-
 /* ---------- Celeiro & Mercado ---------- */
 function barnItemName(id) {
   return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
@@ -1519,7 +1443,6 @@ function openCalendar() {
 }
 
 function openBarn() {
-  tutAdvance('sell');
   openModal(t('modal.barn'), body => {
     ensureOrders();
 

@@ -135,7 +135,6 @@ vm.runInContext(`
   finishIntro();
   if (game.farmers.length !== 1) throw new Error('cutscene nao gerou o fazendeiro inicial');
   if (!game.introDone) throw new Error('cutscene nao marcou introDone');
-  if (!tutorialActive()) throw new Error('tutorial nao comecou apos a cutscene');
   if (t('build.till') === 'build.till') throw new Error('chave build.till sem traducao');
 
   // render base com todas as construcoes do catalogo
@@ -840,13 +839,6 @@ vm.runInContext(`
   if (game.playerName !== 'Dono Teste') throw new Error('nome do jogador nao persistiu');
   if (!PLAYER_FACES.includes(game.playerFace)) throw new Error('foto do jogador invalida');
 
-  // tutorial: avanca por acoes e terminal por skip
-  tutAdvance('shop');
-  tutAdvance('till');
-  if (!tutorialActive()) throw new Error('tutorial deveria estar ativo apos 1 passo');
-  tutSkip();
-  if (!game.tutorialDone) throw new Error('tutorial nao marcou como concluido');
-
   // backup rotativo: save corrompido cai para o _bak
   saveGame(false);
   const coinsBak = game.coins;
@@ -885,7 +877,7 @@ vm.runInContext(`
   game.animals.length = beforeLoad;
   if (loadMs > 10000) throw new Error('teste de carga lento demais: ' + loadMs + 'ms');
 
-  console.log('celeiro/pedidos/cozinha/melhorias/filhotes/clima/particulas/estacoes/tutorial/backup/carga OK');
+  console.log('celeiro/pedidos/cozinha/melhorias/filhotes/clima/particulas/estacoes/backup/carga OK');
   console.log('render: todas as construcoes, culturas, arvores, animais e fazendeiro sem erro');
   console.log('acoes: zoom, arar, plantio, rega, colher tudo, animais (teto 100), fazendeiro OK');
   console.log('save/load roundtrip OK');

@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v37';
+const GAME_VERSION = 'v38';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -273,7 +273,6 @@ function handleClick(e) {
     if (upgradeLevel('till') === 0) { showToast(t('toast.toolNeed', { name: t('tool.hoe') })); return; }
     if (tillAreaAt(g.gx, g.gy) > 0) {
       spawnFloater(g.gx, g.gy, '⛏️', '#a1887f');
-      tutAdvance('till');
     }
     return;
   }
@@ -288,7 +287,6 @@ function handleClick(e) {
       spawnFloater(g.gx, g.gy, usedSeed ? '-1 🌱' : '-' + def.seedCost + ' 🪙', usedSeed ? '#aed581' : '#ffd54f');
       showToast(t('toast.planted', { icon: def.icon, name: t('c_' + def.id) }));
       refreshHud();
-      tutAdvance('plant');
       autoClaimReady();
     }
     return;
@@ -302,7 +300,6 @@ function handleClick(e) {
       if (waterAreaAt(occ.gx, occ.gy) > 0) {
         spawnFloater(occ.gx, occ.gy, '💧', '#4fc3f7');
         showToast(t('toast.watered'));
-        tutAdvance('water');
       } else {
         showToast(t('toast.alreadyWatered'));
       }
@@ -568,7 +565,6 @@ const uiHandlers = {
     if (r.n > 0) {
       showToast(t('toast.harvestAllBarn', { n: r.n, x: r.xp }));
       refreshHud();
-      tutAdvance('harvest');
       autoClaimReady();
     } else {
       showToast(t('toast.noneReady'));
@@ -621,7 +617,6 @@ function doHarvest(crop) {
     spawnFloater(crop.gx - 0.4, crop.gy - 0.4, '+' + r.xp + ' XP', '#aed581');
     showToast(t('toast.harvestedBarn', { icon: r.def.icon, name: t('c_' + r.def.id) }));
     refreshHud();
-    tutAdvance('harvest');
     autoClaimReady();
   }
 }
@@ -679,7 +674,6 @@ function finishIntro() {
   });
   saveGame(false);
   centerCamera();
-  setupTutorial();
   showToast(t('toast.welcome'));
 }
 
@@ -768,7 +762,6 @@ function init() {
   dbgShowZoom();
   bindUi(uiHandlers);
   refreshHud();
-  if (!game.intro) setupTutorial();
   requestAnimationFrame(loop);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     try { navigator.serviceWorker.register('sw.js'); } catch (e) {}
