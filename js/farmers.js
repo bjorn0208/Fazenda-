@@ -43,7 +43,8 @@ const MIND_LINES = {
     meetLend: ['Claro, {other}! Te dou umas agora.', 'Pega, {other}! A colheita e de quem planta.', 'Toma, {other}. Sucesso com elas!'],
     meetNoSeeds: ['Sem sementes por enquanto... vou ajudar no resto.', 'Hoje trabalho na aracao e na agua.'],
     meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!'],
-    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!']
+    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!'],
+    fish: ['Hoje e domingo, dia de pescar!', 'O peixe de hoje sai do lago.', 'A vara ta dançando...', 'Esse lago so tem peixe grande.', 'Domingo a enxada descansa.', 'Quem pesca no domingo, come na segunda.', 'Paciencia e a ferramenta do pescador.', 'Domingo sem plantio, so pesca e descanso.']
   },
   'en-US': {
     idle: ['Nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...', 'Good sun for planting today.', 'I love the morning soil smell.', 'That fence needs a touch-up.', 'The well never ran dry. Bless it.', 'So many birds today.', 'My jaw hurts from talking.', 'Finally a little rest.', 'The {farm} looks great this year.', 'I should have brought water.', 'The bees were angry back there.', 'These new boots pinch.', 'How long have we worked here?'],
@@ -65,7 +66,8 @@ const MIND_LINES = {
     meetLend: ['Sure, {other}! Here you go.', 'Take it, {other}! The harvest belongs to whoever plants.', 'Here, {other}. Good luck with them!'],
     meetNoSeeds: ['No seeds for now... I will help with the rest.', "I'll work the tilling and watering today."],
     meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!'],
-    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!']
+    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!'],
+    fish: ['Sunday is fishing day!', 'Today dinner comes from the lake.', 'The rod is bending...', 'This lake has only big fish.', 'Resting day, fishing day.', 'Fish on Sunday, eat on Monday.', 'Patience is the fishing tool.', 'No hoe on Sunday, just peace.']
   }
 };
 
@@ -93,6 +95,54 @@ function meetingPoint() {
   if (door) return door;
   const a = game.ownedArea;
   return { x: a.x0 + 2, y: a.y0 + 2 };
+}
+
+/* ---------- Domingo: fazendeiros pescam no lago o dia todo ---------- */
+function wanderIdle(f) {
+  const cx = Math.floor(f.gx), cy = Math.floor(f.gy);
+  const opts = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    if (farmerWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+  }
+  if (opts.length) {
+    const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+    f.tx = nx + 0.5; f.ty = ny + 0.5;
+    f.walking = true;
+  } else {
+    f.wait = 2;
+  }
+}
+
+function farmerFishing(f, dt) {
+  const lake = lakeBuilding();
+  if (!lake) { f.fishing = false; wanderIdle(f); return; }
+  let spot = f.fishSpot;
+  if (!spot || lakeAt(spot.x, spot.y) || !nearLake(spot.x, spot.y, 1) || !farmerWalkable(spot.x, spot.y)) {
+    spot = randomLakeShoreTile();
+    if (!spot) { f.fishing = false; wanderIdle(f); return; }
+    f.fishSpot = spot;
+  }
+  if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) > 0.9) {
+    f.fishing = false;
+    f.riding = false;
+    f.tx = spot.x + 0.5;
+    f.ty = spot.y + 0.5;
+    f.walking = true;
+    return;
+  }
+  f.fishing = true;
+  if (f.fishT === undefined) f.fishT = 12 + Math.random() * 10;
+  f.fishT -= dt;
+  if (f.fishT <= 0) {
+    f.fishT = 18 + Math.random() * 22;
+    const fish = rollFish();
+    addCoins(fish.value);
+    spawnFloater(f.gx - 0.5, f.gy - 1, fish.icon + ' +' + fish.value + ' \ud83e\ude99', '#4fc3f7');
+    playSound('splash');
+    if (Math.random() < 0.3) farmerSay(f, mindLine('fish'), 4200);
+  } else if (Math.random() < dt * 0.06) {
+    spawnFloater(f.gx - 0.5, f.gy - 1, '\ud83c\udfa3', '#90caf9');
+  }
 }
 
 function farmerChestTotal(f) {
@@ -378,6 +428,7 @@ function updateFarmers(dt) {
   for (const f of game.farmers) {
     f.phase += dt;
     farmerEnsureMind(f);
+    if (!isSunday()) f.fishing = false;
 
     f.thoughtT -= dt;
     if (f.thoughtT <= 0) {
@@ -526,6 +577,10 @@ function updateFarmers(dt) {
         }
         continue;
       }
+    }
+    if (isSunday()) {
+      farmerFishing(f, dt);
+      continue;
     }
     if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);

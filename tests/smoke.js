@@ -465,7 +465,7 @@ vm.runInContext(`
     if (!hs) throw new Error('sem lugar para a casa no teste');
   }
   game.time = 0.9;
-  for (let i = 0; i < 600; i++) updateFarmers(0.1);
+  for (let i = 0; i < 2500; i++) updateFarmers(0.1);
   if (!game.farmers.length || !game.farmers.every(f => f.inside)) throw new Error('fazendeiro nao entrou na casa a noite');
   render(ctx, cam, 800, 600, state);
   game.time = 0.1;
@@ -837,6 +837,47 @@ vm.runInContext(`
   updateWeather(0.2);
   if (Math.abs(game.flashT - 0.3) > 0.001) throw new Error('flash do trovao nao decai');
   game.flashT = 0;
+
+  // R34: pato, vara de pescar, semana, peixes e lago
+  state.mode = 'idle'; state.fishing = null;
+  if (!ANIMALS.duck) throw new Error('pato ausente do catalogo');
+  if (!ANIMAL_KINDS.duck || typeof drawDuck !== 'function') throw new Error('pato sem movimento/desenho');
+  if (!TOOLS.some(x => x.id === 'rod')) throw new Error('vara de pescar ausente');
+  if (typeof lakeAt !== 'function' || typeof isSunday !== 'function' || typeof rollFish !== 'function') throw new Error('helpers de pesca ausentes');
+  const wk0 = weekdayIndex();
+  game.day = 6;
+  if (!isSunday()) throw new Error('domingo nao detectado');
+  game.day = 0;
+  if (isSunday()) throw new Error('segunda detectada como domingo');
+  game.day = wk0;
+  if (!FISH.length || !rollFish().icon) throw new Error('tabela de peixes invalida');
+  game.coins = 999999;
+  game.level = Math.max(game.level || 1, 2);
+  if (!buyTool('rod')) throw new Error('compra da vara de pescar falhou');
+  if (!game.rodOwned) throw new Error('compra da vara nao marcou');
+  const ca34 = game.ownedArea;
+  let lkSpot = null;
+  for (let y = ca34.y0; y <= ca34.y1 - 6 && !lkSpot; y++) {
+    for (let x = ca34.x0; x <= ca34.x1 - 6 && !lkSpot; x++) {
+      if (canPlace('lake', x, y, 0)) { lkSpot = { x, y }; }
+    }
+  }
+  const lkB = lakeBuilding() || (lkSpot && placeBuilding('lake', lkSpot.x, lkSpot.y, 0, true));
+  if (lkB) {
+    const duckA = { kind: 'duck', gx: lkB.gx + 0.5, gy: lkB.gy + 0.5 };
+    const cowA = { kind: 'cow', gx: 0.5, gy: 0.5 };
+    if (!animalWalkable(duckA, lkB.gx + 2, lkB.gy + 2)) throw new Error('pato nao entra no lago');
+    if (animalWalkable(cowA, lkB.gx + 2, lkB.gy + 2)) throw new Error('vaca entrou no lago');
+    playSound('duck'); playSound('splash');
+    const cBefore = game.coins;
+    state.mode = 'fish';
+    state.fishing = { gx: lkB.gx + 1, gy: lkB.gy + 1, t: 0.01 };
+    updateFishing(0.02);
+    if (state.fishing !== null) throw new Error('pesca nao resolveu');
+    if (game.coins <= cBefore) throw new Error('pesca nao pagou');
+    state.mode = 'idle';
+    removeBuilding(lkB.id);
+  }
 
   // R32: lote arado compravel
   game.coins = 999999;

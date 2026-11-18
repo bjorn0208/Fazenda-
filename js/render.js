@@ -67,7 +67,36 @@ function render(ctx, cam, cw, ch, state) {
     ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, game.flashT * 1.8).toFixed(3) + ')';
     ctx.fillRect(0, 0, cw, ch);
   }
+  if (state.fishing) drawBobber(ctx, cam, cw, ch, state.fishing);
   if (typeof updateBuildingCtx === 'function' && state) updateBuildingCtx(cam, cw, ch);
+}
+
+/* ---------- Boia da pesca ---------- */
+function drawBobber(ctx, cam, cw, ch, fishing) {
+  const t = performance.now() / 1000;
+  const p = projectPoint(fishing.gx + 0.5, fishing.gy + 0.5, 0.02);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const bob = Math.sin(t * 6) * 2 * z;
+  const dy = fishing.t <= 0.6 ? 4 * z : 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.2 * z;
+  for (let i = 0; i < 2; i++) {
+    const ph = (t * 0.7 + i * 0.5) % 1;
+    ctx.globalAlpha = 0.5 * (1 - ph);
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + 2 * z, (4 + ph * 16) * z, (2 + ph * 8) * z, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(s.x, s.y - 5 * z + bob + dy, 4 * z, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e53935';
+  ctx.beginPath();
+  ctx.arc(s.x, s.y - 5 * z + bob + dy, 4 * z, 0, Math.PI);
+  ctx.fill();
 }
 
 /* ---------- Chuva ---------- */
@@ -1566,59 +1595,100 @@ function drawPath(ctx, cam, cw, ch, gx, gy) {
   }
 }
 
-/* --- Lago: margem de areia, água animada, pedras, vitórias-régias e taboas --- */
-function drawPoly(ctx, pts, fill) {
+/* --- Lago: curvas organicas, margem de areia, agua animada, peixes, pedras, vitorias-regias, taboas e sapos --- */
+function drawBlob(ctx, pts, fill) {
   ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], cur = pts[i];
+    const mx = (prev.x + cur.x) / 2, my = (prev.y + cur.y) / 2;
+    ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
+  }
   ctx.closePath();
   ctx.fill();
 }
 
+function lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, shrink, seedA, seedB) {
+  const cx = gx + w / 2, cy = gy + d / 2;
+  const rx = w / 2 - shrink, ry = d / 2 - shrink;
+  const pts = [];
+  const N = 30;
+  for (let i = 0; i < N; i++) {
+    const ang = (i / N) * Math.PI * 2;
+    const wob = 1 + 0.13 * Math.sin(ang * 3 + seedA) + 0.07 * Math.cos(ang * 5 + seedB);
+    const p = projectPoint(cx + Math.cos(ang) * rx * wob, cy + Math.sin(ang) * ry * wob, 0);
+    pts.push(worldToScreen(cam, p.x, p.y, cw, ch));
+  }
+  return pts;
+}
+
 function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   const t = performance.now() / 1000;
+  const sA = tileHash(gx + 7, gy + 3) * 6.28;
+  const sB = tileHash(gy + 2, gx + 11) * 6.28;
+  const cxw = gx + w / 2, cyw = gy + d / 2;
 
-  const shore = [projectPoint(gx + 0.05, gy + 0.18, 0), projectPoint(gx + w - 0.18, gy + 0.02, 0),
-                 projectPoint(gx + w - 0.02, gy + d - 0.15, 0), projectPoint(gx + 0.18, gy + d - 0.02, 0)]
-    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
-  drawPoly(ctx, shore, '#e8d8a0');
+  const shore = lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.14, sA, sB);
+  drawBlob(ctx, shore, '#e8d8a0');
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.2, sA, sB), '#dcc98b');
 
   const wob = Math.sin(t * 1.2) * 0.02;
-  const water = [projectPoint(gx + 0.22, gy + 0.35 + wob, 0), projectPoint(gx + w - 0.3, gy + 0.16, 0),
-                 projectPoint(gx + w - 0.16, gy + d - 0.3, 0), projectPoint(gx + 0.35, gy + d - 0.16 - wob, 0)]
-    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
-  drawPoly(ctx, water, COLORS.water);
-  drawPoly(ctx, water, 'rgba(41,163,221,0.35)');
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.5 - wob, sA, sB), COLORS.water);
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.52 + wob, sA, sB), 'rgba(41,163,221,0.35)');
 
   if (q !== 'baixa') {
+    const c = projectPoint(cxw, cyw, 0);
+    const cs = worldToScreen(cam, c.x, c.y, cw, ch);
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 1.5;
     for (let i = 0; i < 3; i++) {
       const ph = (t * 0.4 + i / 3) % 1;
-      const c = projectPoint(gx + w / 2, gy + d / 2, 0);
-      const cs = worldToScreen(cam, c.x, c.y, cw, ch);
       ctx.globalAlpha = 0.5 * (1 - ph);
       ctx.beginPath();
-      ctx.ellipse(cs.x, cs.y, (6 + ph * 26) * cam.zoom, (3 + ph * 13) * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.ellipse(cs.x, cs.y, (6 + ph * 30) * cam.zoom, (3 + ph * 15) * cam.zoom, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
 
+    const rw = Math.max(0.4, w / 2 - 1.1), rd = Math.max(0.4, d / 2 - 1.1);
+    const inWater = (ang, k) => projectPoint(cxw + Math.cos(ang) * rw * k, cyw + Math.sin(ang) * rd * k, 0);
+
     ctx.fillStyle = '#757575';
-    const stones = [[0.25, 0.3], [0.7, 0.22], [0.85, 0.6], [0.4, 0.82], [0.15, 0.55]];
-    for (const [ox, oy] of stones) {
-      const p = projectPoint(gx + ox, gy + oy, 0.04);
+    for (const [ang, k] of [[0.7, 0.55], [1.9, 0.75], [3.1, 0.45], [4.2, 0.65], [5.3, 0.5]]) {
+      const p = inWater(ang, k);
       const ps = worldToScreen(cam, p.x, p.y, cw, ch);
       ctx.beginPath();
       ctx.ellipse(ps.x, ps.y, 4 * cam.zoom, 2.5 * cam.zoom, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    const pads = [[0.45, 0.45, 0.9], [0.68, 0.62, 0.7], [0.35, 0.68, 0.6]];
-    for (const [ox, oy, r] of pads) {
-      const p = projectPoint(gx + ox + Math.sin(t + ox * 9) * 0.015, gy + oy, 0.02);
+    ctx.fillStyle = '#263238';
+    for (let i = 0; i < 4; i++) {
+      const ang = i * 1.65 + 0.4;
+      const sp = Math.sin(t * (0.5 + i * 0.13) + i * 2);
+      const fx = cxw + Math.cos(t * (0.22 + i * 0.05) + ang) * (rw - 0.6) * sp;
+      const fy = cyw + Math.sin(t * (0.3 + i * 0.07) + ang) * (rd - 0.6) * sp;
+      const p = projectPoint(fx, fy, -0.02);
       const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4.5 * cam.zoom, 1.6 * cam.zoom, 0.3 * sp, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(ps.x + 4 * cam.zoom, ps.y);
+      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y - 2 * cam.zoom);
+      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y + 2 * cam.zoom);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const pads = [[0.4, 0.9], [0.75, 0.62], [2.0, 0.7], [3.4, 0.85], [4.6, 0.5]];
+    for (const [ang, r] of pads) {
+      const p = inWater(ang, r * 0.8);
+      const p2 = projectPoint(p.x + Math.sin(t + ang * 9) * 0.015, p.y, 0.02);
+      const ps = worldToScreen(cam, p2.x, p2.y, cw, ch);
       ctx.fillStyle = '#43a047';
       ctx.beginPath();
       ctx.ellipse(ps.x, ps.y, r * 11 * cam.zoom, r * 6 * cam.zoom, 0, 0.3, Math.PI * 2 - 0.5);
@@ -1636,12 +1706,13 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
-    const frogs = [[0.5, 0.38, 0], [0.74, 0.72, 1.8], [0.3, 0.6, 3.1]];
-    for (const [ox, oy, ph] of frogs) {
-      const hop = Math.sin(t * 0.9 + ph);
+    const frogs = [[0.6, 0.55], [2.6, 0.72], [4.4, 0.5]];
+    for (const [ang, k] of frogs) {
+      const hop = Math.sin(t * 0.9 + ang * 3);
       const hopK = hop > 0.93 ? (hop - 0.93) / 0.07 : 0;
-      const p = projectPoint(gx + ox + hopK * 0.06, gy + oy - hopK * 0.1, 0.03 + hopK * 0.15);
-      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      const p = inWater(ang, k);
+      const ps2 = projectPoint(p.x + hopK * 0.06, p.y - hopK * 0.1, 0.03 + hopK * 0.15);
+      const ps = worldToScreen(cam, ps2.x, ps2.y, cw, ch);
       const fz = cam.zoom;
       ctx.fillStyle = '#66bb6a';
       ctx.beginPath();
@@ -1670,11 +1741,10 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
-    const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
-    for (const [ox, oy] of reeds) {
-      const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
-      const base = projectPoint(gx + ox, gy + oy, 0);
-      const top = projectPoint(gx + ox + sway, gy + oy, 0.55);
+    for (const [ang, k] of [[5.7, 0.85], [0.35, 0.95], [3.9, 0.9]]) {
+      const sway = Math.sin(t * 1.5 + ang * 7) * 0.02;
+      const base = inWater(ang, k);
+      const top = projectPoint(base.x + sway, base.y, 0.55);
       const bs = worldToScreen(cam, base.x, base.y, cw, ch);
       const ts = worldToScreen(cam, top.x, top.y, cw, ch);
       ctx.strokeStyle = '#558b2f';

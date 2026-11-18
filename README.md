@@ -179,6 +179,15 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 34 — Ferramentas na base sem fundo, pato, pesca, domingo e lago maior
+
+- **Ferramentas no rodapé, sem fundo**: a coluna da direita saiu — os botões de ação (Pá, Arar, Plantar, Regar, Colher Tudo, Recolher, Curral, Lote, Cachorro, Trator e o novo **Pescar**) agora ficam **abaixo, numa única barra horizontal sem fundo**, só com os botões; continua com rolagem infinita e dá para minimizar com a seta.
+- **Pato na loja de animais (🦆, 260 × 40% = 104 🪙, nível 2)**: põe ovos a cada 55s, **adora nadar dentro do lago** (boia com ondinhas na água, sem pernas) e cacareja quack-quack sintetizado.
+- **Vara de Pescar (🎣, 400 🪙, nível 2)** na loja de ferramentas: libera o botão **Pescar** — toque na margem do lago, a **boia** flutua balançando, dá aquele puxão e o peixe é vendido na hora com som de splash: 🐟 **Lambari** (8), 🐟 **Tilápia** (18), 🐠 **Carpa** (32) e 🐠 **Dourado** (60).
+- **Sistema de semana**: agora existe **dia da semana** no relógio e no calendário (Segunda a Domingo). **No domingo os fazendeiros não trabalham** — passam o **dia inteiro pescando na margem do lago** (com roupa de banho do papo: frases próprias de pescador), e cada peixe que pescam **vai direto para o seu saldo**.
+- **Lago maior e com curvas**: o lago ficou **7×7** com **contorno orgânico ondulado** (margem de areia em duas etapas, como lago de verdade) e **peixinhos nadando** por baixo da água.
+- Versão **v42** (service worker, cache-busting e standalone atualizados).
+
 ## Revisão 33 — Menu de contexto nas construções, som completo e visual mais realista
 
 - **Mover, Remover e Girar saíram da coluna**: agora basta **tocar em qualquer construção** (casa, restaurante, celeiro, decoração…) e as opções aparecem **em volta dela**, flutuando no mapa: 🖐 Mover, ↻ Girar (só para coisas que giram), 📊 Gerenciar (casa, celeiro, estábulo e galinheiro) e ✖️ Remover. Tocar no chão fecha o menu.

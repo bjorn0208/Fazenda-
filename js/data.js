@@ -144,8 +144,8 @@ const BUILDINGS = {
   },
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
-    price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
-    desc: 'Água viva com vitórias-régias, taboas e sapos.',
+    price: 1200, w: 7, d: 7, level: 2, category: 'natureza',
+    desc: 'Água viva com curvas, vitórias-régias, taboas, sapos e peixes.',
     refund: 0.3
   },
   doghouse: {
@@ -179,6 +179,11 @@ const ANIMALS = {
     id: 'chicken', name: 'Galinha', icon: '🐔',
     price: 150, level: 1, desc: 'Põe ovos a cada 40s (toque para coletar e vender).',
     product: '🥚', cycle: 40, value: 15
+  },
+  duck: {
+    id: 'duck', name: 'Pato', icon: '🦆',
+    price: 260, level: 2, desc: 'Nada no lago e põe ovos a cada 55s (toque para coletar).',
+    product: '🥚', cycle: 55, value: 20
   },
   pig: {
     id: 'pig', name: 'Porco', icon: '🐖',
@@ -307,6 +312,8 @@ const TOOLS = [
     desc: 'Permite regar as plantas para crescerem mais rapido.' },
   { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
     desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+  { id: 'rod', icon: '🎣', name: 'Vara de Pescar', price: 400, level: 2,
+    desc: 'Permite pescar no lago; os peixes sao vendidos na hora.' },
   { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
     desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];
@@ -315,6 +322,14 @@ const TOOLS = [
 const PEN_SIZES = [8, 16, 36];
 const PLOT_SIZES = [6, 10, 16];
 const PLOT_PRICE_PER_TILE = 8;
+
+/* Peixes do lago — sorteados ao pescar (jogador com a vara e fazendeiros no domingo). */
+const FISH = [
+  { id: 'lambari', icon: '🐟', value: 8, chance: 0.55 },
+  { id: 'tilapia', icon: '🐟', value: 18, chance: 0.28 },
+  { id: 'carpa', icon: '🐠', value: 32, chance: 0.13 },
+  { id: 'dourado', icon: '🐠', value: 60, chance: 0.04 }
+];
 const PEN_PRICE_PER_TILE = 15;
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */

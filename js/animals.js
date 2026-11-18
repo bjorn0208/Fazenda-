@@ -4,6 +4,7 @@
 
 const ANIMAL_KINDS = {
   chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
+  duck:    { speed: 0.7, scale: 0.62, cycle: 55 },
   cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 },
   horse:   { speed: 1.4, scale: 1.05 },
@@ -72,7 +73,9 @@ function gridPath(sx, sy, tx, ty, walkFn) {
 }
 
 function animalWalkable(a, x, y) {
-  if (!inBounds(x, y) || !inOwnedArea(x, y) || occupancy[occIndex(x, y)]) return false;
+  if (!inBounds(x, y) || !inOwnedArea(x, y)) return false;
+  if (lakeAt(x, y)) return a.kind === 'duck';
+  if (occupancy[occIndex(x, y)]) return false;
   const pen = game.pen;
   if (!pen) return true;
   if (x === pen.gateX && y === pen.gateY) return false;
@@ -244,17 +247,25 @@ function animalUpdateOne(a, dt) {
   } else {
     a.wait -= dt;
     if (a.wait <= 0) {
-      const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
-      const opts = [];
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
-      }
-      if (opts.length) {
-        const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-        a.tx = nx + 0.5; a.ty = ny + 0.5;
+      const lk = (a.kind === 'duck' && Math.random() < 0.45) ? lakeBuilding() : null;
+      if (lk) {
+        const lx = lk.gx + Math.floor(Math.random() * lk.w);
+        const ly = lk.gy + Math.floor(Math.random() * lk.d);
+        a.tx = lx + 0.5; a.ty = ly + 0.5;
         a.walking = true;
       } else {
-        a.wait = 2;
+        const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+        const opts = [];
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+        }
+        if (opts.length) {
+          const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+          a.tx = nx + 0.5; a.ty = ny + 0.5;
+          a.walking = true;
+        } else {
+          a.wait = 2;
+        }
       }
     }
   }
@@ -287,7 +298,9 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
-  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
+  const swim = a.kind === 'duck' && lakeAt(Math.floor(a.gx), Math.floor(a.gy));
+  const bob = swim ? Math.sin(a.phase * 3) * 1.6 * z
+            : a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
             : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
             : Math.sin(a.phase * 2) * 0.8 * z;
   const lightK = 0.35 + 0.65 * dayLight();
@@ -307,7 +320,10 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   ctx.ellipse(0, 2, 16, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
+  if (a.kind === 'duck') {
+    const lk = lakeAt(Math.floor(a.gx), Math.floor(a.gy));
+    drawDuck(ctx, bob, dir, a.walking, a.phase, !!lk);
+  } else if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'cow') drawCow(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'horse') drawHorse(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'sheep') drawSheep(ctx, bob, dir, a.walking, a.phase, a);
@@ -333,6 +349,57 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+}
+
+/* Pato: caminha de nadadeiras curtas em terra, nada de boia no lago */
+function drawDuck(ctx, bob, dir, walking, phase, swimming) {
+  const legSwing = walking && !swimming ? Math.sin(phase * 9) * 2.5 : 0;
+  const d = dir >= 0 ? 1 : -1;
+  if (!swimming) {
+    ctx.strokeStyle = '#e69138';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-2.5, -4); ctx.lineTo(-2.5 + legSwing, 1);
+    ctx.moveTo(2.5, -4); ctx.lineTo(2.5 - legSwing, 1);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(0, 1.5, 14, 5.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  const y0 = swimming ? -6 + bob * 0.6 : -9 + bob * 0.5;
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(0, y0, 9, 6.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#cfd8dc';
+  ctx.beginPath();
+  ctx.ellipse(d * -2, y0 + 3.5, 7, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fafafa';
+  ctx.beginPath();
+  ctx.moveTo(d * -6, y0 - 2);
+  ctx.lineTo(d * -11, y0 - 5);
+  ctx.lineTo(d * -6, y0 + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(d * 7, y0 - 10, 3.8, 3.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f9a825';
+  ctx.beginPath();
+  ctx.moveTo(d * 9.5, y0 - 10.5);
+  ctx.lineTo(d * 15, y0 - 9);
+  ctx.lineTo(d * 9.5, y0 - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.arc(d * 8.2, y0 - 11.2, 0.8, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawSheep(ctx, bob, dir, walking, phase, a) {

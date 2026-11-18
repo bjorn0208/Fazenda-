@@ -146,22 +146,19 @@ html, body {
 .side-btn.active { background: #ffe0b2; border-color: var(--wood); }
 .side-icon { font-size: 24px; }
 
-/* ---------- Barra de ações (coluna direita) ---------- */
+/* ---------- Barra de acoes (rodape, sem fundo: so os botoes) ---------- */
 #build-bar {
   position: absolute;
-  top: calc(74px + env(safe-area-inset-top, 0px));
-  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
-  right: calc(10px + env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; justify-content: flex-start;
+  top: auto; right: auto;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: row; align-items: stretch; justify-content: center;
+  justify-content: safe center;
   gap: 8px; z-index: 15;
-  overflow-y: auto; scrollbar-width: none;
-  background: linear-gradient(180deg, rgba(255,253,246,0.96), rgba(255,248,231,0.96));
-  border: 3px solid var(--panel-border);
-  border-radius: 18px;
-  padding: 8px 6px;
-  box-shadow: 0 4px 0 rgba(0,0,0,.18);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-          mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  max-width: min(96vw, 760px);
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  background: transparent; border: none; box-shadow: none;
+  padding: 4px 6px;
 }
 #build-bar::-webkit-scrollbar { display: none; }
 
@@ -190,14 +187,15 @@ html, body {
 }
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 84px; padding: 9px 4px;
+  flex: 0 0 auto;
+  width: 68px; padding: 8px 4px;
   background: linear-gradient(180deg, #ffffff, #f1e7d3);
   color: #4e342e;
   border: 2px solid #d9c8a9;
   border-bottom-width: 4px;
   border-radius: 13px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
-  font-weight: bold; font-size: 12px; cursor: pointer;
+  font-weight: bold; font-size: 11px; cursor: pointer;
 }
 .build-btn:hover { filter: brightness(1.05); }
 .build-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
@@ -228,11 +226,10 @@ html, body {
 }
 .btn-cancel:hover { background: #90a4ae; }
 
-/* ---------- Controles de zoom ---------- */
 /* ---------- Botões de minimizar colunas ---------- */
 .collapse-btn {
   position: absolute;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   width: 46px; height: 36px; padding: 0; line-height: 1;
   background: var(--panel); color: var(--text);
   border: 3px solid var(--panel-border); border-radius: 10px;
@@ -274,9 +271,9 @@ html, body {
 body.tools-left-hidden #btn-collapse-left .collapse-arrow,
 body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(180deg); }
 
-#side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
+#side-menu, #build-bar { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
-body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
+body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px)); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -404,13 +401,8 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
 }
 
 @media (max-width: 480px) {
-  #build-bar {
-    top: calc(108px + env(safe-area-inset-top, 0px));
-    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
-    right: calc(6px + env(safe-area-inset-right, 0px));
-    gap: 7px; padding: 3px 2px;
-  }
-  .build-btn { width: 52px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+  #build-bar { gap: 6px; padding: 3px 4px; }
+  .build-btn { width: 54px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
   .build-icon { font-size: 16px; }
 }
 
@@ -459,18 +451,9 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
 /* Telefone deitado: compacta o HUD para sobrar tela */
 @media (max-height: 480px) {
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
-  #zoom-controls { bottom: auto; top: 42%; transform: translateY(-50%); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
-  #build-bar {
-    flex-direction: row; justify-content: center;
-    top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    left: 50%; transform: translateX(-50%); right: auto;
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-    max-width: 94vw; padding: 3px; gap: 7px;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-  }
+  #build-bar { max-width: 94vw; padding: 3px; gap: 6px; }
   #avatar { width: 34px; height: 34px; font-size: 18px; }
   #farm-name { font-size: 10px; }
   #xp-bar { width: 50px; height: 8px; }

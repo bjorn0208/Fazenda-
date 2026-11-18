@@ -37,6 +37,7 @@ const game = {
   upgrades: { water: 0, till: 0 },   // 0 = ferramenta ainda nao comprada
   seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
   tractorOwned: false,    // trator comprado na loja de ferramentas
+  rodOwned: false,        // vara de pescar comprada
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
@@ -380,6 +381,7 @@ function toolOwned(id) {
   if (id === 'hoe') return upgradeLevel('till') > 0;
   if (id === 'can') return upgradeLevel('water') > 0;
   if (id === 'tractor') return game.tractorOwned;
+  if (id === 'rod') return game.rodOwned;
   return true;
 }
 
@@ -396,6 +398,8 @@ function buyTool(id) {
   else if (id === 'tractor') {
     game.tractorOwned = true;
     game.tractor = null;
+  } else if (id === 'rod') {
+    game.rodOwned = true;
   } else if (id === 'seeds') {
     for (const c of Object.values(CROPS)) {
       if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
@@ -728,6 +732,11 @@ function gameDate() {
 function seasonIndex() { return SEASON_BY_MONTH[gameDate().month]; }
 function seasonName() { return SEASONS[seasonIndex()]; }
 
+/* Semana: day 0 = segunda-feira; indice 6 = domingo (fazendeiros nao trabalham) */
+const WEEKDAY_KEYS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+function weekdayIndex() { return ((game.day % 7) + 7) % 7; }
+function isSunday() { return weekdayIndex() === 6; }
+
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
 function updateWeather(dt) {
   if (game.flashT > 0) game.flashT -= dt;
@@ -937,6 +946,50 @@ function doghouseSpot() {
     if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) return { x, y };
   }
   return null;
+}
+
+/* ---------- Lago e pesca ---------- */
+function lakeBuilding() {
+  return game.buildings.find(b => b.type === 'lake');
+}
+
+function lakeAt(x, y) {
+  const l = lakeBuilding();
+  if (!l) return null;
+  const def = BUILDINGS[l.type];
+  return (x >= l.gx && x < l.gx + def.w && y >= l.gy && y < l.gy + def.d) ? l : null;
+}
+
+function nearLake(x, y, pad) {
+  const l = lakeBuilding();
+  if (!l) return false;
+  const def = BUILDINGS[l.type];
+  return x >= l.gx - pad && x <= l.gx + def.w - 1 + pad &&
+         y >= l.gy - pad && y <= l.gy + def.d - 1 + pad;
+}
+
+function rollFish() {
+  let r = Math.random();
+  for (const f of FISH) {
+    if (r < f.chance) return f;
+    r -= f.chance;
+  }
+  return FISH[0];
+}
+
+/* Tile livre na margem do lago (fazendeiros pescam aqui no domingo). */
+function randomLakeShoreTile() {
+  const l = lakeBuilding();
+  if (!l) return null;
+  const def = BUILDINGS[l.type];
+  const cands = [];
+  for (let x = l.gx - 1; x <= l.gx + def.w; x++) {
+    for (let y = l.gy - 1; y <= l.gy + def.d; y++) {
+      if (lakeAt(x, y)) continue;
+      if (farmerWalkable(x, y)) cands.push({ x, y });
+    }
+  }
+  return cands.length ? cands[Math.floor(Math.random() * cands.length)] : null;
 }
 
 /* ---------- Producao dos animais ---------- */
@@ -1167,7 +1220,7 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
-    seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
@@ -1229,7 +1282,7 @@ function applySaveData(data) {
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
-      tractorOwned: data.tractorOwned ?? false, tractor: null,
+      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, tractor: null,
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',

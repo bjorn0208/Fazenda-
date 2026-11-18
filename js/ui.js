@@ -195,6 +195,13 @@ const I18N = {
     'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
     'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
     'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
+    'tool.rod': 'Vara de Pescar', 'tool.rod_desc': 'Permite pescar no lago; os peixes são vendidos na hora.',
+    'build.fish': 'Pescar',
+    'toast.fishHint': 'Toque no lago para lançar a linha 🎣',
+    'toast.fishNeedLake': 'Perto do lago você pesca',
+    'an_duck': 'Pato', 'an_duck_desc': 'Nada no lago e põe ovos a cada 55s. Toque para coletar.',
+    'wd.seg': 'Seg', 'wd.ter': 'Ter', 'wd.qua': 'Qua', 'wd.qui': 'Qui', 'wd.sex': 'Sex', 'wd.sab': 'Sáb', 'wd.dom': 'Dom',
+    'wdf.seg': 'Segunda-feira', 'wdf.ter': 'Terça-feira', 'wdf.qua': 'Quarta-feira', 'wdf.qui': 'Quinta-feira', 'wdf.sex': 'Sexta-feira', 'wdf.sab': 'Sábado', 'wdf.dom': 'Domingo',
     'upg.baseFirst': 'Comprar ferramenta base', 'upg.baseHint': 'Compre a ferramenta base na aba Ferramentas!',
     'profile.name': 'Nome do personagem', 'profile.face': 'Foto do personagem',
     'tasks.title': 'Tarefas do nível {n}',
@@ -455,6 +462,13 @@ const I18N = {
     'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
     'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
     'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
+    'tool.rod': 'Fishing Rod', 'tool.rod_desc': 'Lets you fish at the lake; fish are sold instantly.',
+    'build.fish': 'Fish',
+    'toast.fishHint': 'Tap the lake to cast the line 🎣',
+    'toast.fishNeedLake': 'Get closer to the lake to fish',
+    'an_duck': 'Duck', 'an_duck_desc': 'Swims in the lake and lays eggs every 55s. Tap to collect.',
+    'wd.seg': 'Mon', 'wd.ter': 'Tue', 'wd.qua': 'Wed', 'wd.qui': 'Thu', 'wd.sex': 'Fri', 'wd.sab': 'Sat', 'wd.dom': 'Sun',
+    'wdf.seg': 'Monday', 'wdf.ter': 'Tuesday', 'wdf.qua': 'Wednesday', 'wdf.qui': 'Thursday', 'wdf.sex': 'Friday', 'wdf.sab': 'Saturday', 'wdf.dom': 'Sunday',
     'upg.baseFirst': 'Buy the base tool first', 'upg.baseHint': 'Buy the base tool in the Tools tab!',
     'profile.name': 'Character name', 'profile.face': 'Character photo',
     'tasks.title': 'Level {n} tasks',
@@ -576,6 +590,28 @@ function playSound(kind) {
     if (kind === 'sheep') { blip(520, 430, 0.28, 'triangle', 0.1); blip(500, 420, 0.22, 'triangle', 0.09, 0.3); return; }
     if (kind === 'horse') { blip(980, 340, 0.7, 'sawtooth', 0.08); blip(1200, 500, 0.5, 'triangle', 0.04, 0.08); return; }
     if (kind === 'dog') { blip(320, 200, 0.1, 'square', 0.11); blip(300, 190, 0.11, 'square', 0.1, 0.16); return; }
+    if (kind === 'duck') { blip(620, 420, 0.12, 'sawtooth', 0.1); blip(600, 400, 0.12, 'sawtooth', 0.09, 0.16); blip(560, 360, 0.16, 'sawtooth', 0.09, 0.32); return; }
+    if (kind === 'splash') {
+      const durS = 0.35;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durS), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) {
+        const k = i / d.length;
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 1.6);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.setValueAtTime(1100, T);
+      f.frequency.exponentialRampToValueAtTime(300, T + durS);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.4, T);
+      g.gain.exponentialRampToValueAtTime(0.001, T + durS);
+      src.connect(f); f.connect(g); g.connect(ac.destination);
+      src.start(T);
+      return;
+    }
     if (kind === 'thunder') {
       const durT = 1.6;
       const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durT), ac.sampleRate);
@@ -714,7 +750,7 @@ function refreshHud() {
   const phase = dayPhase();
   const clock = clockString(game.time);
   const gd = gameDate();
-  const calStr = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
+  const calStr = t('wd.' + WEEKDAY_KEYS[weekdayIndex()]) + ' \u00b7 ' + SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
   if (phase !== lastDayPhase || clock !== lastClockStr || calStr !== lastCalStr) {
     lastDayPhase = phase;
     lastClockStr = clock;
@@ -738,7 +774,8 @@ function refreshHud() {
     ['btn-harvestall', game.crops.length > 0],
     ['btn-collectall', game.animals.length > 0],
     ['btn-pen', game.animals.length > 0],
-    ['btn-plot', ownedTill]
+    ['btn-plot', ownedTill],
+    ['btn-fish', game.rodOwned && !!lakeBuilding()]
   ];
   for (const gb of gateBtns) {
     const gbEl = $(gb[0]);
@@ -1628,7 +1665,7 @@ function openCalendar() {
     const gd = gameDate();
     const cur = document.createElement('div');
     cur.className = 'mp-status';
-    cur.textContent = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name + '  ·  ' + t('season.' + seasonName());
+    cur.textContent = t('wdf.' + WEEKDAY_KEYS[weekdayIndex()]) + ', ' + gd.day + ' de ' + gd.name + '  ·  ' + SEASON_ICONS[seasonName()] + ' ' + t('season.' + seasonName());
     body.appendChild(cur);
     const grid = document.createElement('div');
     grid.className = 'cal-grid';
@@ -1849,14 +1886,17 @@ function buildGiftPicker(body, kind) {
 
 function setupWheel(el) {
   if (!el || !el.addEventListener) return;
-  let lastTop = 0;
+  let lastPos = 0;
   el.addEventListener('scroll', () => {
-    const max = el.scrollHeight - el.clientHeight;
+    const vertical = el.scrollHeight > el.clientHeight + 8;
+    const max = vertical ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
     if (max <= 8) return;
-    const down = el.scrollTop > lastTop;
-    if (down && el.scrollTop >= max - 2) el.scrollTop = 0;
-    else if (!down && el.scrollTop <= 2) el.scrollTop = max;
-    lastTop = el.scrollTop;
+    const pos = vertical ? el.scrollTop : el.scrollLeft;
+    const dirKey = vertical ? 'scrollTop' : 'scrollLeft';
+    const down = pos > lastPos;
+    if (down && pos >= max - 2) el[dirKey] = 0;
+    else if (!down && pos <= 2) el[dirKey] = max;
+    lastPos = pos;
   }, { passive: true });
 }
 
@@ -1875,6 +1915,7 @@ function bindUi(handlers) {
   $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
+  $('btn-fish').onclick = () => handlers.fish();
   $('btn-buy').onclick = openBuyMenu;
   $('bctx-move').onclick = () => handlers.ctxMove();
   $('bctx-rotate').onclick = () => handlers.ctxRotate();

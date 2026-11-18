@@ -14,7 +14,8 @@ const state = {
   ghostPinned: false,  // posição fixa aguardando confirmação
   highlightTile: null,
   selectedSeed: 'wheat',
-  selId: null
+  selId: null,
+  fishing: null
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -53,7 +54,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v41';
+const GAME_VERSION = 'v42';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -255,6 +256,18 @@ function handleClick(e) {
     } else {
       showToast(t('toast.shovelNothing'));
     }
+    return;
+  }
+
+  if (state.mode === 'fish') {
+    if (!lakeAt(g.gx, g.gy) && !nearLake(g.gx, g.gy, 1)) {
+      showToast(t('toast.fishNeedLake'));
+      return;
+    }
+    if (state.fishing) return;
+    state.fishing = { gx: g.gx, gy: g.gy, t: 1.8 + Math.random() * 1.6 };
+    spawnFloater(g.gx, g.gy, '\ud83c\udfa3', '#90caf9');
+    playSound('click');
     return;
   }
 
@@ -508,12 +521,13 @@ function setMode(mode) {
   state.moveId = null;
   state.rotateId = null;
   state.selId = null;
+  state.fishing = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -631,6 +645,12 @@ const uiHandlers = {
     if (state.mode === 'shovel') { setMode('idle'); return; }
     setMode('shovel');
     showToast(t('toast.shovelHint'));
+  },
+  fish() {
+    playSound('click');
+    if (state.mode === 'fish') { setMode('idle'); return; }
+    setMode('fish');
+    showToast(t('toast.fishHint'));
   },
   till() {
     playSound('click');
@@ -801,6 +821,20 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveGame(false);
 });
 
+/* ---------- Resolucao da pescaria do jogador ---------- */
+function updateFishing(dt) {
+  if (!state.fishing) return;
+  state.fishing.t -= dt;
+  if (state.fishing.t > 0) return;
+  const fish = rollFish();
+  addCoins(fish.value);
+  addXp(3);
+  spawnFloater(state.fishing.gx, state.fishing.gy, fish.icon + ' +' + fish.value + ' \ud83e\ude99', '#4fc3f7');
+  playSound('splash');
+  state.fishing = null;
+  refreshHud();
+}
+
 /* ---------- Loop ---------- */
 let lastTime = 0;
 let autosaveAcc = 0;
@@ -821,6 +855,7 @@ function loop(ts) {
       updateParticles(dt);
       updateAmbient(dt);
       updateIntro(dt);
+      updateFishing(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);

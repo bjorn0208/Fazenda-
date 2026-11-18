@@ -159,22 +159,19 @@ html, body {
 .side-btn.active { background: #ffe0b2; border-color: var(--wood); }
 .side-icon { font-size: 24px; }
 
-/* ---------- Barra de ações (coluna direita) ---------- */
+/* ---------- Barra de acoes (rodape, sem fundo: so os botoes) ---------- */
 #build-bar {
   position: absolute;
-  top: calc(74px + env(safe-area-inset-top, 0px));
-  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
-  right: calc(10px + env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; justify-content: flex-start;
+  top: auto; right: auto;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: row; align-items: stretch; justify-content: center;
+  justify-content: safe center;
   gap: 8px; z-index: 15;
-  overflow-y: auto; scrollbar-width: none;
-  background: linear-gradient(180deg, rgba(255,253,246,0.96), rgba(255,248,231,0.96));
-  border: 3px solid var(--panel-border);
-  border-radius: 18px;
-  padding: 8px 6px;
-  box-shadow: 0 4px 0 rgba(0,0,0,.18);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-          mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  max-width: min(96vw, 760px);
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  background: transparent; border: none; box-shadow: none;
+  padding: 4px 6px;
 }
 #build-bar::-webkit-scrollbar { display: none; }
 
@@ -203,14 +200,15 @@ html, body {
 }
 .build-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 84px; padding: 9px 4px;
+  flex: 0 0 auto;
+  width: 68px; padding: 8px 4px;
   background: linear-gradient(180deg, #ffffff, #f1e7d3);
   color: #4e342e;
   border: 2px solid #d9c8a9;
   border-bottom-width: 4px;
   border-radius: 13px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
-  font-weight: bold; font-size: 12px; cursor: pointer;
+  font-weight: bold; font-size: 11px; cursor: pointer;
 }
 .build-btn:hover { filter: brightness(1.05); }
 .build-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.22); }
@@ -241,11 +239,10 @@ html, body {
 }
 .btn-cancel:hover { background: #90a4ae; }
 
-/* ---------- Controles de zoom ---------- */
 /* ---------- Botões de minimizar colunas ---------- */
 .collapse-btn {
   position: absolute;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   width: 46px; height: 36px; padding: 0; line-height: 1;
   background: var(--panel); color: var(--text);
   border: 3px solid var(--panel-border); border-radius: 10px;
@@ -287,9 +284,9 @@ html, body {
 body.tools-left-hidden #btn-collapse-left .collapse-arrow,
 body.tools-right-hidden #btn-collapse-right .collapse-arrow { transform: rotate(180deg); }
 
-#side-menu, #build-bar, #zoom-controls { transition: transform .28s ease, opacity .28s ease; }
+#side-menu, #build-bar { transition: transform .28s ease, opacity .28s ease; }
 body.tools-left-hidden #side-menu { transform: translate(-140%, -50%); opacity: 0; pointer-events: none; }
-body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; pointer-events: none; }
+body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px)); opacity: 0; pointer-events: none; }
 
 /* ---------- Cards do gerenciador de fazendeiros ---------- */
 .farmer-card {
@@ -417,13 +414,8 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
 }
 
 @media (max-width: 480px) {
-  #build-bar {
-    top: calc(108px + env(safe-area-inset-top, 0px));
-    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
-    right: calc(6px + env(safe-area-inset-right, 0px));
-    gap: 7px; padding: 3px 2px;
-  }
-  .build-btn { width: 52px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+  #build-bar { gap: 6px; padding: 3px 4px; }
+  .build-btn { width: 54px; padding: 6px 2px; font-size: 8px; border-width: 2px; border-radius: 11px; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
   .build-icon { font-size: 16px; }
 }
 
@@ -472,18 +464,9 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
 /* Telefone deitado: compacta o HUD para sobrar tela */
 @media (max-height: 480px) {
   .collapse-btn { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
-  #zoom-controls { bottom: auto; top: 42%; transform: translateY(-50%); }
   #btn-collapse-left { left: calc(6px + env(safe-area-inset-left, 0px)); }
   #btn-collapse-right { right: calc(6px + env(safe-area-inset-right, 0px)); }
-  #build-bar {
-    flex-direction: row; justify-content: center;
-    top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    left: 50%; transform: translateX(-50%); right: auto;
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-    max-width: 94vw; padding: 3px; gap: 7px;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-  }
+  #build-bar { max-width: 94vw; padding: 3px; gap: 6px; }
   #avatar { width: 34px; height: 34px; font-size: 18px; }
   #farm-name { font-size: 10px; }
   #xp-bar { width: 50px; height: 8px; }
@@ -769,6 +752,7 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
   <button class="build-btn hidden" id="btn-plot"><span class="build-icon">🟫</span><span class="build-label" data-i18n="build.plot">Lote</span></button>
   <button class="build-btn hidden" id="btn-dog"><span class="build-icon">🐕</span><span class="build-label" data-i18n="build.dog">Cachorro</span></button>
   <button class="build-btn hidden" id="btn-tractor"><span class="build-icon">🚜</span><span class="build-label" data-i18n="build.tractor">Trator</span></button>
+  <button class="build-btn hidden" id="btn-fish"><span class="build-icon">🎣</span><span class="build-label" data-i18n="build.fish">Pescar</span></button>
 </div>
 
 <!-- Botões de minimizar as colunas de ferramentas -->
@@ -776,7 +760,7 @@ body.tools-right-hidden #build-bar { transform: translateX(140%); opacity: 0; po
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v41</div>
+<div id="debug-badge">v42</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -968,8 +952,8 @@ const BUILDINGS = {
   },
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
-    price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
-    desc: 'Água viva com vitórias-régias, taboas e sapos.',
+    price: 1200, w: 7, d: 7, level: 2, category: 'natureza',
+    desc: 'Água viva com curvas, vitórias-régias, taboas, sapos e peixes.',
     refund: 0.3
   },
   doghouse: {
@@ -1003,6 +987,11 @@ const ANIMALS = {
     id: 'chicken', name: 'Galinha', icon: '🐔',
     price: 150, level: 1, desc: 'Põe ovos a cada 40s (toque para coletar e vender).',
     product: '🥚', cycle: 40, value: 15
+  },
+  duck: {
+    id: 'duck', name: 'Pato', icon: '🦆',
+    price: 260, level: 2, desc: 'Nada no lago e põe ovos a cada 55s (toque para coletar).',
+    product: '🥚', cycle: 55, value: 20
   },
   pig: {
     id: 'pig', name: 'Porco', icon: '🐖',
@@ -1131,6 +1120,8 @@ const TOOLS = [
     desc: 'Permite regar as plantas para crescerem mais rapido.' },
   { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
     desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+  { id: 'rod', icon: '🎣', name: 'Vara de Pescar', price: 400, level: 2,
+    desc: 'Permite pescar no lago; os peixes sao vendidos na hora.' },
   { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
     desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];
@@ -1139,6 +1130,14 @@ const TOOLS = [
 const PEN_SIZES = [8, 16, 36];
 const PLOT_SIZES = [6, 10, 16];
 const PLOT_PRICE_PER_TILE = 8;
+
+/* Peixes do lago — sorteados ao pescar (jogador com a vara e fazendeiros no domingo). */
+const FISH = [
+  { id: 'lambari', icon: '🐟', value: 8, chance: 0.55 },
+  { id: 'tilapia', icon: '🐟', value: 18, chance: 0.28 },
+  { id: 'carpa', icon: '🐠', value: 32, chance: 0.13 },
+  { id: 'dourado', icon: '🐠', value: 60, chance: 0.04 }
+];
 const PEN_PRICE_PER_TILE = 15;
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */
@@ -1421,6 +1420,7 @@ const game = {
   upgrades: { water: 0, till: 0 },   // 0 = ferramenta ainda nao comprada
   seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
   tractorOwned: false,    // trator comprado na loja de ferramentas
+  rodOwned: false,        // vara de pescar comprada
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
@@ -1764,6 +1764,7 @@ function toolOwned(id) {
   if (id === 'hoe') return upgradeLevel('till') > 0;
   if (id === 'can') return upgradeLevel('water') > 0;
   if (id === 'tractor') return game.tractorOwned;
+  if (id === 'rod') return game.rodOwned;
   return true;
 }
 
@@ -1780,6 +1781,8 @@ function buyTool(id) {
   else if (id === 'tractor') {
     game.tractorOwned = true;
     game.tractor = null;
+  } else if (id === 'rod') {
+    game.rodOwned = true;
   } else if (id === 'seeds') {
     for (const c of Object.values(CROPS)) {
       if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
@@ -2112,6 +2115,11 @@ function gameDate() {
 function seasonIndex() { return SEASON_BY_MONTH[gameDate().month]; }
 function seasonName() { return SEASONS[seasonIndex()]; }
 
+/* Semana: day 0 = segunda-feira; indice 6 = domingo (fazendeiros nao trabalham) */
+const WEEKDAY_KEYS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+function weekdayIndex() { return ((game.day % 7) + 7) % 7; }
+function isSunday() { return weekdayIndex() === 6; }
+
 /* ---------- Clima: chuva ocasional que irriga sozinha ---------- */
 function updateWeather(dt) {
   if (game.flashT > 0) game.flashT -= dt;
@@ -2321,6 +2329,50 @@ function doghouseSpot() {
     if (inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) return { x, y };
   }
   return null;
+}
+
+/* ---------- Lago e pesca ---------- */
+function lakeBuilding() {
+  return game.buildings.find(b => b.type === 'lake');
+}
+
+function lakeAt(x, y) {
+  const l = lakeBuilding();
+  if (!l) return null;
+  const def = BUILDINGS[l.type];
+  return (x >= l.gx && x < l.gx + def.w && y >= l.gy && y < l.gy + def.d) ? l : null;
+}
+
+function nearLake(x, y, pad) {
+  const l = lakeBuilding();
+  if (!l) return false;
+  const def = BUILDINGS[l.type];
+  return x >= l.gx - pad && x <= l.gx + def.w - 1 + pad &&
+         y >= l.gy - pad && y <= l.gy + def.d - 1 + pad;
+}
+
+function rollFish() {
+  let r = Math.random();
+  for (const f of FISH) {
+    if (r < f.chance) return f;
+    r -= f.chance;
+  }
+  return FISH[0];
+}
+
+/* Tile livre na margem do lago (fazendeiros pescam aqui no domingo). */
+function randomLakeShoreTile() {
+  const l = lakeBuilding();
+  if (!l) return null;
+  const def = BUILDINGS[l.type];
+  const cands = [];
+  for (let x = l.gx - 1; x <= l.gx + def.w; x++) {
+    for (let y = l.gy - 1; y <= l.gy + def.d; y++) {
+      if (lakeAt(x, y)) continue;
+      if (farmerWalkable(x, y)) cands.push({ x, y });
+    }
+  }
+  return cands.length ? cands[Math.floor(Math.random() * cands.length)] : null;
 }
 
 /* ---------- Producao dos animais ---------- */
@@ -2551,7 +2603,7 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
-    seeds: game.seeds, tractorOwned: game.tractorOwned, snow: game.snow,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
@@ -2613,7 +2665,7 @@ function applySaveData(data) {
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
-      tractorOwned: data.tractorOwned ?? false, tractor: null,
+      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, tractor: null,
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',
@@ -2806,7 +2858,36 @@ function render(ctx, cam, cw, ch, state) {
     ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, game.flashT * 1.8).toFixed(3) + ')';
     ctx.fillRect(0, 0, cw, ch);
   }
+  if (state.fishing) drawBobber(ctx, cam, cw, ch, state.fishing);
   if (typeof updateBuildingCtx === 'function' && state) updateBuildingCtx(cam, cw, ch);
+}
+
+/* ---------- Boia da pesca ---------- */
+function drawBobber(ctx, cam, cw, ch, fishing) {
+  const t = performance.now() / 1000;
+  const p = projectPoint(fishing.gx + 0.5, fishing.gy + 0.5, 0.02);
+  const s = worldToScreen(cam, p.x, p.y, cw, ch);
+  const z = cam.zoom;
+  const bob = Math.sin(t * 6) * 2 * z;
+  const dy = fishing.t <= 0.6 ? 4 * z : 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.2 * z;
+  for (let i = 0; i < 2; i++) {
+    const ph = (t * 0.7 + i * 0.5) % 1;
+    ctx.globalAlpha = 0.5 * (1 - ph);
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + 2 * z, (4 + ph * 16) * z, (2 + ph * 8) * z, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(s.x, s.y - 5 * z + bob + dy, 4 * z, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e53935';
+  ctx.beginPath();
+  ctx.arc(s.x, s.y - 5 * z + bob + dy, 4 * z, 0, Math.PI);
+  ctx.fill();
 }
 
 /* ---------- Chuva ---------- */
@@ -4305,59 +4386,100 @@ function drawPath(ctx, cam, cw, ch, gx, gy) {
   }
 }
 
-/* --- Lago: margem de areia, água animada, pedras, vitórias-régias e taboas --- */
-function drawPoly(ctx, pts, fill) {
+/* --- Lago: curvas organicas, margem de areia, agua animada, peixes, pedras, vitorias-regias, taboas e sapos --- */
+function drawBlob(ctx, pts, fill) {
   ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], cur = pts[i];
+    const mx = (prev.x + cur.x) / 2, my = (prev.y + cur.y) / 2;
+    ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
+  }
   ctx.closePath();
   ctx.fill();
 }
 
+function lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, shrink, seedA, seedB) {
+  const cx = gx + w / 2, cy = gy + d / 2;
+  const rx = w / 2 - shrink, ry = d / 2 - shrink;
+  const pts = [];
+  const N = 30;
+  for (let i = 0; i < N; i++) {
+    const ang = (i / N) * Math.PI * 2;
+    const wob = 1 + 0.13 * Math.sin(ang * 3 + seedA) + 0.07 * Math.cos(ang * 5 + seedB);
+    const p = projectPoint(cx + Math.cos(ang) * rx * wob, cy + Math.sin(ang) * ry * wob, 0);
+    pts.push(worldToScreen(cam, p.x, p.y, cw, ch));
+  }
+  return pts;
+}
+
 function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
   const t = performance.now() / 1000;
+  const sA = tileHash(gx + 7, gy + 3) * 6.28;
+  const sB = tileHash(gy + 2, gx + 11) * 6.28;
+  const cxw = gx + w / 2, cyw = gy + d / 2;
 
-  const shore = [projectPoint(gx + 0.05, gy + 0.18, 0), projectPoint(gx + w - 0.18, gy + 0.02, 0),
-                 projectPoint(gx + w - 0.02, gy + d - 0.15, 0), projectPoint(gx + 0.18, gy + d - 0.02, 0)]
-    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
-  drawPoly(ctx, shore, '#e8d8a0');
+  const shore = lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.14, sA, sB);
+  drawBlob(ctx, shore, '#e8d8a0');
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.2, sA, sB), '#dcc98b');
 
   const wob = Math.sin(t * 1.2) * 0.02;
-  const water = [projectPoint(gx + 0.22, gy + 0.35 + wob, 0), projectPoint(gx + w - 0.3, gy + 0.16, 0),
-                 projectPoint(gx + w - 0.16, gy + d - 0.3, 0), projectPoint(gx + 0.35, gy + d - 0.16 - wob, 0)]
-    .map(pt => worldToScreen(cam, pt.x, pt.y, cw, ch));
-  drawPoly(ctx, water, COLORS.water);
-  drawPoly(ctx, water, 'rgba(41,163,221,0.35)');
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.5 - wob, sA, sB), COLORS.water);
+  drawBlob(ctx, lakeBlobPts(ctx, cam, cw, ch, gx, gy, w, d, 0.52 + wob, sA, sB), 'rgba(41,163,221,0.35)');
 
   if (q !== 'baixa') {
+    const c = projectPoint(cxw, cyw, 0);
+    const cs = worldToScreen(cam, c.x, c.y, cw, ch);
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 1.5;
     for (let i = 0; i < 3; i++) {
       const ph = (t * 0.4 + i / 3) % 1;
-      const c = projectPoint(gx + w / 2, gy + d / 2, 0);
-      const cs = worldToScreen(cam, c.x, c.y, cw, ch);
       ctx.globalAlpha = 0.5 * (1 - ph);
       ctx.beginPath();
-      ctx.ellipse(cs.x, cs.y, (6 + ph * 26) * cam.zoom, (3 + ph * 13) * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.ellipse(cs.x, cs.y, (6 + ph * 30) * cam.zoom, (3 + ph * 15) * cam.zoom, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
 
+    const rw = Math.max(0.4, w / 2 - 1.1), rd = Math.max(0.4, d / 2 - 1.1);
+    const inWater = (ang, k) => projectPoint(cxw + Math.cos(ang) * rw * k, cyw + Math.sin(ang) * rd * k, 0);
+
     ctx.fillStyle = '#757575';
-    const stones = [[0.25, 0.3], [0.7, 0.22], [0.85, 0.6], [0.4, 0.82], [0.15, 0.55]];
-    for (const [ox, oy] of stones) {
-      const p = projectPoint(gx + ox, gy + oy, 0.04);
+    for (const [ang, k] of [[0.7, 0.55], [1.9, 0.75], [3.1, 0.45], [4.2, 0.65], [5.3, 0.5]]) {
+      const p = inWater(ang, k);
       const ps = worldToScreen(cam, p.x, p.y, cw, ch);
       ctx.beginPath();
       ctx.ellipse(ps.x, ps.y, 4 * cam.zoom, 2.5 * cam.zoom, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    const pads = [[0.45, 0.45, 0.9], [0.68, 0.62, 0.7], [0.35, 0.68, 0.6]];
-    for (const [ox, oy, r] of pads) {
-      const p = projectPoint(gx + ox + Math.sin(t + ox * 9) * 0.015, gy + oy, 0.02);
+    ctx.fillStyle = '#263238';
+    for (let i = 0; i < 4; i++) {
+      const ang = i * 1.65 + 0.4;
+      const sp = Math.sin(t * (0.5 + i * 0.13) + i * 2);
+      const fx = cxw + Math.cos(t * (0.22 + i * 0.05) + ang) * (rw - 0.6) * sp;
+      const fy = cyw + Math.sin(t * (0.3 + i * 0.07) + ang) * (rd - 0.6) * sp;
+      const p = projectPoint(fx, fy, -0.02);
       const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.ellipse(ps.x, ps.y, 4.5 * cam.zoom, 1.6 * cam.zoom, 0.3 * sp, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(ps.x + 4 * cam.zoom, ps.y);
+      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y - 2 * cam.zoom);
+      ctx.lineTo(ps.x + 7 * cam.zoom, ps.y + 2 * cam.zoom);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const pads = [[0.4, 0.9], [0.75, 0.62], [2.0, 0.7], [3.4, 0.85], [4.6, 0.5]];
+    for (const [ang, r] of pads) {
+      const p = inWater(ang, r * 0.8);
+      const p2 = projectPoint(p.x + Math.sin(t + ang * 9) * 0.015, p.y, 0.02);
+      const ps = worldToScreen(cam, p2.x, p2.y, cw, ch);
       ctx.fillStyle = '#43a047';
       ctx.beginPath();
       ctx.ellipse(ps.x, ps.y, r * 11 * cam.zoom, r * 6 * cam.zoom, 0, 0.3, Math.PI * 2 - 0.5);
@@ -4375,12 +4497,13 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
-    const frogs = [[0.5, 0.38, 0], [0.74, 0.72, 1.8], [0.3, 0.6, 3.1]];
-    for (const [ox, oy, ph] of frogs) {
-      const hop = Math.sin(t * 0.9 + ph);
+    const frogs = [[0.6, 0.55], [2.6, 0.72], [4.4, 0.5]];
+    for (const [ang, k] of frogs) {
+      const hop = Math.sin(t * 0.9 + ang * 3);
       const hopK = hop > 0.93 ? (hop - 0.93) / 0.07 : 0;
-      const p = projectPoint(gx + ox + hopK * 0.06, gy + oy - hopK * 0.1, 0.03 + hopK * 0.15);
-      const ps = worldToScreen(cam, p.x, p.y, cw, ch);
+      const p = inWater(ang, k);
+      const ps2 = projectPoint(p.x + hopK * 0.06, p.y - hopK * 0.1, 0.03 + hopK * 0.15);
+      const ps = worldToScreen(cam, ps2.x, ps2.y, cw, ch);
       const fz = cam.zoom;
       ctx.fillStyle = '#66bb6a';
       ctx.beginPath();
@@ -4409,11 +4532,10 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
-    const reeds = [[0.12, 0.35], [0.2, 0.28], [0.16, 0.45]];
-    for (const [ox, oy] of reeds) {
-      const sway = Math.sin(t * 1.5 + ox * 7) * 0.02;
-      const base = projectPoint(gx + ox, gy + oy, 0);
-      const top = projectPoint(gx + ox + sway, gy + oy, 0.55);
+    for (const [ang, k] of [[5.7, 0.85], [0.35, 0.95], [3.9, 0.9]]) {
+      const sway = Math.sin(t * 1.5 + ang * 7) * 0.02;
+      const base = inWater(ang, k);
+      const top = projectPoint(base.x + sway, base.y, 0.55);
       const bs = worldToScreen(cam, base.x, base.y, cw, ch);
       const ts = worldToScreen(cam, top.x, top.y, cw, ch);
       ctx.strokeStyle = '#558b2f';
@@ -4837,6 +4959,7 @@ function drawMindBubbles(ctx, cam, cw, ch) {
 
 const ANIMAL_KINDS = {
   chicken: { speed: 0.9, scale: 0.55, cycle: 40 },
+  duck:    { speed: 0.7, scale: 0.62, cycle: 55 },
   cow:     { speed: 0.45, scale: 1.0, cycle: 60 },
   pig:     { speed: 0.6, scale: 0.8 },
   horse:   { speed: 1.4, scale: 1.05 },
@@ -4905,7 +5028,9 @@ function gridPath(sx, sy, tx, ty, walkFn) {
 }
 
 function animalWalkable(a, x, y) {
-  if (!inBounds(x, y) || !inOwnedArea(x, y) || occupancy[occIndex(x, y)]) return false;
+  if (!inBounds(x, y) || !inOwnedArea(x, y)) return false;
+  if (lakeAt(x, y)) return a.kind === 'duck';
+  if (occupancy[occIndex(x, y)]) return false;
   const pen = game.pen;
   if (!pen) return true;
   if (x === pen.gateX && y === pen.gateY) return false;
@@ -5077,17 +5202,25 @@ function animalUpdateOne(a, dt) {
   } else {
     a.wait -= dt;
     if (a.wait <= 0) {
-      const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
-      const opts = [];
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
-      }
-      if (opts.length) {
-        const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
-        a.tx = nx + 0.5; a.ty = ny + 0.5;
+      const lk = (a.kind === 'duck' && Math.random() < 0.45) ? lakeBuilding() : null;
+      if (lk) {
+        const lx = lk.gx + Math.floor(Math.random() * lk.w);
+        const ly = lk.gy + Math.floor(Math.random() * lk.d);
+        a.tx = lx + 0.5; a.ty = ly + 0.5;
         a.walking = true;
       } else {
-        a.wait = 2;
+        const cx = Math.floor(a.gx), cy = Math.floor(a.gy);
+        const opts = [];
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (animalWalkable(a, cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+        }
+        if (opts.length) {
+          const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+          a.tx = nx + 0.5; a.ty = ny + 0.5;
+          a.walking = true;
+        } else {
+          a.wait = 2;
+        }
       }
     }
   }
@@ -5120,7 +5253,9 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   const z = cam.zoom;
   const k = ANIMAL_KINDS[a.kind];
   const grazing = !!a.grazing && !a.walking;
-  const bob = a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
+  const swim = a.kind === 'duck' && lakeAt(Math.floor(a.gx), Math.floor(a.gy));
+  const bob = swim ? Math.sin(a.phase * 3) * 1.6 * z
+            : a.walking ? Math.abs(Math.sin(a.phase * 9)) * 3 * z
             : grazing ? Math.abs(Math.sin(a.phase * 5)) * 1.6 * z
             : Math.sin(a.phase * 2) * 0.8 * z;
   const lightK = 0.35 + 0.65 * dayLight();
@@ -5140,7 +5275,10 @@ function drawAnimal(ctx, cam, cw, ch, a) {
   ctx.ellipse(0, 2, 16, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
+  if (a.kind === 'duck') {
+    const lk = lakeAt(Math.floor(a.gx), Math.floor(a.gy));
+    drawDuck(ctx, bob, dir, a.walking, a.phase, !!lk);
+  } else if (a.kind === 'chicken') drawChicken(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'cow') drawCow(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'horse') drawHorse(ctx, bob, dir, a.walking, a.phase);
   else if (a.kind === 'sheep') drawSheep(ctx, bob, dir, a.walking, a.phase, a);
@@ -5166,6 +5304,57 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+}
+
+/* Pato: caminha de nadadeiras curtas em terra, nada de boia no lago */
+function drawDuck(ctx, bob, dir, walking, phase, swimming) {
+  const legSwing = walking && !swimming ? Math.sin(phase * 9) * 2.5 : 0;
+  const d = dir >= 0 ? 1 : -1;
+  if (!swimming) {
+    ctx.strokeStyle = '#e69138';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-2.5, -4); ctx.lineTo(-2.5 + legSwing, 1);
+    ctx.moveTo(2.5, -4); ctx.lineTo(2.5 - legSwing, 1);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(0, 1.5, 14, 5.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  const y0 = swimming ? -6 + bob * 0.6 : -9 + bob * 0.5;
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(0, y0, 9, 6.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#cfd8dc';
+  ctx.beginPath();
+  ctx.ellipse(d * -2, y0 + 3.5, 7, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fafafa';
+  ctx.beginPath();
+  ctx.moveTo(d * -6, y0 - 2);
+  ctx.lineTo(d * -11, y0 - 5);
+  ctx.lineTo(d * -6, y0 + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.ellipse(d * 7, y0 - 10, 3.8, 3.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f9a825';
+  ctx.beginPath();
+  ctx.moveTo(d * 9.5, y0 - 10.5);
+  ctx.lineTo(d * 15, y0 - 9);
+  ctx.lineTo(d * 9.5, y0 - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.arc(d * 8.2, y0 - 11.2, 0.8, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawSheep(ctx, bob, dir, walking, phase, a) {
@@ -5906,7 +6095,8 @@ const MIND_LINES = {
     meetLend: ['Claro, {other}! Te dou umas agora.', 'Pega, {other}! A colheita e de quem planta.', 'Toma, {other}. Sucesso com elas!'],
     meetNoSeeds: ['Sem sementes por enquanto... vou ajudar no resto.', 'Hoje trabalho na aracao e na agua.'],
     meetClose: ['Combinado. Ao trabalho!', 'Entao e isso. Cada um pro seu canto!', 'Boa equipe. Vamos fazer acontecer!', 'Reuniao encerrada. Bom trabalho a todos!'],
-    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!']
+    bar: ['Uma gelada, por favor!', 'Esse churrasco ta um espetaculo.', 'Brindes, companheiros!', 'Essa musica e boa demais.', 'Depois de um dia desses, eu mereco.', 'Quem traz a terceira rodada?', 'O porco do churrasco era o Juca... coitado.', 'Saude e boa colheita!', 'Amanha eu rendo o dobro, palavra.', 'Esse bar foi a melhor compra da fazenda.', 'Musica boa, cerveja fria e amigos.', 'O churrasco ficou no ponto, chefia!'],
+    fish: ['Hoje e domingo, dia de pescar!', 'O peixe de hoje sai do lago.', 'A vara ta dançando...', 'Esse lago so tem peixe grande.', 'Domingo a enxada descansa.', 'Quem pesca no domingo, come na segunda.', 'Paciencia e a ferramenta do pescador.', 'Domingo sem plantio, so pesca e descanso.']
   },
   'en-US': {
     idle: ['Nice day at {farm}.', 'Anyone seen my hat?', 'What a peaceful silence...', 'Good sun for planting today.', 'I love the morning soil smell.', 'That fence needs a touch-up.', 'The well never ran dry. Bless it.', 'So many birds today.', 'My jaw hurts from talking.', 'Finally a little rest.', 'The {farm} looks great this year.', 'I should have brought water.', 'The bees were angry back there.', 'These new boots pinch.', 'How long have we worked here?'],
@@ -5928,7 +6118,8 @@ const MIND_LINES = {
     meetLend: ['Sure, {other}! Here you go.', 'Take it, {other}! The harvest belongs to whoever plants.', 'Here, {other}. Good luck with them!'],
     meetNoSeeds: ['No seeds for now... I will help with the rest.', "I'll work the tilling and watering today."],
     meetClose: ['Agreed. Back to work!', "That's it. Everyone to their corner!", "Great team. Let's make it happen!", 'Meeting closed. Good work, all!'],
-    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!']
+    bar: ['One cold one, please!', 'This barbecue is a masterpiece.', 'Cheers, companions!', 'This song is too good.', 'After a day like this, I deserve it.', 'Who is bringing the third round?', 'The barbecue pig was Juca... poor guy.', 'Health and good harvest!', 'Tomorrow I work double, promise.', 'This bar was the best farm purchase.', 'Good music, cold beer and friends.', 'The barbecue is cooked to perfection, chef!'],
+    fish: ['Sunday is fishing day!', 'Today dinner comes from the lake.', 'The rod is bending...', 'This lake has only big fish.', 'Resting day, fishing day.', 'Fish on Sunday, eat on Monday.', 'Patience is the fishing tool.', 'No hoe on Sunday, just peace.']
   }
 };
 
@@ -5956,6 +6147,54 @@ function meetingPoint() {
   if (door) return door;
   const a = game.ownedArea;
   return { x: a.x0 + 2, y: a.y0 + 2 };
+}
+
+/* ---------- Domingo: fazendeiros pescam no lago o dia todo ---------- */
+function wanderIdle(f) {
+  const cx = Math.floor(f.gx), cy = Math.floor(f.gy);
+  const opts = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    if (farmerWalkable(cx + dx, cy + dy)) opts.push([cx + dx, cy + dy]);
+  }
+  if (opts.length) {
+    const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
+    f.tx = nx + 0.5; f.ty = ny + 0.5;
+    f.walking = true;
+  } else {
+    f.wait = 2;
+  }
+}
+
+function farmerFishing(f, dt) {
+  const lake = lakeBuilding();
+  if (!lake) { f.fishing = false; wanderIdle(f); return; }
+  let spot = f.fishSpot;
+  if (!spot || lakeAt(spot.x, spot.y) || !nearLake(spot.x, spot.y, 1) || !farmerWalkable(spot.x, spot.y)) {
+    spot = randomLakeShoreTile();
+    if (!spot) { f.fishing = false; wanderIdle(f); return; }
+    f.fishSpot = spot;
+  }
+  if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) > 0.9) {
+    f.fishing = false;
+    f.riding = false;
+    f.tx = spot.x + 0.5;
+    f.ty = spot.y + 0.5;
+    f.walking = true;
+    return;
+  }
+  f.fishing = true;
+  if (f.fishT === undefined) f.fishT = 12 + Math.random() * 10;
+  f.fishT -= dt;
+  if (f.fishT <= 0) {
+    f.fishT = 18 + Math.random() * 22;
+    const fish = rollFish();
+    addCoins(fish.value);
+    spawnFloater(f.gx - 0.5, f.gy - 1, fish.icon + ' +' + fish.value + ' \ud83e\ude99', '#4fc3f7');
+    playSound('splash');
+    if (Math.random() < 0.3) farmerSay(f, mindLine('fish'), 4200);
+  } else if (Math.random() < dt * 0.06) {
+    spawnFloater(f.gx - 0.5, f.gy - 1, '\ud83c\udfa3', '#90caf9');
+  }
 }
 
 function farmerChestTotal(f) {
@@ -6241,6 +6480,7 @@ function updateFarmers(dt) {
   for (const f of game.farmers) {
     f.phase += dt;
     farmerEnsureMind(f);
+    if (!isSunday()) f.fishing = false;
 
     f.thoughtT -= dt;
     if (f.thoughtT <= 0) {
@@ -6389,6 +6629,10 @@ function updateFarmers(dt) {
         }
         continue;
       }
+    }
+    if (isSunday()) {
+      farmerFishing(f, dt);
+      continue;
     }
     if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);
@@ -6769,6 +7013,13 @@ const I18N = {
     'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
     'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
     'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
+    'tool.rod': 'Vara de Pescar', 'tool.rod_desc': 'Permite pescar no lago; os peixes são vendidos na hora.',
+    'build.fish': 'Pescar',
+    'toast.fishHint': 'Toque no lago para lançar a linha 🎣',
+    'toast.fishNeedLake': 'Perto do lago você pesca',
+    'an_duck': 'Pato', 'an_duck_desc': 'Nada no lago e põe ovos a cada 55s. Toque para coletar.',
+    'wd.seg': 'Seg', 'wd.ter': 'Ter', 'wd.qua': 'Qua', 'wd.qui': 'Qui', 'wd.sex': 'Sex', 'wd.sab': 'Sáb', 'wd.dom': 'Dom',
+    'wdf.seg': 'Segunda-feira', 'wdf.ter': 'Terça-feira', 'wdf.qua': 'Quarta-feira', 'wdf.qui': 'Quinta-feira', 'wdf.sex': 'Sexta-feira', 'wdf.sab': 'Sábado', 'wdf.dom': 'Domingo',
     'upg.baseFirst': 'Comprar ferramenta base', 'upg.baseHint': 'Compre a ferramenta base na aba Ferramentas!',
     'profile.name': 'Nome do personagem', 'profile.face': 'Foto do personagem',
     'tasks.title': 'Tarefas do nível {n}',
@@ -7029,6 +7280,13 @@ const I18N = {
     'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
     'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
     'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
+    'tool.rod': 'Fishing Rod', 'tool.rod_desc': 'Lets you fish at the lake; fish are sold instantly.',
+    'build.fish': 'Fish',
+    'toast.fishHint': 'Tap the lake to cast the line 🎣',
+    'toast.fishNeedLake': 'Get closer to the lake to fish',
+    'an_duck': 'Duck', 'an_duck_desc': 'Swims in the lake and lays eggs every 55s. Tap to collect.',
+    'wd.seg': 'Mon', 'wd.ter': 'Tue', 'wd.qua': 'Wed', 'wd.qui': 'Thu', 'wd.sex': 'Fri', 'wd.sab': 'Sat', 'wd.dom': 'Sun',
+    'wdf.seg': 'Monday', 'wdf.ter': 'Tuesday', 'wdf.qua': 'Wednesday', 'wdf.qui': 'Thursday', 'wdf.sex': 'Friday', 'wdf.sab': 'Saturday', 'wdf.dom': 'Sunday',
     'upg.baseFirst': 'Buy the base tool first', 'upg.baseHint': 'Buy the base tool in the Tools tab!',
     'profile.name': 'Character name', 'profile.face': 'Character photo',
     'tasks.title': 'Level {n} tasks',
@@ -7150,6 +7408,28 @@ function playSound(kind) {
     if (kind === 'sheep') { blip(520, 430, 0.28, 'triangle', 0.1); blip(500, 420, 0.22, 'triangle', 0.09, 0.3); return; }
     if (kind === 'horse') { blip(980, 340, 0.7, 'sawtooth', 0.08); blip(1200, 500, 0.5, 'triangle', 0.04, 0.08); return; }
     if (kind === 'dog') { blip(320, 200, 0.1, 'square', 0.11); blip(300, 190, 0.11, 'square', 0.1, 0.16); return; }
+    if (kind === 'duck') { blip(620, 420, 0.12, 'sawtooth', 0.1); blip(600, 400, 0.12, 'sawtooth', 0.09, 0.16); blip(560, 360, 0.16, 'sawtooth', 0.09, 0.32); return; }
+    if (kind === 'splash') {
+      const durS = 0.35;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durS), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) {
+        const k = i / d.length;
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 1.6);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.setValueAtTime(1100, T);
+      f.frequency.exponentialRampToValueAtTime(300, T + durS);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.4, T);
+      g.gain.exponentialRampToValueAtTime(0.001, T + durS);
+      src.connect(f); f.connect(g); g.connect(ac.destination);
+      src.start(T);
+      return;
+    }
     if (kind === 'thunder') {
       const durT = 1.6;
       const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * durT), ac.sampleRate);
@@ -7288,7 +7568,7 @@ function refreshHud() {
   const phase = dayPhase();
   const clock = clockString(game.time);
   const gd = gameDate();
-  const calStr = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
+  const calStr = t('wd.' + WEEKDAY_KEYS[weekdayIndex()]) + ' \u00b7 ' + SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name;
   if (phase !== lastDayPhase || clock !== lastClockStr || calStr !== lastCalStr) {
     lastDayPhase = phase;
     lastClockStr = clock;
@@ -7312,7 +7592,8 @@ function refreshHud() {
     ['btn-harvestall', game.crops.length > 0],
     ['btn-collectall', game.animals.length > 0],
     ['btn-pen', game.animals.length > 0],
-    ['btn-plot', ownedTill]
+    ['btn-plot', ownedTill],
+    ['btn-fish', game.rodOwned && !!lakeBuilding()]
   ];
   for (const gb of gateBtns) {
     const gbEl = $(gb[0]);
@@ -8202,7 +8483,7 @@ function openCalendar() {
     const gd = gameDate();
     const cur = document.createElement('div');
     cur.className = 'mp-status';
-    cur.textContent = SEASON_ICONS[seasonName()] + ' ' + gd.day + ' de ' + gd.name + '  ·  ' + t('season.' + seasonName());
+    cur.textContent = t('wdf.' + WEEKDAY_KEYS[weekdayIndex()]) + ', ' + gd.day + ' de ' + gd.name + '  ·  ' + SEASON_ICONS[seasonName()] + ' ' + t('season.' + seasonName());
     body.appendChild(cur);
     const grid = document.createElement('div');
     grid.className = 'cal-grid';
@@ -8423,14 +8704,17 @@ function buildGiftPicker(body, kind) {
 
 function setupWheel(el) {
   if (!el || !el.addEventListener) return;
-  let lastTop = 0;
+  let lastPos = 0;
   el.addEventListener('scroll', () => {
-    const max = el.scrollHeight - el.clientHeight;
+    const vertical = el.scrollHeight > el.clientHeight + 8;
+    const max = vertical ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
     if (max <= 8) return;
-    const down = el.scrollTop > lastTop;
-    if (down && el.scrollTop >= max - 2) el.scrollTop = 0;
-    else if (!down && el.scrollTop <= 2) el.scrollTop = max;
-    lastTop = el.scrollTop;
+    const pos = vertical ? el.scrollTop : el.scrollLeft;
+    const dirKey = vertical ? 'scrollTop' : 'scrollLeft';
+    const down = pos > lastPos;
+    if (down && pos >= max - 2) el[dirKey] = 0;
+    else if (!down && pos <= 2) el[dirKey] = max;
+    lastPos = pos;
   }, { passive: true });
 }
 
@@ -8449,6 +8733,7 @@ function bindUi(handlers) {
   $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
+  $('btn-fish').onclick = () => handlers.fish();
   $('btn-buy').onclick = openBuyMenu;
   $('bctx-move').onclick = () => handlers.ctxMove();
   $('bctx-rotate').onclick = () => handlers.ctxRotate();
@@ -8707,7 +8992,8 @@ const state = {
   ghostPinned: false,  // posição fixa aguardando confirmação
   highlightTile: null,
   selectedSeed: 'wheat',
-  selId: null
+  selId: null,
+  fishing: null
 };
 
 let lastPointerGrid = { gx: 12, gy: 12 };
@@ -8746,7 +9032,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v41';
+const GAME_VERSION = 'v42';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -8948,6 +9234,18 @@ function handleClick(e) {
     } else {
       showToast(t('toast.shovelNothing'));
     }
+    return;
+  }
+
+  if (state.mode === 'fish') {
+    if (!lakeAt(g.gx, g.gy) && !nearLake(g.gx, g.gy, 1)) {
+      showToast(t('toast.fishNeedLake'));
+      return;
+    }
+    if (state.fishing) return;
+    state.fishing = { gx: g.gx, gy: g.gy, t: 1.8 + Math.random() * 1.6 };
+    spawnFloater(g.gx, g.gy, '\ud83c\udfa3', '#90caf9');
+    playSound('click');
     return;
   }
 
@@ -9201,12 +9499,13 @@ function setMode(mode) {
   state.moveId = null;
   state.rotateId = null;
   state.selId = null;
+  state.fishing = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -9324,6 +9623,12 @@ const uiHandlers = {
     if (state.mode === 'shovel') { setMode('idle'); return; }
     setMode('shovel');
     showToast(t('toast.shovelHint'));
+  },
+  fish() {
+    playSound('click');
+    if (state.mode === 'fish') { setMode('idle'); return; }
+    setMode('fish');
+    showToast(t('toast.fishHint'));
   },
   till() {
     playSound('click');
@@ -9494,6 +9799,20 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') saveGame(false);
 });
 
+/* ---------- Resolucao da pescaria do jogador ---------- */
+function updateFishing(dt) {
+  if (!state.fishing) return;
+  state.fishing.t -= dt;
+  if (state.fishing.t > 0) return;
+  const fish = rollFish();
+  addCoins(fish.value);
+  addXp(3);
+  spawnFloater(state.fishing.gx, state.fishing.gy, fish.icon + ' +' + fish.value + ' \ud83e\ude99', '#4fc3f7');
+  playSound('splash');
+  state.fishing = null;
+  refreshHud();
+}
+
 /* ---------- Loop ---------- */
 let lastTime = 0;
 let autosaveAcc = 0;
@@ -9514,6 +9833,7 @@ function loop(ts) {
       updateParticles(dt);
       updateAmbient(dt);
       updateIntro(dt);
+      updateFishing(dt);
     }
     updateMultiplayer(dt);
     render(ctx, cam, canvas.clientWidth, canvas.clientHeight, state);
