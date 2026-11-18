@@ -179,6 +179,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 32 — Decorações, lote já arado e saúde dos fazendeiros
+
+- **11 decorações novas na loja (aba Decorações)** para preencher o mapa: Fardo de Feno 🌾 (40), Banco de Jardim 🪑 (65), Placa da Fazenda 🪧 (45), Poste de Luz 🏮 (60, nível 2), Canteiro Duplo 💐 (70, nível 2), Jardim de Cogumelos 🍄 (55, nível 2), Espantalho 🧑‍🌾 (90, nível 2), Mesa de Piquenique 🍽️ (110, nível 3), Estátua de Jardim 🗿 (140, nível 3), Fonte ⛲ (420, nível 4) e Moinho de Vento 🌀 (900, nível 6) — todos desenhados em canvas com sombra e detalhes próprios: jatos animados na fonte, pás do moinho girando ao vento, poste que acende de noite, cogumelos que brilham no escuro e espantalho que muda a camisa ao anoitecer.
+- **Lote já arado (botão 🟫 Lote)**: compre terreno pronto para plantar em 6×6, 10×10 ou 16×16 por **8 moedas por tile novo** — tiles já arados dentro da área saem de graça; pré-visualização marrom no mapa mostra o tamanho e destacar em amarelo os tiles que ainda serão arados (só aparece com a enxada).
+- **Saúde dos funcionários**: durante o expediente os fazendeiros podem adoecer — ganham o badge 🤒, param de trabalhar, voltam para casa e se recuperam devagar. O painel de Fazendeiros mostra a **barra de saúde** e o botão **Tratar (🪙 60)**, que cura na hora e devolve o fazendeiro ao trabalho.
+- Versão **v40** (service worker, cache-busting e standalone atualizados).
+
 ## Revisão 29 — Loja de ferramentas, perfil, tarefas de nível e dia de trabalho
 
 - **Você começa sem nada**: enxada (🪙120), regador (🪙180), trator (🪙8000) e pacote de sementes (🪙12 por cultura liberada) agora ficam em uma **aba Ferramentas 🚜** na loja. Arar e regar só funcionam com a ferramenta comprada.

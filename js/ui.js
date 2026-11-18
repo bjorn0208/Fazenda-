@@ -164,12 +164,23 @@ const I18N = {
     'visit.banner': '👀 Visitando: {name}',
     'visit.back': '🏡 Voltar',
     'pers.trabalhador': 'Trabalhador', 'pers.sonhador': 'Sonhador', 'pers.rabugento': 'Rabugento', 'pers.brincalhao': 'Brincalhão', 'pers.sabio': 'Sábio',
-    'mood.feliz': 'Feliz', 'mood.animado': 'Animado', 'mood.cansado': 'Cansado', 'mood.irritado': 'Irritado',
+    'mood.feliz': 'Feliz', 'mood.animado': 'Animado', 'mood.cansado': 'Cansado', 'mood.irritado': 'Irritado', 'mood.doente': 'Doente',
     'b_lake': 'Lago', 'b_lake_desc': 'Água viva com vitórias-régias, taboas e sapos.',
     'b_doghouse': 'Casinha do Cachorro', 'b_doghouse_desc': 'Quando você desliga o cachorro, ele volta para cá dormir.',
     'b_bar': 'Bar da Fazenda', 'b_bar_desc': 'À noite os fazendeiros vêm tomar uma gelada, comer churrasco e ouvir música.',
     'cat.ferramentas': 'Ferramentas',
     'b_restaurant': 'Restaurante', 'b_restaurant_desc': 'Os fazendeiros almoçam aqui ao meio-dia: param de trabalhar às 12:00 e voltam às 13:00.',
+    'b_hay': 'Fardo de Feno', 'b_hay_desc': 'Fardo dourado para dar clima de fazenda.',
+    'b_bench': 'Banco de Jardim', 'b_bench_desc': 'Banco de madeira para descansar e admirar a plantação.',
+    'b_signpost': 'Placa da Fazenda', 'b_signpost_desc': 'Placa de madeira com o nome da fazenda.',
+    'b_lamp': 'Poste de Luz', 'b_lamp_desc': 'Ilumina a fazenda quando a noite cai.',
+    'b_flowerbed': 'Canteiro Duplo', 'b_flowerbed_desc': 'Canteiro comprido cheio de flores coloridas.',
+    'b_mushroom': 'Jardim de Cogumelos', 'b_mushroom_desc': 'Cogumelinhos coloridos que brotam na sombra.',
+    'b_scarecrow': 'Espantalho', 'b_scarecrow_desc': 'Espanta os pássaros e enfeita a plantação.',
+    'b_picnic': 'Mesa de Piquenique', 'b_picnic_desc': 'Mesa com bancos para lanches ao ar livre.',
+    'b_statue': 'Estátua de Jardim', 'b_statue_desc': 'Estátua de pedra para a entrada da fazenda.',
+    'b_fountain': 'Fonte', 'b_fountain_desc': 'Fonte com água corrente e jatos animados.',
+    'b_windmill': 'Moinho de Vento', 'b_windmill_desc': 'Moinho clássico com pás girando ao vento.',
     'an_sheep': 'Ovelha', 'an_sheep_desc': 'Colha a lã das adultas; a lã cresce de novo no dia seguinte.',
     'toast.noSeeds': 'Sem sementes e sem moedas para comprar mais! Adquira um pacote de sementes na loja.',
     'toast.toolNeed': 'Você precisa de {name}. Compre na loja de Ferramentas!',
@@ -221,6 +232,18 @@ const I18N = {
     'toast.penPlaced': '🚧 Curral {n}×{n} pronto! Use o cachorro para juntar os animais.',
     'toast.penInvalid': '🚧 Não dá para montar aí — área ocupada ou fora da fazenda.',
     'toast.penRemoved': '🚧 Curral removido.',
+    'build.plot': 'Lote Arado',
+    'plot.title': 'Lote Já Arado', 'plot.desc': 'Compra um terreno já arado e pronto para plantar.', 'plot.desc2': 'Você paga 8 moedas só pelos tiles novos; tiles já arados são grátis.',
+    'toast.plotHint': '🟫 Toque no mapa para marcar o lote arado (marrom = ok)',
+    'toast.plotPlaced': '🌱 Lote arado! {n} tiles novos cultivados.',
+    'toast.plotPlace': '🟫 Não dá para fazer o lote aí — área ocupada ou fora da fazenda.',
+    'toast.plotNothing': 'Todos os tiles dessa área já estão arados — nada a pagar.',
+    'farmers.health': 'Saúde', 'farmers.sick': 'Doente',
+    'farm.th.sick': 'Ai... me sinto mal, vou descansar em casa...',
+    'farm.th.rest': 'Preciso de repouso...',
+    'farm.th.cured': 'Estou curado! De volta ao trabalho!',
+    'farm.th.treated': '{name} foi tratado e está saudável!',
+    'farm.th.notSick': 'Esse fazendeiro está saudável.',
     'toast.needPen': '🐕 Construa um curral primeiro (botão 🚧).',
     'toast.dogOn': '🐕 O cachorro está juntando os animais no curral!',
     'toast.dogOff': '🐕 O cachorro foi descansar.',
@@ -401,12 +424,23 @@ const I18N = {
     'visit.banner': '👀 Visiting: {name}',
     'visit.back': '🏡 Back',
     'pers.trabalhador': 'Hard worker', 'pers.sonhador': 'Dreamer', 'pers.rabugento': 'Grumpy', 'pers.brincalhao': 'Joker', 'pers.sabio': 'Wise',
-    'mood.feliz': 'Happy', 'mood.animado': 'Cheerful', 'mood.cansado': 'Tired', 'mood.irritado': 'Grumpy',
+    'mood.feliz': 'Happy', 'mood.animado': 'Cheerful', 'mood.cansado': 'Tired', 'mood.irritado': 'Grumpy', 'mood.doente': 'Sick',
     'b_lake': 'Lake', 'b_lake_desc': 'Living water with lily pads, cattails and frogs.',
     'b_doghouse': 'Doghouse', 'b_doghouse_desc': 'When you switch the dog off, he comes here to sleep.',
     'b_bar': 'Farm Bar', 'b_bar_desc': 'At night the farmers come for a cold one, barbecue and music.',
     'cat.ferramentas': 'Tools',
     'b_restaurant': 'Restaurant', 'b_restaurant_desc': 'The farmers have lunch here at noon and go back to work at 13:00.',
+    'b_hay': 'Hay Bale', 'b_hay_desc': 'A golden bale that gives farm vibes.',
+    'b_bench': 'Garden Bench', 'b_bench_desc': 'A wooden bench to rest and enjoy the crops.',
+    'b_signpost': 'Farm Sign', 'b_signpost_desc': 'A wooden sign with the farm name.',
+    'b_lamp': 'Street Lamp', 'b_lamp_desc': 'Lights up the farm when night falls.',
+    'b_flowerbed': 'Double Flower Bed', 'b_flowerbed_desc': 'A long flower bed full of colorful flowers.',
+    'b_mushroom': 'Mushroom Garden', 'b_mushroom_desc': 'Little colorful mushrooms growing in the shade.',
+    'b_scarecrow': 'Scarecrow', 'b_scarecrow_desc': 'Scares birds and decorates the crops.',
+    'b_picnic': 'Picnic Table', 'b_picnic_desc': 'A table with benches for open-air snacks.',
+    'b_statue': 'Garden Statue', 'b_statue_desc': 'A stone statue for the farm entrance.',
+    'b_fountain': 'Fountain', 'b_fountain_desc': 'A fountain with flowing water and animated jets.',
+    'b_windmill': 'Windmill', 'b_windmill_desc': 'A classic windmill with blades turning in the wind.',
     'an_sheep': 'Sheep', 'an_sheep_desc': 'Shear the adults for wool; it grows back the next day.',
     'toast.noSeeds': 'No seeds and not enough coins to buy more! Get a seed pack in the shop.',
     'toast.toolNeed': 'You need the {name}. Buy it in the Tools shop!',
@@ -457,6 +491,18 @@ const I18N = {
     'toast.penPlaced': '🚧 {n}×{n} pen ready! Use the dog to gather the animals.',
     'toast.penInvalid': '🚧 Cannot build there — occupied or outside the farm.',
     'toast.penRemoved': '🚧 Pen removed.',
+    'build.plot': 'Tilled Plot',
+    'plot.title': 'Pre-Tilled Plot', 'plot.desc': 'Buy land already tilled and ready for planting.', 'plot.desc2': 'You pay 8 coins only for new tiles; already tilled tiles are free.',
+    'toast.plotHint': '🟫 Tap the map to mark the tilled plot (brown = ok)',
+    'toast.plotPlaced': '🌱 Plot bought! {n} new tiles tilled.',
+    'toast.plotPlace': '🟫 Cannot place the plot there — occupied or outside the farm.',
+    'toast.plotNothing': 'All tiles in this area are already tilled — nothing to pay.',
+    'farmers.health': 'Health', 'farmers.sick': 'Sick',
+    'farm.th.sick': 'Ugh... I feel sick, going home to rest...',
+    'farm.th.rest': 'I need some rest...',
+    'farm.th.cured': 'I am cured! Back to work!',
+    'farm.th.treated': '{name} was treated and is healthy again!',
+    'farm.th.notSick': 'This farmhand is healthy.',
     'toast.needPen': '🐕 Build a pen first (🚧 button).',
     'toast.dogOn': '🐕 The dog is gathering the animals into the pen!',
     'toast.dogOff': '🐕 The dog went to rest.',
@@ -617,7 +663,8 @@ function refreshHud() {
     ['btn-water', ownedWater],
     ['btn-harvestall', game.crops.length > 0],
     ['btn-collectall', game.animals.length > 0],
-    ['btn-pen', game.animals.length > 0]
+    ['btn-pen', game.animals.length > 0],
+    ['btn-plot', ownedTill]
   ];
   for (const gb of gateBtns) {
     const gbEl = $(gb[0]);
@@ -984,6 +1031,62 @@ function openPenModal() {
   });
 }
 
+/* ---------- Lote ja arado ---------- */
+function openPlotModal() {
+  openModal(t('plot.title'), body => {
+    const info = document.createElement('p');
+    info.style.cssText = 'text-align:center;color:#33691e;font-size:13px;padding:2px 6px 8px';
+    info.textContent = t('plot.desc');
+    body.appendChild(info);
+    const info2 = document.createElement('p');
+    info2.style.cssText = 'text-align:center;color:#6d4c41;font-size:12px;padding:0 6px 8px';
+    info2.textContent = t('plot.desc2');
+    body.appendChild(info2);
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    for (const n of PLOT_SIZES) {
+      const price = plotPrice(n);
+      const item = document.createElement('div');
+      item.className = 'shop-item';
+      item.innerHTML = `
+        <div class="shop-item-icon">🟫</div>
+        <div class="shop-item-name">${n}×${n}</div>
+        <div class="shop-item-desc" style="font-size:11px;color:#6d4c41;text-align:center">${n * n} 🪙</div>
+        <div class="shop-item-price">🪙 ${price.toLocaleString('pt-BR')}</div>
+      `;
+      const btn = document.createElement('button');
+      btn.className = 'shop-buy-btn';
+      btn.textContent = game.coins >= price ? t('build.plot') : t('shop.noCoins');
+      btn.disabled = game.coins < price;
+      btn.onclick = () => {
+        state.plotSize = n;
+        setMode('plot');
+        showToast(t('toast.plotHint'));
+        closeModal();
+      };
+      item.appendChild(btn);
+      grid.appendChild(item);
+    }
+    body.appendChild(grid);
+  });
+}
+
+/* ---------- Saude dos fazendeiros ---------- */
+const TREAT_COST = 60;
+function treatFarmer(f) {
+  if (!f || (f.sickT || 0) <= 0) { showToast(t('farm.th.notSick')); return false; }
+  if (game.coins < TREAT_COST) { showToast(t('toast.noCoins')); return false; }
+  game.coins -= TREAT_COST;
+  f.sickT = 0;
+  f.health = 100;
+  f.mood = 'feliz';
+  farmerSay(f, t('farm.th.cured'), 4200);
+  playSound('level');
+  showToast(t('farm.th.treated', { name: f.name || t('farmers.name', { n: 1 }) }));
+  refreshHud();
+  return true;
+}
+
 /* ---------- Gerenciador de fazendeiros ---------- */
 function openFarmersPanel() {
   openModal(t('farmers.title'), body => {
@@ -1014,6 +1117,29 @@ function openFarmersPanel() {
       mind.textContent = (t('pers.' + (f.pers || 'trabalhador'))) + ' · ' + (t('mood.' + (f.mood || 'feliz'))) +
         ' ⚡' + Math.round(f.energy || 100) + lastThought;
       card.appendChild(mind);
+      const hp = Math.max(0, Math.min(100, f.health === undefined ? 100 : f.health));
+      const isSick = (f.sickT || 0) > 0;
+      const healthRow = document.createElement('div');
+      healthRow.className = 'farmer-health';
+      const hpLabel = document.createElement('span');
+      hpLabel.className = isSick ? 'hp-sick' : 'hp-sick hp-ok';
+      hpLabel.textContent = (isSick ? '🤒 ' : '❤️ ') + t('farmers.health');
+      const track = document.createElement('span');
+      track.className = 'hp-track';
+      const fill = document.createElement('span');
+      fill.className = 'hp-fill';
+      fill.style.width = hp + '%';
+      track.appendChild(fill);
+      const treatBtn = document.createElement('button');
+      treatBtn.className = 'hp-treat-btn';
+      treatBtn.textContent = (isSick ? t('farmers.sick') + ' ' : '') + '🪙 ' + TREAT_COST;
+      treatBtn.title = 'Tratar';
+      treatBtn.disabled = !isSick || game.coins < TREAT_COST;
+      treatBtn.onclick = () => { if (treatFarmer(f)) openFarmersPanel(); };
+      healthRow.appendChild(hpLabel);
+      healthRow.appendChild(track);
+      healthRow.appendChild(treatBtn);
+      card.appendChild(healthRow);
       const roleRow = document.createElement('div');
       roleRow.className = 'farmer-roles';
       for (const r of roles) {
@@ -1672,6 +1798,7 @@ function bindUi(handlers) {
   $('btn-harvestall').onclick = () => handlers.harvestAll();
   $('btn-collectall').onclick = () => handlers.collectAll();
   $('btn-pen').onclick = () => handlers.pen();
+  $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
   $('btn-move').onclick = () => handlers.move();

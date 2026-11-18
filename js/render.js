@@ -49,6 +49,7 @@ function render(ctx, cam, cw, ch, state) {
   drawTerrain(ctx, cam, cw, ch, view);
   drawBuildings(ctx, cam, cw, ch, state);
   if (state.mode === 'pen') drawPenPreview(ctx, cam, cw, ch, state);
+  if (state.mode === 'plot') drawPlotPreview(ctx, cam, cw, ch, state);
   if (state.ghost) drawGhost(ctx, cam, cw, ch, state);
   if (state.highlightTile) drawTileHighlight(ctx, cam, cw, ch, state.highlightTile);
   if (na > 0.01) {
@@ -170,6 +171,190 @@ function drawCarSpeech(ctx, cam, cw, ch, p, text) {
   ctx.fillStyle = '#4e342e';
   lines.forEach((l, i) => ctx.fillText(l, p.x, by + 12 + i * lh));
   ctx.restore();
+}
+
+/* --- Decoracoes R32 --- */
+function drawHay(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.15);
+  drawPrism(ctx, cam, cw, ch, gx + 0.18, gy + 0.3, 0.64, 0.4, 0.34, '#c8a415');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.34, 0.2, '#d4af37');
+  const l = projectPoint(gx + 0.2, gy + 0.5, 0.3);
+  const r2 = projectPoint(gx + 0.8, gy + 0.5, 0.3);
+  const s0 = worldToScreen(cam, l.x, l.y, cw, ch);
+  const rs = worldToScreen(cam, r2.x, r2.y, cw, ch);
+  ctx.strokeStyle = 'rgba(120,90,10,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(rs.x, rs.y); ctx.stroke();
+}
+
+function drawBench(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 2, 1, 0.12);
+  drawPrism(ctx, cam, cw, ch, gx + 0.35, gy + 0.15, 0.12, 0.12, 0.3, '#5d4037');
+  drawPrism(ctx, cam, cw, ch, gx + 0.35, gy + 0.73, 0.12, 0.12, 0.3, '#5d4037');
+  drawPrism(ctx, cam, cw, ch, gx + 1.55, gy + 0.15, 0.12, 0.12, 0.3, '#5d4037');
+  drawPrism(ctx, cam, cw, ch, gx + 1.55, gy + 0.73, 0.12, 0.12, 0.3, '#5d4037');
+  drawPrism(ctx, cam, cw, ch, gx + 0.2, gy + 0.3, 1.6, 0.25, 0.06, '#8b5a2b');
+  drawPrism(ctx, cam, cw, ch, gx + 0.2, gy + 0.1, 1.6, 0.1, 0.24, '#9c6b3c');
+  drawPrism(ctx, cam, cw, ch, gx + 0.2, gy + 0.42, 1.6, 0.06, 0.08, '#4e342e');
+}
+
+function drawSignpost(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.1);
+  drawPrism(ctx, cam, cw, ch, gx + 0.45, gy + 0.45, 0.1, 0.1, 0.55, '#795548');
+  drawPrism(ctx, cam, cw, ch, gx + 0.44, gy + 0.44, 0.13, 0.13, 0.06, '#5d4037');
+  drawPrism(ctx, cam, cw, ch, gx + 0.15, gy + 0.34, 0.75, 0.26, 0.26, '#a1887f');
+  const a = projectPoint(gx + 0.5, gy + 0.47, 0.3);
+  const s = worldToScreen(cam, a.x, a.y, cw, ch);
+  ctx.strokeStyle = 'rgba(62,39,35,0.75)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(s.x - 9 * cam.zoom, s.y);
+  ctx.lineTo(s.x + 9 * cam.zoom, s.y);
+  ctx.moveTo(s.x - 8 * cam.zoom, s.y + 2);
+  ctx.lineTo(s.x + 4 * cam.zoom, s.y + 2);
+  ctx.stroke();
+}
+
+function drawLampDeco(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.1);
+  const na = nightAlpha(game.time);
+  drawPrism(ctx, cam, cw, ch, gx + 0.44, gy + 0.44, 0.12, 0.12, 0.1, '#37474f');
+  drawPrism(ctx, cam, cw, ch, gx + 0.46, gy + 0.46, 0.08, 0.08, 1.1, '#455a64');
+  drawPrism(ctx, cam, cw, ch, gx + 0.34, gy + 0.34, 0.32, 0.32, 0.3, '#546e7a');
+  drawPrism(ctx, cam, cw, ch, gx + 0.3, gy + 0.3, 0.4, 0.4, 0.08, '#37474f');
+  if (na > 0.05) {
+    const lp = projectPoint(gx + 0.5, gy + 0.5, 1.4);
+    const ls = worldToScreen(cam, lp.x, lp.y, cw, ch);
+    ctx.fillStyle = 'rgba(255,224,130,' + (na * 0.45).toFixed(3) + ')';
+    ctx.beginPath();
+    ctx.arc(ls.x, ls.y, 26 * cam.zoom * (0.7 + na * 0.5), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 1.36, 0.09, na > 0.05 ? '#ffe082' : '#b0bec5');
+}
+
+function drawFlowerbed(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 2, 1, 0.12);
+  drawPrism(ctx, cam, cw, ch, gx + 0.05, gy + 0.2, 1.9, 0.6, 0.14, '#4e342e');
+  drawPrism(ctx, cam, cw, ch, gx + 0.1, gy + 0.26, 1.8, 0.5, 0.05, '#33691e');
+  const colors = ['#e91e63', '#ffd54f', '#ba68c8', '#ff7043', '#f06292', '#fff176', '#ff8a65', '#ce93d8'];
+  const t = performance.now() / 600;
+  for (let i = 0; i < 8; i++) {
+    const fx = gx + 0.3 + (i % 4) * 0.45;
+    const fy = gy + 0.38 + Math.floor(i / 4) * 0.28;
+    const sway = Math.sin(t + i) * 0.02;
+    drawPrism(ctx, cam, cw, ch, fx - 0.015, fy - 0.015, 0.03, 0.03, 0.2, '#43a047');
+    drawSphere(ctx, cam, cw, ch, fx + sway, fy, 0.28, 0.08, colors[i]);
+  }
+}
+
+function drawMushroom(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.1);
+  const spots = [[0.36, 0.42, 0.9], [0.62, 0.36, 0.7], [0.5, 0.64, 0.55], [0.7, 0.66, 0.42]];
+  for (const s of spots) {
+    drawPrism(ctx, cam, cw, ch, gx + s[0] - 0.045 * s[2], gy + s[1] - 0.045 * s[2], 0.09 * s[2], 0.09 * s[2], 0.14 * s[2], '#efebe9');
+    drawSphere(ctx, cam, cw, ch, gx + s[0], gy + s[1], 0.16 * s[2], 0.13 * s[2], '#d84343');
+  }
+  const na = nightAlpha(game.time);
+  if (na > 0.3) {
+    const gp = projectPoint(gx + 0.5, gy + 0.5, 0.45);
+    const s = worldToScreen(cam, gp.x, gp.y, cw, ch);
+    ctx.fillStyle = 'rgba(129,199,132,' + ((na - 0.3) * 0.5).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(s.x, s.y, 6 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawScarecrow(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.14);
+  const na = nightAlpha(game.time);
+  const lit = na > 0.15;
+  drawPrism(ctx, cam, cw, ch, gx + 0.46, gy + 0.46, 0.08, 0.08, 0.85, '#8d6e63');
+  drawPrism(ctx, cam, cw, ch, gx + 0.14, gy + 0.5, 0.85, 0.08, 0.08, '#8d6e63');
+  drawPrism(ctx, cam, cw, ch, gx + 0.34, gy + 0.42, 0.32, 0.3, 0.34, lit ? '#2e7d32' : '#43a047');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.58, 0.94, 0.16, '#ffd54f');
+  drawPrism(ctx, cam, cw, ch, gx + 0.3, gy + 0.38, 0.4, 0.4, 0.07, '#c8a415');
+  drawPrism(ctx, cam, cw, ch, gx + 0.36, gy + 0.44, 0.28, 0.28, 0.05, '#a1887f');
+  const ep = projectPoint(gx + 0.5, gy + 0.44, 0.94);
+  const es = worldToScreen(cam, ep.x, ep.y, cw, ch);
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath(); ctx.arc(es.x, es.y, 1.2 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawPicnic(ctx, cam, cw, ch, gx, gy, w, d) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.14);
+  const wx = gx + w / 2, wy = gy + d / 2;
+  drawPrism(ctx, cam, cw, ch, wx - 0.09, wy - 0.09, 0.18, 0.18, 0.55, '#6d4c41');
+  drawPrism(ctx, cam, cw, ch, gx + 0.3, gy + 0.75, w - 0.6, 0.5, 0.07, '#8b5a2b');
+  drawPrism(ctx, cam, cw, ch, gx + 0.45, gy + 0.9, w - 0.9, 0.14, 0.06, '#a1887f');
+  drawPrism(ctx, cam, cw, ch, gx + 0.28, gy + d - 0.42, 0.14, 0.34, 0.4, '#6d4c41');
+  drawPrism(ctx, cam, cw, ch, gx + w - 0.42, gy + d - 0.42, 0.14, 0.34, 0.4, '#6d4c41');
+  drawPrism(ctx, cam, cw, ch, gx + 0.2, gy + 1.0, 0.16, 0.16, 0.72, '#795548');
+  drawSphere(ctx, cam, cw, ch, gx + 0.28, gy + 1.08, 0.8, 0.08, '#e53935');
+  drawSphere(ctx, cam, cw, ch, wx + 0.15, wy - 0.15, 0.78, 0.07, '#fffde7');
+}
+
+function drawStatue(ctx, cam, cw, ch, gx, gy) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.13);
+  drawPrism(ctx, cam, cw, ch, gx + 0.14, gy + 0.14, 0.72, 0.72, 0.14, '#9e9e9e');
+  drawPrism(ctx, cam, cw, ch, gx + 0.22, gy + 0.22, 0.56, 0.56, 0.1, '#757575');
+  drawPrism(ctx, cam, cw, ch, gx + 0.36, gy + 0.36, 0.28, 0.28, 0.5, '#bdbdbd');
+  drawSphere(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, 0.82, 0.19, '#cfcfcf');
+  drawSphere(ctx, cam, cw, ch, gx + 0.42, gy + 0.5, 0.68, 0.06, '#e0e0e0');
+  drawSphere(ctx, cam, cw, ch, gx + 0.58, gy + 0.5, 0.68, 0.06, '#e0e0e0');
+  drawPrism(ctx, cam, cw, ch, gx + 0.4, gy + 0.4, 0.2, 0.2, 0.06, '#8d8d8d');
+}
+
+function drawFountain(ctx, cam, cw, ch, gx, gy, w, d) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.15);
+  const wx = gx + w / 2, wy = gy + d / 2;
+  drawPrism(ctx, cam, cw, ch, gx + 0.08, gy + 0.08, w - 0.16, d - 0.16, 0.28, '#9e9e9e');
+  drawPrism(ctx, cam, cw, ch, gx + 0.18, gy + 0.18, w - 0.36, d - 0.36, 0.06, COLORS.water);
+  drawPrism(ctx, cam, cw, ch, wx - 0.16, wy - 0.16, 0.32, 0.32, 0.55, '#8d8d8d');
+  drawPrism(ctx, cam, cw, ch, wx - 0.3, wy - 0.3, 0.6, 0.6, 0.07, '#757575');
+  const tt = performance.now() / 220;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rr = 0.14 + (Math.sin(tt + i * 1.7) * 0.5 + 0.5) * 0.3;
+    const px = wx + Math.cos(a) * rr, py = wy + Math.sin(a) * rr;
+    const ph = 0.55 + (Math.cos(tt * 0.6 + i) * 0.5 + 0.5) * 0.4;
+    drawSphere(ctx, cam, cw, ch, px, py, ph, 0.045, 'rgba(144,202,249,0.9)');
+  }
+  const top = projectPoint(wx, wy, 0.6);
+  const tp = worldToScreen(cam, top.x, top.y, cw, ch);
+  ctx.fillStyle = 'rgba(225,245,254,0.35)';
+  ctx.beginPath(); ctx.arc(tp.x, tp.y, 7 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawWindmill(ctx, cam, cw, ch, gx, gy, w, d) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.2);
+  const wx = gx + w / 2, wy = gy + d / 2;
+  drawPrism(ctx, cam, cw, ch, gx + 0.5, gy + 0.5, w - 1.0, d - 1.0, 1.1, '#eceff1');
+  drawPrism(ctx, cam, cw, ch, gx + 0.75, gy + 0.75, w - 1.5, d - 1.5, 1.0, '#cfd8dc');
+  drawGableRoof(ctx, cam, cw, ch, gx + 0.55, gy + 0.55, w - 1.1, d - 1.1, 2.1, 0.5, '#b71c1c', 'x');
+  drawPrism(ctx, cam, cw, ch, wx - 0.22, gy + d - 0.62, 0.44, 0.5, 0.6, '#6d4c41');
+  drawPrism(ctx, cam, cw, ch, wx - 0.1, gy + d - 0.56, 0.2, 0.12, 0.3, '#4e342e');
+  const hub3 = projectPoint(wx, wy - 0.1, 2.35);
+  const hub = worldToScreen(cam, hub3.x, hub3.y, cw, ch);
+  const ang = performance.now() / 900;
+  const bladeLen = 42 * cam.zoom;
+  for (let i = 0; i < 4; i++) {
+    const a = ang + (i * Math.PI) / 2;
+    const ex = hub.x + Math.cos(a) * bladeLen, ey = hub.y + Math.sin(a) * bladeLen;
+    ctx.strokeStyle = '#5d4037';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(hub.x, hub.y);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.strokeStyle = '#8d6e63';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(hub.x + Math.cos(a) * bladeLen * 0.25, hub.y + Math.sin(a) * bladeLen * 0.25);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath(); ctx.arc(hub.x, hub.y, 3 * cam.zoom, 0, Math.PI * 2); ctx.fill();
 }
 
 /* Faixa de grid visível (culling simples). */
@@ -907,6 +1092,17 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'doghouse': drawDoghouse(ctx, cam, cw, ch, gx, gy, q); break;
     case 'bar':     drawBar(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'restaurant': drawRestaurant(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'hay':      drawHay(ctx, cam, cw, ch, gx, gy); break;
+    case 'bench':    drawBench(ctx, cam, cw, ch, gx, gy); break;
+    case 'signpost': drawSignpost(ctx, cam, cw, ch, gx, gy); break;
+    case 'lamp':     drawLampDeco(ctx, cam, cw, ch, gx, gy); break;
+    case 'flowerbed': drawFlowerbed(ctx, cam, cw, ch, gx, gy); break;
+    case 'mushroom': drawMushroom(ctx, cam, cw, ch, gx, gy); break;
+    case 'scarecrow': drawScarecrow(ctx, cam, cw, ch, gx, gy); break;
+    case 'picnic':   drawPicnic(ctx, cam, cw, ch, gx, gy, w, d); break;
+    case 'statue':   drawStatue(ctx, cam, cw, ch, gx, gy); break;
+    case 'fountain': drawFountain(ctx, cam, cw, ch, gx, gy, w, d); break;
+    case 'windmill': drawWindmill(ctx, cam, cw, ch, gx, gy, w, d); break;
   }
 }
 
@@ -1774,6 +1970,39 @@ function drawPenPreview(ctx, cam, cw, ch, state) {
   ctx.fillText(valid ? '\u2713' : '\u2717', (pts[0].x + pts[2].x) / 2, (pts[0].y + pts[2].y) / 2);
 }
 
+function drawPlotPreview(ctx, cam, cw, ch, state) {
+  const n = state.plotSize || 6;
+  const x0 = Math.floor(lastPointerGrid.gx), y0 = Math.floor(lastPointerGrid.gy);
+  const valid = plotValid(x0, y0, n);
+  const pts = [
+    projectPoint(x0, y0, 0), projectPoint(x0 + n, y0, 0),
+    projectPoint(x0 + n, y0 + n, 0), projectPoint(x0, y0 + n, 0)
+  ].map(p => worldToScreen(cam, p.x, p.y, cw, ch));
+  ctx.fillStyle = valid ? 'rgba(121,85,72,0.22)' : 'rgba(229,57,53,0.16)';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y);
+  ctx.lineTo(pts[2].x, pts[2].y); ctx.lineTo(pts[3].x, pts[3].y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = valid ? 'rgba(62,39,35,0.85)' : 'rgba(183,28,28,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (let y = y0; y < y0 + n; y++) {
+    for (let x = x0; x < x0 + n; x++) {
+      if (isTilled(x, y)) continue;
+      const corners = tileCorners(cam, cw, ch, x, y);
+      drawTileDiamond(ctx, corners,
+        valid ? 'rgba(255,241,118,0.28)' : 'rgba(229,57,53,0.2)',
+        valid ? 'rgba(158,157,36,0.85)' : 'rgba(183,28,28,0.85)');
+    }
+  }
+  ctx.font = Math.max(11, 14 * cam.zoom) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = valid ? '#3e2723' : '#b71c1c';
+  ctx.fillText(n + '\u00d7' + n, (pts[0].x + pts[2].x) / 2, (pts[0].y + pts[2].y) / 2);
+}
+
 function drawGhost(ctx, cam, cw, ch, state) {
   const g = state.ghost;
   const valid = g.valid;
@@ -1809,6 +2038,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
 function drawMindBubbles(ctx, cam, cw, ch) {
   const now = performance.now();
   for (const f of game.farmers) {
+    if (!f.inside && (f.sickT || 0) > 0) {
+      const sp = projectPoint(f.gx, f.gy, 2.1);
+      const st = worldToScreen(cam, sp.x, sp.y, cw, ch);
+      ctx.font = Math.max(12, 15 * cam.zoom) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('\ud83e\udd12', st.x, st.y);
+    }
     if (!f.bubble || !f.bubble.text) continue;
     if (now > f.bubble.until) { f.bubble = null; continue; }
     if (f.inside) continue;

@@ -579,6 +579,10 @@ vm.runInContext(`
   if (game.dogs.length !== 3) throw new Error('esperava 3 cachorros');
 
   // casinha do cachorro: desligado, ele vai dormir la
+  for (let i = game.buildings.length - 1; i >= 0; i--) {
+    const bld = game.buildings[i];
+    if (bld.type !== 'house') shovelTile(bld.gx, bld.gy);
+  }
   let dhSpot = null;
   for (let y = 2; y < 46 && !dhSpot; y++) {
     for (let x = 2; x < 46 && !dhSpot; x++) {
@@ -587,6 +591,21 @@ vm.runInContext(`
   }
   if (!dhSpot) throw new Error('sem lugar para a casinha do cachorro');
   for (const dg of game.dogs) { dg.active = false; dg.resting = false; }
+  let dogNear = null;
+  outer:
+  for (let r = 1; r <= 6; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (dogWalkable(dhSpot.x + dx, dhSpot.y + dy)) { dogNear = { x: dhSpot.x + dx, y: dhSpot.y + dy }; break outer; }
+      }
+    }
+  }
+  if (dogNear) {
+    for (const dg of game.dogs) {
+      dg.gx = dogNear.x + 0.5; dg.gy = dogNear.y + 0.5;
+      dg.walking = false; dg.wait = 0;
+    }
+  }
   game.time = 0.2;
   for (let i = 0; i < 4000; i++) updateDogs(0.05);
   for (const dg of game.dogs) {
@@ -802,6 +821,40 @@ vm.runInContext(`
   if (!w8) throw new Error('plantio com semente falhou');
   if (game.seeds.wheat !== undefined) throw new Error('semente do estoque nao consumida');
   if (game.coins !== seedCoins - CROPS.wheat.seedCost) throw new Error('plantio com semente pagou moedas');
+
+  // R32: lote arado compravel
+  game.coins = 999999;
+  let plotDone = false;
+  for (let y = 2; y < 42 && !plotDone; y++) {
+    for (let x = 2; x < 42 && !plotDone; x++) {
+      if (!plotValid(x, y, 6)) continue;
+      const antes = game.coins;
+      if (!placePlot(x, y, 6)) continue;
+      if (game.coins >= antes) throw new Error('lote arado gratuito');
+      if (!isTilled(x, y) || !isTilled(x + 5, y + 5)) throw new Error('lote arado nao arou tudo');
+      plotDone = true;
+    }
+  }
+  if (!plotDone) throw new Error('nenhum espaco para lote arado');
+  if (placePlot(0, 0, 6)) throw new Error('lote arado deveria falhar fora da area');
+  render(ctx, cam, 800, 600, state);
+
+  // R32: saude - doente para de trabalhar, vai para casa e recupera devagar
+  const fhp = game.farmers[0];
+  fhp.health = 100; fhp.sickT = 0;
+  fhp.inside = false; fhp.walking = false; fhp.wait = 0; fhp.riding = false;
+  fhp.gx = 20.5; fhp.gy = 20.5;
+  game.time = 0.2; game.meetingDone = true;
+  fhp.sickT = 40; fhp.mood = 'feliz';
+  for (let i = 0; i < 30; i++) updateFarmers(0.05);
+  if (fhp.mood !== 'doente') throw new Error('doente deveria ter mood doente');
+  if (fhp.health <= 35) throw new Error('doente deveria recuperar devagar');
+  if (treatFarmer(fhp) !== true) throw new Error('treatFarmer falhou');
+  game.coins = 999999;
+  if (fhp.sickT !== 0 || fhp.health !== 100) throw new Error('tratamento nao curou');
+  if (fhp.mood !== 'feliz') throw new Error('tratamento nao voltou o humor');
+  if (treatFarmer(fhp) !== false) throw new Error('tratar fazendeiro saudavel deveria falhar');
+  render(ctx, cam, 800, 600, state);
 
   // R29: ovelha produz la colhivel
   game.coins = 999999;

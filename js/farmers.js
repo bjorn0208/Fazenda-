@@ -184,6 +184,8 @@ function farmerEnsureMind(f) {
   f.pers = keys[Math.floor(Math.random() * keys.length)];
   f.mood = (PERSONALITIES[f.pers] || {}).mood || 'feliz';
   f.energy = 70 + Math.random() * 30;
+  f.health = 100;
+  f.sickT = 0;
   f.friend = {};
   f.thoughtT = 3 + Math.random() * 8;
   f.chatT = 8 + Math.random() * 15;
@@ -390,6 +392,36 @@ function updateFarmers(dt) {
           if (o === f || o.inside || o.walking) continue;
           if (Math.hypot(o.gx - f.gx, o.gy - f.gy) < 1.8) { farmerChat(f, o); break; }
         }
+      }
+    }
+
+    if (f.health === undefined) { f.health = 100; f.sickT = 0; }
+    if (f.sickT > 0) {
+      f.sickT -= dt;
+      f.health = Math.min(100, f.health + 6 * dt);
+      f.mood = 'doente';
+      if (f.sickT <= 0) {
+        f.sickT = 0; f.health = 100; f.mood = 'feliz';
+        farmerSay(f, t('farm.th.cured'), 4200);
+      } else {
+        const home = meetingPoint();
+        if (!f.walking && Math.hypot(home.x + 0.5 - f.gx, home.y + 0.5 - f.gy) > 0.9) {
+          f.riding = false;
+          f.tx = home.x + 0.5; f.ty = home.y + 0.5;
+          f.walking = true;
+        } else if (!f.walking && Math.random() < dt * 0.25) {
+          farmerSay(f, t('farm.th.rest'), 4200);
+        }
+      }
+      continue;
+    }
+    if (Math.random() < dt * 0.0008) {
+      const Hs = gameHour();
+      if (Hs >= 8.5 && Hs < 19) {
+        f.sickT = 70 + Math.random() * 50;
+        f.health = 35 + Math.random() * 20;
+        f.mood = 'doente';
+        farmerSay(f, t('farm.th.sick'), 5000);
       }
     }
 

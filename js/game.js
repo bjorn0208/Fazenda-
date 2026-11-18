@@ -255,6 +255,41 @@ function tillSoil(gx, gy) {
   return true;
 }
 
+/* ---------- Lote arado: compra terra pronta para plantar ---------- */
+function plotPrice(n) { return n * n * PLOT_PRICE_PER_TILE; }
+
+function plotValid(cx, cy, n) {
+  for (let y = cy; y < cy + n; y++) {
+    for (let x = cx; x < cx + n; x++) {
+      if (!inBounds(x, y) || !inOwnedArea(x, y)) return false;
+      if (occupancy[occIndex(x, y)]) return false;
+    }
+  }
+  return true;
+}
+
+function placePlot(cx, cy, n) {
+  if (!plotValid(cx, cy, n)) { showToast(t('toast.plotPlace')); return false; }
+  let newTiles = 0;
+  for (let y = cy; y < cy + n; y++) {
+    for (let x = cx; x < cx + n; x++) {
+      if (!game.tilled[x + ',' + y]) newTiles++;
+    }
+  }
+  if (newTiles === 0) { showToast(t('toast.plotNothing')); return false; }
+  const price = newTiles * PLOT_PRICE_PER_TILE;
+  if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-price);
+  for (let y = cy; y < cy + n; y++) {
+    for (let x = cx; x < cx + n; x++) {
+      game.tilled[x + ',' + y] = 1;
+    }
+  }
+  spawnFloater(cx + n / 2, cy + n / 2, '\u{1FA99}-' + price, '#ffd54f');
+  playSound('dig');
+  return true;
+}
+
 function isTilled(gx, gy) {
   return !!game.tilled[gx + ',' + gy];
 }
@@ -1202,6 +1237,10 @@ function applySaveData(data) {
     for (const a of game.animals) {
       if (a.age === undefined) a.age = 999;
       if (a.bornAt === undefined) a.bornAt = Date.now();
+    }
+    for (const ff of game.farmers) {
+      if (ff.health === undefined) ff.health = 100;
+      if (ff.sickT === undefined) ff.sickT = 0;
     }
     if (!data.upgrades && ((data.day || 0) > 0 || (data.level || 1) > 1)) {
       game.upgrades = { water: 2, till: 2 };

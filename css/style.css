@@ -638,3 +638,39 @@ body.tools-left-hidden #zoom-controls { transform: translateX(-140%); opacity: 0
   border: 1px solid #d7ccc8;
   background: #fff;
 }
+
+/* R32: saude dos fazendeiros */
+.farmer-health {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin: 4px 0;
+}
+.hp-track {
+  flex: 1;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hp-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #e53935, #8bc34a);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.hp-sick { color: #c62828; font-weight: bold; }
+.hp-sick.hp-ok { color: #2e7d32; }
+.hp-treat-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  border: 1px solid #c62828;
+  background: #ffebee;
+  color: #c62828;
+  font-weight: bold;
+  cursor: pointer;
+}
+.hp-treat-btn:disabled { opacity: 0.45; cursor: default; }

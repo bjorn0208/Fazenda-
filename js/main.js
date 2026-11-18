@@ -52,7 +52,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v39';
+const GAME_VERSION = 'v40';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -267,6 +267,16 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'plot') {
+    const n = state.plotSize || 6;
+    if (placePlot(g.gx, g.gy, n)) {
+      showToast(t('toast.plotPlaced', { n: n * n }));
+      refreshHud();
+      setMode('idle');
+    }
+    return;
+  }
+
   if (state.mode === 'till') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
@@ -464,7 +474,7 @@ function setMode(mode) {
   canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', shovel: 'btn-shovel' };
+  const map = { build: 'btn-build', move: 'btn-move', remove: 'btn-remove', rotate: 'btn-rotate', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -574,6 +584,10 @@ const uiHandlers = {
     playSound('click');
     openPenModal();
   },
+  plot() {
+    playSound('click');
+    openPlotModal();
+  },
   dog() {
     playSound('click');
     if (!game.dogs.length) { showToast(t('toast.noDog')); return; }
@@ -643,7 +657,7 @@ window.addEventListener('keydown', e => {
 });
 
 /* Guarda de visita: uma unica vez, fora do handler de teclado */
-for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'plot', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
   const orig = uiHandlers[k];
   uiHandlers[k] = (...a) => {
     if (game.visiting) { showToast(t('toast.visitingBlock')); return; }

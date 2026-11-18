@@ -76,6 +76,72 @@ const BUILDINGS = {
     desc: 'Caminho decorativo de pedras.',
     refund: 0.5
   },
+  hay: {
+    id: 'hay', name: 'Fardo de Feno', icon: '🌾',
+    price: 40, w: 1, d: 1, level: 1, category: 'decoracoes',
+    desc: 'Fardo dourado para dar clima de fazenda.',
+    refund: 0.5
+  },
+  bench: {
+    id: 'bench', name: 'Banco de Jardim', icon: '🪑',
+    price: 65, w: 2, d: 1, level: 1, category: 'decoracoes',
+    desc: 'Banco de madeira para descansar e admirar a plantaço.',
+    refund: 0.5
+  },
+  signpost: {
+    id: 'signpost', name: 'Placa da Fazenda', icon: '🪧',
+    price: 45, w: 1, d: 1, level: 1, category: 'decoracoes',
+    desc: 'Placa de madeira com o nome da fazenda.',
+    refund: 0.5
+  },
+  lamp: {
+    id: 'lamp', name: 'Poste de Luz', icon: '🏮',
+    price: 60, w: 1, d: 1, level: 2, category: 'decoracoes',
+    desc: 'Ilumina a fazenda quando a noite cai.',
+    refund: 0.5
+  },
+  flowerbed: {
+    id: 'flowerbed', name: 'Canteiro Duplo', icon: '💐',
+    price: 70, w: 2, d: 1, level: 2, category: 'decoracoes',
+    desc: 'Canteiro comprido cheio de flores coloridas.',
+    refund: 0.5
+  },
+  mushroom: {
+    id: 'mushroom', name: 'Jardim de Cogumelos', icon: '🍄',
+    price: 55, w: 1, d: 1, level: 2, category: 'decoracoes',
+    desc: 'Cogumelinhos coloridos que brotam na sombra.',
+    refund: 0.5
+  },
+  scarecrow: {
+    id: 'scarecrow', name: 'Espantalho', icon: '🧑‍🌾',
+    price: 90, w: 1, d: 1, level: 2, category: 'decoracoes',
+    desc: 'Espanta os pássaros e enfeita a plantaço.',
+    refund: 0.5
+  },
+  picnic: {
+    id: 'picnic', name: 'Mesa de Piquenique', icon: '🍽',
+    price: 110, w: 2, d: 2, level: 3, category: 'decoracoes',
+    desc: 'Mesa com bancos para lanches ao ar livre.',
+    refund: 0.5
+  },
+  statue: {
+    id: 'statue', name: 'Estátua de Jardim', icon: '🗿',
+    price: 140, w: 1, d: 1, level: 3, category: 'decoracoes',
+    desc: 'Estátua de pedra para a entrada da fazenda.',
+    refund: 0.5
+  },
+  fountain: {
+    id: 'fountain', name: 'Fonte', icon: '⛲',
+    price: 420, w: 2, d: 2, level: 4, category: 'decoracoes',
+    desc: 'Fonte com água corrente e jatos animados.',
+    refund: 0.5
+  },
+  windmill: {
+    id: 'windmill', name: 'Moinho de Vento', icon: '🌀',
+    price: 900, w: 3, d: 3, level: 6, category: 'decoracoes',
+    desc: 'Moinho clássico com pás girando ao vento.',
+    refund: 0.5
+  },
   lake: {
     id: 'lake', name: 'Lago', icon: '🏞️',
     price: 1200, w: 5, d: 5, level: 2, category: 'natureza',
@@ -247,6 +313,8 @@ const TOOLS = [
 
 /* Curral: tamanhos disponiveis e preco por segmento de cerca. */
 const PEN_SIZES = [8, 16, 36];
+const PLOT_SIZES = [6, 10, 16];
+const PLOT_PRICE_PER_TILE = 8;
 const PEN_PRICE_PER_TILE = 15;
 
 /* Missões iniciais — progresso rastreado por contadores do jogo. */
