@@ -892,6 +892,24 @@ vm.runInContext(`
   render(ctx, cam, 800, 600, state);
   fr35.fishing = false;
 
+  // R36: flag de pesca nao fica velho (doente/na cama) e vara some quando o pescador sai do lugar
+  const fs36 = game.farmers[0];
+  fs36.fishing = true; fs36.inside = false; fs36.walking = false; fs36.riding = false; fs36.sickT = 30;
+  updateFarmers(0.05);
+  if (fs36.fishing) throw new Error('flag de pesca velho com fazendeiro doente');
+  fs36.sickT = 0; fs36.health = 100; fs36.mood = 'feliz';
+  fs36.fishing = true; fs36.inside = true;
+  updateFarmers(0.05);
+  if (fs36.fishing) throw new Error('flag de pesca velho com fazendeiro dentro de casa');
+  fs36.inside = false;
+  if (typeof drawFarmerFishingGear !== 'function') throw new Error('vara do pescador ausente');
+  fs36.fishing = true; fs36.fishSpot = { x: (fs36.gx | 0) + 9, y: (fs36.gy | 0) + 9 };
+  render(ctx, cam, 800, 600, state);
+  fs36.fishSpot = { x: fs36.gx, y: fs36.gy };
+  fs36.gx = fs36.fishSpot.x + 0.4; fs36.gy = fs36.fishSpot.y + 0.4;
+  render(ctx, cam, 800, 600, state);
+  fs36.fishing = false; fs36.fishSpot = null;
+
   // R32: lote arado compravel
   game.coins = 999999;
   let plotDone = false;

@@ -448,6 +448,7 @@ function updateFarmers(dt) {
 
     if (f.health === undefined) { f.health = 100; f.sickT = 0; }
     if (f.sickT > 0) {
+      f.fishing = false;
       f.sickT -= dt;
       f.health = Math.min(100, f.health + 6 * dt);
       f.mood = 'doente';
@@ -477,6 +478,7 @@ function updateFarmers(dt) {
     }
 
     if (f.inside) {
+      f.fishing = false;
       const Hw = gameHour();
       if (Hw >= 7.5 && Hw < 19) {
         f.inside = false;
@@ -521,6 +523,7 @@ function updateFarmers(dt) {
     const H = gameHour();
 
     if (H >= 12 && H < 13) {
+      f.fishing = false;
       const rest = game.buildings.find(b => b.type === 'restaurant');
       if (rest) {
         const spot = restaurantSpotFor(f, rest);
@@ -543,6 +546,7 @@ function updateFarmers(dt) {
     if (!game.meetingDone && H >= 7.5 && H < 19) continue;
 
     if (H >= 19 || H < 7.5) {
+      f.fishing = false;
       const bar = game.buildings.find(b => b.type === 'bar');
       if (bar && f.barTonight && !f.barDone && (H >= 19 || H < 3)) {
         f.atBar = true;
@@ -763,33 +767,30 @@ function drawFarmer(ctx, cam, cw, ch, f) {
 }
 
 function drawFarmerFishingGear(ctx, cam, cw, ch, f) {
-  if (!f.fishing) return;
+  if (!f.fishing || f.inside || !f.fishSpot) return;
   const lk = lakeBuilding();
   if (!lk) return;
   const ldef = BUILDINGS[lk.type];
   const z = cam.zoom;
   if (z < 0.3) return;
+  const spot = f.fishSpot;
+  if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) > 1.2) return;
+  const ccx = lk.gx + ldef.w / 2, ccy = lk.gy + ldef.d / 2;
+  let vx = ccx - (spot.x + 0.5), vy = ccy - (spot.y + 0.5);
+  const vl = Math.hypot(vx, vy) || 1;
+  vx /= vl; vy /= vl;
+  const bobW = projectPoint(spot.x + 0.5 + vx * 1.1, spot.y + 0.5 + vy * 1.1, 0.02);
+  const bs = worldToScreen(cam, bobW.x, bobW.y, cw, ch);
   const fp = projectPoint(f.gx, f.gy, 0);
   const fs = worldToScreen(cam, fp.x, fp.y, cw, ch);
-  let spotX = null, spotY = null;
-  if (f.fishSpot) {
-    const sp = projectPoint(f.fishSpot.gx + 0.5, f.fishSpot.gy + 0.5, 0.02);
-    const ss = worldToScreen(cam, sp.x, sp.y, cw, ch);
-    spotX = ss.x; spotY = ss.y;
-  }
   const sway = Math.sin(performance.now() / 1000 * 1.7) * 0.045;
   const bx = fs.x, by = fs.y - 16 * z;
-  let tipX, tipY;
-  if (spotX !== null) {
-    const tdx = spotX - bx, tdy = spotY - by;
-    const tlen = Math.max(1, Math.hypot(tdx, tdy));
-    const ux = tdx / tlen, uy = tdy / tlen;
-    const rl = Math.min(30 * z, tlen * 0.8);
-    tipX = bx + ux * rl - uy * rl * sway;
-    tipY = by + uy * rl + ux * rl * sway;
-  } else {
-    tipX = bx + 14 * z; tipY = by - 14 * z;
-  }
+  const tdx = bs.x - bx, tdy = bs.y - by;
+  const tlen = Math.max(1, Math.hypot(tdx, tdy));
+  const ux = tdx / tlen, uy = tdy / tlen;
+  const rl = Math.min(30 * z, tlen * 0.7);
+  const tipX = bx + ux * rl - uy * rl * sway;
+  const tipY = by + uy * rl + ux * rl * sway;
   ctx.strokeStyle = '#795548';
   ctx.lineWidth = Math.max(1, 1.6 * z);
   ctx.lineCap = 'round';
@@ -797,21 +798,25 @@ function drawFarmerFishingGear(ctx, cam, cw, ch, f) {
   ctx.moveTo(bx, by);
   ctx.lineTo(tipX, tipY);
   ctx.stroke();
-  if (spotX !== null) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-    ctx.lineWidth = Math.max(0.6, 0.8 * z);
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.quadraticCurveTo((tipX + spotX) / 2 + 3 * z, (tipY + spotY) / 2, spotX, spotY - 3 * z);
-    ctx.stroke();
-    ctx.fillStyle = '#e53935';
-    ctx.beginPath();
-    ctx.arc(spotX, spotY - 2 * z, Math.max(1.4, 2.6 * z), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(spotX, spotY - 3.2 * z, Math.max(0.9, 1.6 * z), 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = Math.max(0.6, 0.8 * z);
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.quadraticCurveTo((tipX + bs.x) / 2 + 3 * z, (tipY + bs.y) / 2, bs.x, bs.y - 2 * z);
+  ctx.stroke();
+  const br = Math.max(1.8, 3 * z);
+  ctx.fillStyle = '#e53935';
+  ctx.beginPath();
+  ctx.arc(bs.x, bs.y, br, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(bs.x, bs.y - br * 0.45, br * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = Math.max(0.5, 0.7 * z);
+  ctx.beginPath();
+  ctx.ellipse(bs.x, bs.y + br * 0.9, br * 2.1, br * 0.9, 0, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.lineCap = 'butt';
 }

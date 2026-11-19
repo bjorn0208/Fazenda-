@@ -179,6 +179,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 36 — Adição do pescador: vara na mão de verdade, sem linhas fantasmas e peixes que parecem peixes
+
+- **As "linhas de pesca" eram os peixes**: as silhuetas submersas estavam pequenas demais e sem rabo/olho visível — pareciam linhas soltas no lago. Agora são **peixes claros e maiores (quase o dobro), com rabo que mexe, olho e barbatana**, nadando na direção do movimento.
+- **Pescador com vara de verdade**: corrigido um bug que impedia a vara de aparecer (erro nas coordenadas do ponto de pesca) — agora o fazendeiro parado na margem aparece **segurando a vara, com a linha e a boia vermelha e branca flutuando na água** (com ondinhas em volta da boia).
+- **Fim das linhas fantasmas**: a linha e a boia só aparecem **com o pescador no lugar** — quando ele vai almoçar, dormir, fica doente ou sai andando, tudo some junto.
+- Versão **v44** (service worker, cache-busting e standalone atualizados).
+
 ## Revisão 35 — Comprar/Construir corrigidos, barra com 3 ferramentas + setas, peixes e varas de pescar desenhadas
 
 - **Botão Comprar (e Construir) funcionando de novo**: um bug da Revisão 33 fazia o menu lateral genérico sobrescrever as ações desses dois botões — corrigido (as ações deles agora são preservadas).
