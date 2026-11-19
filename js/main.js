@@ -54,7 +54,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v44';
+const GAME_VERSION = 'v45';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -301,6 +301,13 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'fert') {
+    const fc = cropAt(g.gx, g.gy);
+    if (!fc) { showToast(t('toast.fertNothing')); return; }
+    if (fertilizeCrop(fc)) { refreshHud(); }
+    return;
+  }
+
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
@@ -524,10 +531,10 @@ function setMode(mode) {
   state.fishing = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish', 'mode-fert');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish', fert: 'btn-fert' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -685,6 +692,29 @@ const uiHandlers = {
     setMode('fish');
     showToast(t('toast.fishHint'));
   },
+  fert() {
+    playSound('click');
+    if (state.mode === 'fert') { setMode('idle'); return; }
+    setMode('fert');
+    showToast(t('toast.fertHint'));
+  },
+  plantAll() {
+    let n = 0, stop = false;
+    const oa = game.ownedArea;
+    for (let y = oa.y0; y <= oa.y1 && !stop; y++) {
+      for (let x = oa.x0; x <= oa.x1 && !stop; x++) {
+        if (!game.tilled[x + ',' + y]) continue;
+        if (occupancy[occIndex(x, y)]) continue;
+        if (!plantCrop(state.selectedSeed, x, y)) { stop = true; break; }
+        n++;
+      }
+    }
+    if (n > 0) {
+      showToast(t('toast.plantAll', { n }));
+      refreshHud();
+      autoClaimReady();
+    }
+  },
   till() {
     playSound('click');
     if (state.mode === 'till') { setMode('idle'); return; }
@@ -779,7 +809,7 @@ window.addEventListener('keydown', e => {
 });
 
 /* Guarda de visita: uma unica vez, fora do handler de teclado */
-for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'plot', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'plot', 'dog', 'move', 'remove', 'rotate', 'confirmOk', 'fert', 'plantAll']) {
   const orig = uiHandlers[k];
   uiHandlers[k] = (...a) => {
     if (game.visiting) { showToast(t('toast.visitingBlock')); return; }

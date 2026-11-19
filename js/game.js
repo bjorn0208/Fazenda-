@@ -38,6 +38,8 @@ const game = {
   seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
   tractorOwned: false,    // trator comprado na loja de ferramentas
   rodOwned: false,        // vara de pescar comprada
+  fertOwned: false,       // adubo comprado (ativa o botao Fertilizar)
+  allDayRain: false,      // chuva o dia todo sorteada ao raiar do dia
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
@@ -213,7 +215,8 @@ function rotateBuilding(id) {
 /* ---------- Plantações ---------- */
 function cropProgress(crop) {
   const def = CROPS[crop.type];
-  return Math.min(1, (Date.now() - crop.plantedAt) / (def.growTime * 1000));
+  const total = (crop.fert ? def.growTime * 0.55 : def.growTime) * 1000;
+  return Math.min(1, (Date.now() - crop.plantedAt) / total);
 }
 
 function cropAt(x, y) {
@@ -238,13 +241,28 @@ function plantCrop(type, gx, gy, free) {
   const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
     id: game.nextId++, isCrop: true, type, gx, gy,
-    plantedAt: Date.now() - bonus, watered: false
+    plantedAt: Date.now() - bonus, watered: false, fert: false
   };
   game.crops.push(crop);
   occupancy[occIndex(gx, gy)] = crop;
   game.stats.planted = (game.stats.planted || 0) + 1;
   playSound('plant');
   return crop;
+}
+
+/* ---------- Adubo: cresce quase 2x mais rapido e colhe em dobro ---------- */
+const FERT_COST = 10;
+
+function fertilizeCrop(crop) {
+  if (!crop || !crop.isCrop || game.visiting) return false;
+  if (crop.fert) { showToast(t('toast.fertAlready')); return false; }
+  if (cropProgress(crop) >= 1) { showToast(t('toast.fertNothing')); return false; }
+  if (game.coins < FERT_COST) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-FERT_COST);
+  crop.fert = true;
+  spawnFloater(crop.gx, crop.gy, '\u2728', '#ffe082');
+  playSound('plant');
+  return true;
 }
 
 /* ---------- Aracao ---------- */
@@ -382,6 +400,7 @@ function toolOwned(id) {
   if (id === 'can') return upgradeLevel('water') > 0;
   if (id === 'tractor') return game.tractorOwned;
   if (id === 'rod') return game.rodOwned;
+  if (id === 'fert') return game.fertOwned;
   return true;
 }
 
@@ -400,6 +419,8 @@ function buyTool(id) {
     game.tractor = null;
   } else if (id === 'rod') {
     game.rodOwned = true;
+  } else if (id === 'fert') {
+    game.fertOwned = true;
   } else if (id === 'seeds') {
     for (const c of Object.values(CROPS)) {
       if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
@@ -418,7 +439,7 @@ function tractorWalkable(x, y) {
 
 function startTractor() {
   if (!game.tractorOwned) return false;
-  const ready = game.crops.find(c => cropProgress(c) >= 1);
+  const ready = tractorNextTarget({ gx: game.ownedArea.x0 + 1, gy: game.ownedArea.y0 + 1 });
   if (!ready) { showToast(t('toast.tractorNone')); return false; }
   if (!game.tractor) {
     const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
@@ -431,8 +452,8 @@ function startTractor() {
   }
   const tr = game.tractor;
   tr.target = null;
-  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), Math.floor(ready.gx + 0.5), Math.floor(ready.gy + 0.5), tractorWalkable) || [];
-  tr.tx = ready.gx + 0.5; tr.ty = ready.gy + 0.5;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), ready.x, ready.y, tractorWalkable) || [];
+  tr.tx = ready.x + 0.5; tr.ty = ready.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
   tr.active = true;
@@ -442,10 +463,21 @@ function startTractor() {
 
 function tractorNextTarget(t) {
   let best = null, bestD = Infinity;
+  const consider = (kind, x, y, ref) => {
+    const d = Math.hypot(x + 0.5 - t.gx, y + 0.5 - t.gy);
+    if (d < bestD) { bestD = d; best = { kind, x, y, crop: ref || null }; }
+  };
   for (const c of game.crops) {
     if (cropProgress(c) < 1) continue;
-    const d = Math.hypot(c.gx + 0.5 - t.gx, c.gy + 0.5 - t.gy);
-    if (d < bestD) { bestD = d; best = c; }
+    consider('harvest', c.gx, c.gy, c);
+  }
+  const oa = game.ownedArea;
+  for (let y = oa.y0; y <= oa.y1; y++) {
+    for (let x = oa.x0; x <= oa.x1; x++) {
+      if (!game.tilled[x + ',' + y]) continue;
+      if (occupancy[occIndex(x, y)]) continue;
+      consider('plant', x, y, null);
+    }
   }
   return best;
 }
@@ -465,10 +497,18 @@ function updateTractor(dt) {
     }
     if (dist <= step) {
       tr.gx = tr.tx; tr.gy = tr.ty;
-      const occ = occupancy[occIndex(Math.floor(tr.gx), Math.floor(tr.gy))];
+      const tx0 = Math.floor(tr.gx), ty0 = Math.floor(tr.gy);
+      const occ = occupancy[occIndex(tx0, ty0)];
       if (occ && occ.isCrop && cropProgress(occ) >= 1 && !game.visiting) {
         harvestCrop(occ);
         spawnFloater(occ.gx, occ.gy, '🌾', '#c5e1a5');
+      } else if (!occ && game.tilled[tx0 + ',' + ty0] && !game.visiting) {
+        if (!plantCrop(state.selectedSeed, tx0, ty0)) {
+          tr.active = false;
+          tr.walking = false;
+          showToast(t('toast.tractorDone'));
+          return;
+        }
       }
       if (tr.path && tr.path.length) {
         const w = tr.path.shift();
@@ -489,8 +529,8 @@ function updateTractor(dt) {
     playSound('level');
     return;
   }
-  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.gx, next.gy, tractorWalkable) || [];
-  tr.tx = next.gx + 0.5; tr.ty = next.gy + 0.5;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.x, next.y, tractorWalkable) || [];
+  tr.tx = next.x + 0.5; tr.ty = next.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
 }
@@ -709,7 +749,16 @@ function dayPhase() {
 function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
-  if (game.time < prev) { game.meetingDone = false; game.day++; }
+  if (game.time < prev) {
+    game.meetingDone = false;
+    game.day++;
+    game.allDayRain = !game.visiting && Math.random() < 0.3;
+    if (game.allDayRain) {
+      game.weather = 'rain';
+      game.weatherT = DAY_LENGTH;
+      showToast(t('toast.rainDay'));
+    }
+  }
   if (seasonIndex() === 3) game.snow = Math.min(1, game.snow + dt / 180);
   else game.snow = Math.max(0, game.snow - dt / 20);
   checkLevelTasks();
@@ -741,6 +790,7 @@ function isSunday() { return weekdayIndex() === 6; }
 function updateWeather(dt) {
   if (game.flashT > 0) game.flashT -= dt;
   if (game.visiting) return;
+  if (game.allDayRain && game.weather !== 'rain') { game.weather = 'rain'; game.weatherT = DAY_LENGTH; }
   if (game.weather === 'rain') {
     game.weatherT -= dt;
     game.weatherTick -= dt;
@@ -750,7 +800,7 @@ function updateWeather(dt) {
       if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
       if (Math.random() < 0.22) { game.flashT = 0.4; playSound('thunder'); }
     }
-    if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
+    if (game.weatherT <= 0 && !game.allDayRain) { game.weather = 'clear'; game.weatherT = 0; }
   } else {
     game.weatherT -= dt;
     if (game.weatherT <= 0 && game.time > 0.05 && game.time < 0.6 && Math.random() < 0.008) {
@@ -1001,7 +1051,7 @@ function pigReady(a) {
 
 function collectAnimal(a) {
   if (pigReady(a)) {
-    const value = ANIMALS.pig.bacon;
+    const value = ANIMALS.pig.bacon * (a.gold ? 3 : 1);
     const idx = game.animals.indexOf(a);
     if (idx === -1) return false;
     game.animals.splice(idx, 1);
@@ -1013,10 +1063,10 @@ function collectAnimal(a) {
   }
   if (!a.product) return false;
   const def = ANIMALS[a.kind];
-  const value = def.value * a.product;
+  const value = def.value * a.product * (a.gold ? 3 : 1);
   game.stats.collected = (game.stats.collected || 0) + a.product;
   addCoins(value);
-  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
+  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙' + (a.gold ? ' ✨x3' : ''), '#ffd54f');
   a.product = 0;
   playSound(a.kind || 'harvest');
   return true;
@@ -1082,7 +1132,7 @@ function harvestCrop(crop) {
   if (idx === -1) return null;
   game.crops.splice(idx, 1);
   occupancy[occIndex(crop.gx, crop.gy)] = null;
-  game.barn[def.id] = (game.barn[def.id] || 0) + 1;
+  game.barn[def.id] = (game.barn[def.id] || 0) + (crop.fert ? 2 : 1);
   addXp(def.xp);
   game.stats.harvested = (game.stats.harvested || 0) + 1;
   playSound('harvest');
@@ -1114,7 +1164,7 @@ function isAdult(a) {
   return (a.age === undefined ? 999 : a.age) >= ANIMAL_GROW_S;
 }
 
-function buyAnimal(kind) {
+function buyAnimal(kind, forceGold) {
   const def = ANIMALS[kind];
   if (!def) return false;
   const kindCount = game.animals.filter(a => a.kind === kind).length;
@@ -1126,8 +1176,14 @@ function buyAnimal(kind) {
   const price = animalBuyPrice(kind);
   if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
   addCoins(-price);
-  game.animals.push(makeAnimal(kind, spot));
+  const an = makeAnimal(kind, spot);
+  an.gold = !!forceGold || Math.random() < 0.04;
+  game.animals.push(an);
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
+  if (an.gold) {
+    spawnFloater(spot.x + 0.5, spot.y + 1, '\ud83d\udcab', '#ffd54f');
+    showToast(t('toast.goldAnimal', { icon: def.icon }));
+  }
   playSound('place');
   return true;
 }
@@ -1220,7 +1276,8 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
-    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, snow: game.snow,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
+    allDayRain: game.allDayRain, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
@@ -1282,7 +1339,8 @@ function applySaveData(data) {
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
-      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, tractor: null,
+      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
+      allDayRain: data.allDayRain ?? false, tractor: null,
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',

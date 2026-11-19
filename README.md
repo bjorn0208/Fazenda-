@@ -179,6 +179,16 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 37 — Novas habilidades: adubo, plantar tudo, chuva o dia todo, trator que planta e animais de ouro
+
+- **Adubo Orgânico (💩, 250 moedas na loja de ferramentas)**: novo botão **Fertilizar** na barra inferior. Cada uso custa 10 moedas: a plantação adubada cresce quase 2x mais rápido (55% do tempo) e a colheita rende **2 unidades** em vez de 1. Cultivo adubado brilha com pontinhos dourados no canteiro. Não dá para adubar plantio pronto ou já adubado (o jogo avisa).
+- **Plantar Tudo (🌾)**: novo botão que planta a semente selecionada em **toda a terra arada livre do seu terreno** de uma vez — ótimo depois de comprar um lote arado ou colher tudo. Libera junto com a enxada.
+- **Fazendeiros mais rápidos na colheita**: os funcionários andam **1,5x mais rápido** quando o serviço do momento é colher plantação pronta — a colheita em lote fica bem mais ágil.
+- **Chuva o dia todo**: ao raiar de cada dia há **30% de chance** de nascer um dia inteiro de chuva: o temporal não passa (raios e trovões incluídos) e como toda chuva, rega as plantações sozinho. Aviso "Hoje vai chover o dia todo!" quando acontece.
+- **Trator que planta**: o trator agora não é só colheitadeira — depois de colher o que está pronto, ele **semeia sozinho toda a terra arada vazia** do terreno, fileira por fileira, usando a semente selecionada. Com a terra interia, ele desliga e avisa que terminou o serviço.
+- **Animais de ouro**: toda compra de animal tem **4% de chance** de nascer um **animal dourado** 👑 (com coroa e brilho estrelado desenhados sobre ele) que rende o **triplo** de tudo — ovos, leite, lã, bacon — pelo resto da vida.
+- Salvamento inclui adubo comprado e o dia de chuva; service worker e cache atualizados para **v45**.
+
 ## Revisão 36 — Adição do pescador: vara na mão de verdade, sem linhas fantasmas e peixes que parecem peixes
 
 - **As "linhas de pesca" eram os peixes**: as silhuetas submersas estavam pequenas demais e sem rabo/olho visível — pareciam linhas soltas no lago. Agora são **peixes claros e maiores (quase o dobro), com rabo que mexe, olho e barbatana**, nadando na direção do movimento.

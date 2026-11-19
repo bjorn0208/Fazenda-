@@ -1,5 +1,5 @@
 /* Fazenda 3D — service worker (PWA: instala no celular e joga offline) */
-const SW_VERSION = 'fazenda-3d-v44';
+const SW_VERSION = 'fazenda-3d-v45';
 const CORE = ['./', 'index.html', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {

@@ -58,6 +58,7 @@ html, body {
 #game-canvas.mode-shovel { cursor: crosshair; }
 #game-canvas.mode-rotate { cursor: pointer; }
 #game-canvas.mode-plant { cursor: cell; }
+#game-canvas.mode-fert { cursor: cell; }
 #game-canvas.mode-water { cursor: pointer; }
 
 .hidden { display: none !important; }
@@ -768,6 +769,8 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
   <button class="build-btn" id="btn-shovel"><span class="build-icon">🪏</span><span class="build-label" data-i18n="build.shovel">Pá</span></button>
   <button class="build-btn hidden" id="btn-till"><span class="build-icon">⛏️</span><span class="build-label" data-i18n="build.till">Arar</span></button>
   <button class="build-btn hidden" id="btn-plant"><span class="build-icon">🌱</span><span class="build-label" data-i18n="build.plant">Plantar</span></button>
+  <button class="build-btn hidden" id="btn-plantall"><span class="build-icon">🌾</span><span class="build-label" data-i18n="build.plantAll">Plantar Tudo</span></button>
+  <button class="build-btn hidden" id="btn-fert"><span class="build-icon">💩</span><span class="build-label" data-i18n="build.fert">Fertilizar</span></button>
   <button class="build-btn hidden" id="btn-water"><span class="build-icon">💧</span><span class="build-label" data-i18n="build.water">Regar</span></button>
   <button class="build-btn hidden" id="btn-harvestall"><span class="build-icon">🧺</span><span class="build-label" data-i18n="build.harvestAll">Colher Tudo</span></button>
   <button class="build-btn hidden" id="btn-collectall"><span class="build-icon">🥚</span><span class="build-label" data-i18n="build.collectAll">Recolher</span></button>
@@ -787,7 +790,7 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v44</div>
+<div id="debug-badge">v45</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -1146,9 +1149,11 @@ const TOOLS = [
   { id: 'can', icon: '🚿', name: 'Regador', price: 180, level: 2,
     desc: 'Permite regar as plantas para crescerem mais rapido.' },
   { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
-    desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+    desc: 'Colhe as plantacoes prontas e planta a terra arada sozinho, passando fileira por fileira.' },
   { id: 'rod', icon: '🎣', name: 'Vara de Pescar', price: 400, level: 2,
     desc: 'Permite pescar no lago; os peixes sao vendidos na hora.' },
+  { id: 'fert', icon: '💩', name: 'Adubo Orgânico', price: 250, level: 3,
+    desc: 'Ativa o botao Fertilizar: 10 moedas por uso, a plantacao cresce quase 2x mais rapido e colhe em dobro.' },
   { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
     desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];
@@ -1448,6 +1453,8 @@ const game = {
   seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
   tractorOwned: false,    // trator comprado na loja de ferramentas
   rodOwned: false,        // vara de pescar comprada
+  fertOwned: false,       // adubo comprado (ativa o botao Fertilizar)
+  allDayRain: false,      // chuva o dia todo sorteada ao raiar do dia
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
@@ -1623,7 +1630,8 @@ function rotateBuilding(id) {
 /* ---------- Plantações ---------- */
 function cropProgress(crop) {
   const def = CROPS[crop.type];
-  return Math.min(1, (Date.now() - crop.plantedAt) / (def.growTime * 1000));
+  const total = (crop.fert ? def.growTime * 0.55 : def.growTime) * 1000;
+  return Math.min(1, (Date.now() - crop.plantedAt) / total);
 }
 
 function cropAt(x, y) {
@@ -1648,13 +1656,28 @@ function plantCrop(type, gx, gy, free) {
   const bonus = isTilled(gx, gy) ? def.growTime * 1000 * 0.25 : 0;
   const crop = {
     id: game.nextId++, isCrop: true, type, gx, gy,
-    plantedAt: Date.now() - bonus, watered: false
+    plantedAt: Date.now() - bonus, watered: false, fert: false
   };
   game.crops.push(crop);
   occupancy[occIndex(gx, gy)] = crop;
   game.stats.planted = (game.stats.planted || 0) + 1;
   playSound('plant');
   return crop;
+}
+
+/* ---------- Adubo: cresce quase 2x mais rapido e colhe em dobro ---------- */
+const FERT_COST = 10;
+
+function fertilizeCrop(crop) {
+  if (!crop || !crop.isCrop || game.visiting) return false;
+  if (crop.fert) { showToast(t('toast.fertAlready')); return false; }
+  if (cropProgress(crop) >= 1) { showToast(t('toast.fertNothing')); return false; }
+  if (game.coins < FERT_COST) { showToast(t('toast.noCoins')); return false; }
+  addCoins(-FERT_COST);
+  crop.fert = true;
+  spawnFloater(crop.gx, crop.gy, '\u2728', '#ffe082');
+  playSound('plant');
+  return true;
 }
 
 /* ---------- Aracao ---------- */
@@ -1792,6 +1815,7 @@ function toolOwned(id) {
   if (id === 'can') return upgradeLevel('water') > 0;
   if (id === 'tractor') return game.tractorOwned;
   if (id === 'rod') return game.rodOwned;
+  if (id === 'fert') return game.fertOwned;
   return true;
 }
 
@@ -1810,6 +1834,8 @@ function buyTool(id) {
     game.tractor = null;
   } else if (id === 'rod') {
     game.rodOwned = true;
+  } else if (id === 'fert') {
+    game.fertOwned = true;
   } else if (id === 'seeds') {
     for (const c of Object.values(CROPS)) {
       if (c.level <= game.level) game.seeds[c.id] = (game.seeds[c.id] || 0) + 2;
@@ -1828,7 +1854,7 @@ function tractorWalkable(x, y) {
 
 function startTractor() {
   if (!game.tractorOwned) return false;
-  const ready = game.crops.find(c => cropProgress(c) >= 1);
+  const ready = tractorNextTarget({ gx: game.ownedArea.x0 + 1, gy: game.ownedArea.y0 + 1 });
   if (!ready) { showToast(t('toast.tractorNone')); return false; }
   if (!game.tractor) {
     const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
@@ -1841,8 +1867,8 @@ function startTractor() {
   }
   const tr = game.tractor;
   tr.target = null;
-  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), Math.floor(ready.gx + 0.5), Math.floor(ready.gy + 0.5), tractorWalkable) || [];
-  tr.tx = ready.gx + 0.5; tr.ty = ready.gy + 0.5;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), ready.x, ready.y, tractorWalkable) || [];
+  tr.tx = ready.x + 0.5; tr.ty = ready.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
   tr.active = true;
@@ -1852,10 +1878,21 @@ function startTractor() {
 
 function tractorNextTarget(t) {
   let best = null, bestD = Infinity;
+  const consider = (kind, x, y, ref) => {
+    const d = Math.hypot(x + 0.5 - t.gx, y + 0.5 - t.gy);
+    if (d < bestD) { bestD = d; best = { kind, x, y, crop: ref || null }; }
+  };
   for (const c of game.crops) {
     if (cropProgress(c) < 1) continue;
-    const d = Math.hypot(c.gx + 0.5 - t.gx, c.gy + 0.5 - t.gy);
-    if (d < bestD) { bestD = d; best = c; }
+    consider('harvest', c.gx, c.gy, c);
+  }
+  const oa = game.ownedArea;
+  for (let y = oa.y0; y <= oa.y1; y++) {
+    for (let x = oa.x0; x <= oa.x1; x++) {
+      if (!game.tilled[x + ',' + y]) continue;
+      if (occupancy[occIndex(x, y)]) continue;
+      consider('plant', x, y, null);
+    }
   }
   return best;
 }
@@ -1875,10 +1912,18 @@ function updateTractor(dt) {
     }
     if (dist <= step) {
       tr.gx = tr.tx; tr.gy = tr.ty;
-      const occ = occupancy[occIndex(Math.floor(tr.gx), Math.floor(tr.gy))];
+      const tx0 = Math.floor(tr.gx), ty0 = Math.floor(tr.gy);
+      const occ = occupancy[occIndex(tx0, ty0)];
       if (occ && occ.isCrop && cropProgress(occ) >= 1 && !game.visiting) {
         harvestCrop(occ);
         spawnFloater(occ.gx, occ.gy, '🌾', '#c5e1a5');
+      } else if (!occ && game.tilled[tx0 + ',' + ty0] && !game.visiting) {
+        if (!plantCrop(state.selectedSeed, tx0, ty0)) {
+          tr.active = false;
+          tr.walking = false;
+          showToast(t('toast.tractorDone'));
+          return;
+        }
       }
       if (tr.path && tr.path.length) {
         const w = tr.path.shift();
@@ -1899,8 +1944,8 @@ function updateTractor(dt) {
     playSound('level');
     return;
   }
-  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.gx, next.gy, tractorWalkable) || [];
-  tr.tx = next.gx + 0.5; tr.ty = next.gy + 0.5;
+  tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.x, next.y, tractorWalkable) || [];
+  tr.tx = next.x + 0.5; tr.ty = next.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
 }
@@ -2119,7 +2164,16 @@ function dayPhase() {
 function advanceClock(dt) {
   const prev = game.time;
   game.time = (prev + dt / DAY_LENGTH) % 1;
-  if (game.time < prev) { game.meetingDone = false; game.day++; }
+  if (game.time < prev) {
+    game.meetingDone = false;
+    game.day++;
+    game.allDayRain = !game.visiting && Math.random() < 0.3;
+    if (game.allDayRain) {
+      game.weather = 'rain';
+      game.weatherT = DAY_LENGTH;
+      showToast(t('toast.rainDay'));
+    }
+  }
   if (seasonIndex() === 3) game.snow = Math.min(1, game.snow + dt / 180);
   else game.snow = Math.max(0, game.snow - dt / 20);
   checkLevelTasks();
@@ -2151,6 +2205,7 @@ function isSunday() { return weekdayIndex() === 6; }
 function updateWeather(dt) {
   if (game.flashT > 0) game.flashT -= dt;
   if (game.visiting) return;
+  if (game.allDayRain && game.weather !== 'rain') { game.weather = 'rain'; game.weatherT = DAY_LENGTH; }
   if (game.weather === 'rain') {
     game.weatherT -= dt;
     game.weatherTick -= dt;
@@ -2160,7 +2215,7 @@ function updateWeather(dt) {
       if (dry.length) waterCrop(dry[Math.floor(Math.random() * dry.length)], true);
       if (Math.random() < 0.22) { game.flashT = 0.4; playSound('thunder'); }
     }
-    if (game.weatherT <= 0) { game.weather = 'clear'; game.weatherT = 0; }
+    if (game.weatherT <= 0 && !game.allDayRain) { game.weather = 'clear'; game.weatherT = 0; }
   } else {
     game.weatherT -= dt;
     if (game.weatherT <= 0 && game.time > 0.05 && game.time < 0.6 && Math.random() < 0.008) {
@@ -2411,7 +2466,7 @@ function pigReady(a) {
 
 function collectAnimal(a) {
   if (pigReady(a)) {
-    const value = ANIMALS.pig.bacon;
+    const value = ANIMALS.pig.bacon * (a.gold ? 3 : 1);
     const idx = game.animals.indexOf(a);
     if (idx === -1) return false;
     game.animals.splice(idx, 1);
@@ -2423,10 +2478,10 @@ function collectAnimal(a) {
   }
   if (!a.product) return false;
   const def = ANIMALS[a.kind];
-  const value = def.value * a.product;
+  const value = def.value * a.product * (a.gold ? 3 : 1);
   game.stats.collected = (game.stats.collected || 0) + a.product;
   addCoins(value);
-  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙', '#ffd54f');
+  spawnFloater(a.gx - 0.5, a.gy - 0.5, def.product + ' +' + value + ' 🪙' + (a.gold ? ' ✨x3' : ''), '#ffd54f');
   a.product = 0;
   playSound(a.kind || 'harvest');
   return true;
@@ -2492,7 +2547,7 @@ function harvestCrop(crop) {
   if (idx === -1) return null;
   game.crops.splice(idx, 1);
   occupancy[occIndex(crop.gx, crop.gy)] = null;
-  game.barn[def.id] = (game.barn[def.id] || 0) + 1;
+  game.barn[def.id] = (game.barn[def.id] || 0) + (crop.fert ? 2 : 1);
   addXp(def.xp);
   game.stats.harvested = (game.stats.harvested || 0) + 1;
   playSound('harvest');
@@ -2524,7 +2579,7 @@ function isAdult(a) {
   return (a.age === undefined ? 999 : a.age) >= ANIMAL_GROW_S;
 }
 
-function buyAnimal(kind) {
+function buyAnimal(kind, forceGold) {
   const def = ANIMALS[kind];
   if (!def) return false;
   const kindCount = game.animals.filter(a => a.kind === kind).length;
@@ -2536,8 +2591,14 @@ function buyAnimal(kind) {
   const price = animalBuyPrice(kind);
   if (game.coins < price) { showToast(t('toast.noCoins')); return false; }
   addCoins(-price);
-  game.animals.push(makeAnimal(kind, spot));
+  const an = makeAnimal(kind, spot);
+  an.gold = !!forceGold || Math.random() < 0.04;
+  game.animals.push(an);
   game.stats.animals_bought = (game.stats.animals_bought || 0) + 1;
+  if (an.gold) {
+    spawnFloater(spot.x + 0.5, spot.y + 1, '\ud83d\udcab', '#ffd54f');
+    showToast(t('toast.goldAnimal', { icon: def.icon }));
+  }
   playSound('place');
   return true;
 }
@@ -2630,7 +2691,8 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
-    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, snow: game.snow,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
+    allDayRain: game.allDayRain, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
     achievementsClaimed: game.achievementsClaimed,
@@ -2692,7 +2754,8 @@ function applySaveData(data) {
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
-      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, tractor: null,
+      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
+      allDayRain: data.allDayRain ?? false, tractor: null,
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',
@@ -3499,6 +3562,16 @@ function drawCrop(ctx, cam, cw, ch, b) {
         ctx.arc(tipX, base.y - len - 1.5 * z, 2.6 * z, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+  }
+  if (b.fert) {
+    const tw = 0.5 + 0.5 * Math.sin(performance.now() / 300 + b.gx * 3 + b.gy);
+    for (const cop of [[0.18, 0.16], [0.85, 0.28]]) {
+      const fs2 = at(b.gx + cop[0], b.gy + cop[1], 0.3);
+      ctx.fillStyle = 'rgba(255,224,130,' + (0.3 + 0.5 * tw).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(fs2.x, fs2.y - 5 * z, Math.max(1, 1.7 * z * (0.7 + 0.5 * tw)), 0, Math.PI * 2);
+      ctx.fill();
     }
   }
   ctx.lineCap = 'butt';
@@ -5359,6 +5432,26 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+  if (a.gold) {
+    ctx.fillStyle = '#ffd54f';
+    for (let si = 0; si < 3; si++) {
+      const tw = Math.sin(a.phase * 3.1 + si * 2.1);
+      if (tw <= 0.15) continue;
+      const sx = s.x + Math.cos(si * 2.4 + a.phase * 0.4) * 14 * z * k.scale;
+      const sy = s.y - (18 + Math.abs(Math.sin(a.phase * 1.7 + si * 3.1)) * 15) * z * k.scale;
+      const sr = Math.max(1, 2.2 * z * (0.5 + tw));
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - sr * 1.6);
+      ctx.lineTo(sx + sr, sy);
+      ctx.lineTo(sx, sy + sr * 1.6);
+      ctx.lineTo(sx - sr, sy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.font = Math.max(9, 12 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\ud83d\udc51', s.x, s.y - 37 * z * k.scale);
+  }
 }
 
 /* Pato: caminha de nadadeiras curtas em terra, nada de boia no lago */
@@ -6612,7 +6705,7 @@ function updateFarmers(dt) {
         if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
       }
       const dist = Math.hypot(dx, dy);
-      const step = FARMER_SPEED * farmerWorkMul(f) * (f.riding ? 2.5 : 1) * dt;
+      const step = FARMER_SPEED * farmerWorkMul(f) * (f.jobKind === 'harvest' ? 1.5 : 1) * (f.riding ? 2.5 : 1) * dt;
       if (dist <= step) {
         f.gx = f.tx; f.gy = f.ty;
         f.walking = false;
@@ -6695,6 +6788,7 @@ function updateFarmers(dt) {
     }
     if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);
+    f.jobKind = job ? job.kind : null;
 
     if (job && job.kind === 'water') {
       const c = job.target;
@@ -7119,18 +7213,27 @@ const I18N = {
     'toast.toolOwned': 'Ferramenta já comprada.',
     'toast.toolBought': '{icon} {name} comprada!',
     'toast.seedsBought': '{icon} +2 sementes de cada cultura liberada!',
-    'toast.tractorNone': 'Nenhuma plantação pronta para colher.',
-    'toast.tractorGo': 'Trator a caminho! Ele colhe fileira por fileira.',
-    'toast.tractorDone': 'Trator terminou a colheita.',
+    'toast.tractorNone': 'Nada pronto para colher nem terra arada livre.',
+    'toast.tractorGo': 'Trator a caminho! Colhe o pronto e planta a terra arada.',
+    'toast.tractorDone': 'Trator terminou o serviço de campo.',
     'toast.taskDone': '{icon} Tarefa do nível concluída: {label}! +{c} moedas 🪙',
     'tool.hoe': 'Enxada', 'tool.hoe_desc': 'Permite arar a terra para plantar.',
     'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
-    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
+    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas e planta a terra arada sozinho, passando fileira por fileira.',
     'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
     'tool.rod': 'Vara de Pescar', 'tool.rod_desc': 'Permite pescar no lago; os peixes são vendidos na hora.',
+    'tool.fert': 'Adubo Orgânico', 'tool.fert_desc': '10 🪙 por uso: a plantação cresce quase 2x mais rápido e colhe em dobro.',
     'build.fish': 'Pescar',
+    'build.fert': 'Fertilizar',
+    'build.plantAll': 'Plantar Tudo',
     'toast.fishHint': 'Toque no lago para lançar a linha 🎣',
     'toast.fishNeedLake': 'Perto do lago você pesca',
+    'toast.fertHint': '💩 Adubar: toque nas plantações crescendo (🪙 10 cada — cresce quase 2x mais rápido e colhe em dobro)',
+    'toast.fertAlready': 'Essa plantação já está adubada!',
+    'toast.fertNothing': 'Só funciona em plantação crescendo — toque numa plantação!',
+    'toast.plantAll': '🌱 {n} plantações plantadas de uma vez!',
+    'toast.goldAnimal': '✨ Nasceu um {icon} dourado! Ele produz o triplo!',
+    'toast.rainDay': '🌧️ Hoje vai chover o dia todo — as plantas se regam sozinhas!',
     'an_duck': 'Pato', 'an_duck_desc': 'Nada no lago e põe ovos a cada 55s. Toque para coletar.',
     'wd.seg': 'Seg', 'wd.ter': 'Ter', 'wd.qua': 'Qua', 'wd.qui': 'Qui', 'wd.sex': 'Sex', 'wd.sab': 'Sáb', 'wd.dom': 'Dom',
     'wdf.seg': 'Segunda-feira', 'wdf.ter': 'Terça-feira', 'wdf.qua': 'Quarta-feira', 'wdf.qui': 'Quinta-feira', 'wdf.sex': 'Sexta-feira', 'wdf.sab': 'Sábado', 'wdf.dom': 'Domingo',
@@ -7386,18 +7489,27 @@ const I18N = {
     'toast.toolOwned': 'Tool already owned.',
     'toast.toolBought': '{icon} {name} bought!',
     'toast.seedsBought': '{icon} +2 seeds of every unlocked crop!',
-    'toast.tractorNone': 'No ready crops to harvest.',
-    'toast.tractorGo': 'Tractor on the way! It harvests row by row.',
-    'toast.tractorDone': 'The tractor finished harvesting.',
+    'toast.tractorNone': 'Nothing ready to harvest and no free tilled soil.',
+    'toast.tractorGo': 'Tractor on the way! It harvests ready crops and plants tilled soil.',
+    'toast.tractorDone': 'The tractor finished the field work.',
     'toast.taskDone': '{icon} Level task done: {label}! +{c} coins 🪙',
     'tool.hoe': 'Hoe', 'tool.hoe_desc': 'Lets you till the soil for planting.',
     'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
-    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
+    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops and plants tilled soil by itself, row by row.',
     'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
     'tool.rod': 'Fishing Rod', 'tool.rod_desc': 'Lets you fish at the lake; fish are sold instantly.',
     'build.fish': 'Fish',
     'toast.fishHint': 'Tap the lake to cast the line 🎣',
     'toast.fishNeedLake': 'Get closer to the lake to fish',
+    'tool.fert': 'Organic Fertilizer', 'tool.fert_desc': '10 coins each: crops grow almost 2x faster and harvest double.',
+    'build.fert': 'Fertilize',
+    'build.plantAll': 'Plant All',
+    'toast.fertHint': '💩 Fertilize: tap growing crops (10 coins each — almost 2x faster growth, double harvest)',
+    'toast.fertAlready': 'That crop is already fertilized!',
+    'toast.fertNothing': 'Only works on growing crops — tap a crop!',
+    'toast.plantAll': '🌱 {n} crops planted at once!',
+    'toast.goldAnimal': '✨ A golden {icon} was born! It produces triple!',
+    'toast.rainDay': '🌧️ It will rain all day today — crops water themselves!',
     'an_duck': 'Duck', 'an_duck_desc': 'Swims in the lake and lays eggs every 55s. Tap to collect.',
     'wd.seg': 'Mon', 'wd.ter': 'Tue', 'wd.qua': 'Wed', 'wd.qui': 'Thu', 'wd.sex': 'Fri', 'wd.sab': 'Sat', 'wd.dom': 'Sun',
     'wdf.seg': 'Monday', 'wdf.ter': 'Tuesday', 'wdf.qua': 'Wednesday', 'wdf.qui': 'Thursday', 'wdf.sex': 'Friday', 'wdf.sab': 'Saturday', 'wdf.dom': 'Sunday',
@@ -7707,7 +7819,9 @@ function refreshHud() {
     ['btn-collectall', game.animals.length > 0],
     ['btn-pen', game.animals.length > 0],
     ['btn-plot', ownedTill],
-    ['btn-fish', game.rodOwned && !!lakeBuilding()]
+    ['btn-fish', game.rodOwned && !!lakeBuilding()],
+    ['btn-fert', game.fertOwned],
+    ['btn-plantall', ownedTill]
   ];
   for (const gb of gateBtns) {
     const gbEl = $(gb[0]);
@@ -8848,6 +8962,8 @@ function bindUi(handlers) {
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
   $('btn-fish').onclick = () => handlers.fish();
+  $('btn-fert').onclick = () => handlers.fert();
+  $('btn-plantall').onclick = () => handlers.plantAll();
   $('btn-buy').onclick = openBuyMenu;
   $('bctx-move').onclick = () => handlers.ctxMove();
   $('bctx-rotate').onclick = () => handlers.ctxRotate();
@@ -9150,7 +9266,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v44';
+const GAME_VERSION = 'v45';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -9397,6 +9513,13 @@ function handleClick(e) {
     return;
   }
 
+  if (state.mode === 'fert') {
+    const fc = cropAt(g.gx, g.gy);
+    if (!fc) { showToast(t('toast.fertNothing')); return; }
+    if (fertilizeCrop(fc)) { refreshHud(); }
+    return;
+  }
+
   if (state.mode === 'plant') {
     if (!inOwnedArea(g.gx, g.gy)) { showToast(t('toast.invalid')); return; }
     if (buildingAt(g.gx, g.gy)) { showToast(t('toast.tileBusy')); return; }
@@ -9620,10 +9743,10 @@ function setMode(mode) {
   state.fishing = null;
   hideConfirmBar();
   if (mode !== 'plant') hideSeedBar();
-  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish');
+  canvas.classList.remove('mode-build', 'mode-move', 'mode-remove', 'mode-rotate', 'mode-plant', 'mode-water', 'mode-till', 'mode-pen', 'mode-shovel', 'mode-fish', 'mode-fert');
   if (mode !== 'idle') canvas.classList.add('mode-' + mode);
   for (const btn of document.querySelectorAll('.build-btn')) btn.classList.remove('active');
-  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish' };
+  const map = { build: 'btn-build', till: 'btn-till', plant: 'btn-plant', water: 'btn-water', pen: 'btn-pen', plot: 'btn-plot', shovel: 'btn-shovel', fish: 'btn-fish', fert: 'btn-fert' };
   if (map[mode]) $(map[mode]).classList.add('active');
 }
 
@@ -9781,6 +9904,29 @@ const uiHandlers = {
     setMode('fish');
     showToast(t('toast.fishHint'));
   },
+  fert() {
+    playSound('click');
+    if (state.mode === 'fert') { setMode('idle'); return; }
+    setMode('fert');
+    showToast(t('toast.fertHint'));
+  },
+  plantAll() {
+    let n = 0, stop = false;
+    const oa = game.ownedArea;
+    for (let y = oa.y0; y <= oa.y1 && !stop; y++) {
+      for (let x = oa.x0; x <= oa.x1 && !stop; x++) {
+        if (!game.tilled[x + ',' + y]) continue;
+        if (occupancy[occIndex(x, y)]) continue;
+        if (!plantCrop(state.selectedSeed, x, y)) { stop = true; break; }
+        n++;
+      }
+    }
+    if (n > 0) {
+      showToast(t('toast.plantAll', { n }));
+      refreshHud();
+      autoClaimReady();
+    }
+  },
   till() {
     playSound('click');
     if (state.mode === 'till') { setMode('idle'); return; }
@@ -9875,7 +10021,7 @@ window.addEventListener('keydown', e => {
 });
 
 /* Guarda de visita: uma unica vez, fora do handler de teclado */
-for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'plot', 'dog', 'move', 'remove', 'rotate', 'confirmOk']) {
+for (const k of ['build', 'shovel', 'till', 'plant', 'water', 'harvestAll', 'collectAll', 'pen', 'plot', 'dog', 'move', 'remove', 'rotate', 'confirmOk', 'fert', 'plantAll']) {
   const orig = uiHandlers[k];
   uiHandlers[k] = (...a) => {
     if (game.visiting) { showToast(t('toast.visitingBlock')); return; }

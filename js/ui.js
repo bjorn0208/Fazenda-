@@ -187,18 +187,27 @@ const I18N = {
     'toast.toolOwned': 'Ferramenta já comprada.',
     'toast.toolBought': '{icon} {name} comprada!',
     'toast.seedsBought': '{icon} +2 sementes de cada cultura liberada!',
-    'toast.tractorNone': 'Nenhuma plantação pronta para colher.',
-    'toast.tractorGo': 'Trator a caminho! Ele colhe fileira por fileira.',
-    'toast.tractorDone': 'Trator terminou a colheita.',
+    'toast.tractorNone': 'Nada pronto para colher nem terra arada livre.',
+    'toast.tractorGo': 'Trator a caminho! Colhe o pronto e planta a terra arada.',
+    'toast.tractorDone': 'Trator terminou o serviço de campo.',
     'toast.taskDone': '{icon} Tarefa do nível concluída: {label}! +{c} moedas 🪙',
     'tool.hoe': 'Enxada', 'tool.hoe_desc': 'Permite arar a terra para plantar.',
     'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
-    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas sozinho, passando fileira por fileira.',
+    'tool.tractor': 'Trator Colheitadeira', 'tool.tractor_desc': 'Colhe as plantações prontas e planta a terra arada sozinho, passando fileira por fileira.',
     'tool.seeds': 'Pacote de Sementes', 'tool.seeds_desc': 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.',
     'tool.rod': 'Vara de Pescar', 'tool.rod_desc': 'Permite pescar no lago; os peixes são vendidos na hora.',
+    'tool.fert': 'Adubo Orgânico', 'tool.fert_desc': '10 🪙 por uso: a plantação cresce quase 2x mais rápido e colhe em dobro.',
     'build.fish': 'Pescar',
+    'build.fert': 'Fertilizar',
+    'build.plantAll': 'Plantar Tudo',
     'toast.fishHint': 'Toque no lago para lançar a linha 🎣',
     'toast.fishNeedLake': 'Perto do lago você pesca',
+    'toast.fertHint': '💩 Adubar: toque nas plantações crescendo (🪙 10 cada — cresce quase 2x mais rápido e colhe em dobro)',
+    'toast.fertAlready': 'Essa plantação já está adubada!',
+    'toast.fertNothing': 'Só funciona em plantação crescendo — toque numa plantação!',
+    'toast.plantAll': '🌱 {n} plantações plantadas de uma vez!',
+    'toast.goldAnimal': '✨ Nasceu um {icon} dourado! Ele produz o triplo!',
+    'toast.rainDay': '🌧️ Hoje vai chover o dia todo — as plantas se regam sozinhas!',
     'an_duck': 'Pato', 'an_duck_desc': 'Nada no lago e põe ovos a cada 55s. Toque para coletar.',
     'wd.seg': 'Seg', 'wd.ter': 'Ter', 'wd.qua': 'Qua', 'wd.qui': 'Qui', 'wd.sex': 'Sex', 'wd.sab': 'Sáb', 'wd.dom': 'Dom',
     'wdf.seg': 'Segunda-feira', 'wdf.ter': 'Terça-feira', 'wdf.qua': 'Quarta-feira', 'wdf.qui': 'Quinta-feira', 'wdf.sex': 'Sexta-feira', 'wdf.sab': 'Sábado', 'wdf.dom': 'Domingo',
@@ -454,18 +463,27 @@ const I18N = {
     'toast.toolOwned': 'Tool already owned.',
     'toast.toolBought': '{icon} {name} bought!',
     'toast.seedsBought': '{icon} +2 seeds of every unlocked crop!',
-    'toast.tractorNone': 'No ready crops to harvest.',
-    'toast.tractorGo': 'Tractor on the way! It harvests row by row.',
-    'toast.tractorDone': 'The tractor finished harvesting.',
+    'toast.tractorNone': 'Nothing ready to harvest and no free tilled soil.',
+    'toast.tractorGo': 'Tractor on the way! It harvests ready crops and plants tilled soil.',
+    'toast.tractorDone': 'The tractor finished the field work.',
     'toast.taskDone': '{icon} Level task done: {label}! +{c} coins 🪙',
     'tool.hoe': 'Hoe', 'tool.hoe_desc': 'Lets you till the soil for planting.',
     'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
-    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops by itself, row by row.',
+    'tool.tractor': 'Combine Harvester', 'tool.tractor_desc': 'Harvests ready crops and plants tilled soil by itself, row by row.',
     'tool.seeds': 'Seed Pack', 'tool.seeds_desc': 'Adds 2 seeds of each unlocked crop to your stock.',
     'tool.rod': 'Fishing Rod', 'tool.rod_desc': 'Lets you fish at the lake; fish are sold instantly.',
     'build.fish': 'Fish',
     'toast.fishHint': 'Tap the lake to cast the line 🎣',
     'toast.fishNeedLake': 'Get closer to the lake to fish',
+    'tool.fert': 'Organic Fertilizer', 'tool.fert_desc': '10 coins each: crops grow almost 2x faster and harvest double.',
+    'build.fert': 'Fertilize',
+    'build.plantAll': 'Plant All',
+    'toast.fertHint': '💩 Fertilize: tap growing crops (10 coins each — almost 2x faster growth, double harvest)',
+    'toast.fertAlready': 'That crop is already fertilized!',
+    'toast.fertNothing': 'Only works on growing crops — tap a crop!',
+    'toast.plantAll': '🌱 {n} crops planted at once!',
+    'toast.goldAnimal': '✨ A golden {icon} was born! It produces triple!',
+    'toast.rainDay': '🌧️ It will rain all day today — crops water themselves!',
     'an_duck': 'Duck', 'an_duck_desc': 'Swims in the lake and lays eggs every 55s. Tap to collect.',
     'wd.seg': 'Mon', 'wd.ter': 'Tue', 'wd.qua': 'Wed', 'wd.qui': 'Thu', 'wd.sex': 'Fri', 'wd.sab': 'Sat', 'wd.dom': 'Sun',
     'wdf.seg': 'Monday', 'wdf.ter': 'Tuesday', 'wdf.qua': 'Wednesday', 'wdf.qui': 'Thursday', 'wdf.sex': 'Friday', 'wdf.sab': 'Saturday', 'wdf.dom': 'Sunday',
@@ -775,7 +793,9 @@ function refreshHud() {
     ['btn-collectall', game.animals.length > 0],
     ['btn-pen', game.animals.length > 0],
     ['btn-plot', ownedTill],
-    ['btn-fish', game.rodOwned && !!lakeBuilding()]
+    ['btn-fish', game.rodOwned && !!lakeBuilding()],
+    ['btn-fert', game.fertOwned],
+    ['btn-plantall', ownedTill]
   ];
   for (const gb of gateBtns) {
     const gbEl = $(gb[0]);
@@ -1916,6 +1936,8 @@ function bindUi(handlers) {
   $('btn-dog').onclick = () => handlers.dog();
   $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
   $('btn-fish').onclick = () => handlers.fish();
+  $('btn-fert').onclick = () => handlers.fert();
+  $('btn-plantall').onclick = () => handlers.plantAll();
   $('btn-buy').onclick = openBuyMenu;
   $('bctx-move').onclick = () => handlers.ctxMove();
   $('bctx-rotate').onclick = () => handlers.ctxRotate();

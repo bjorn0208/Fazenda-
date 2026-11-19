@@ -910,6 +910,112 @@ vm.runInContext(`
   render(ctx, cam, 800, 600, state);
   fs36.fishing = false; fs36.fishSpot = null;
 
+  // R37: adubo, plantar tudo, trator que planta, chuva o dia todo e animais de ouro
+  if (!TOOLS.some(x => x.id === 'fert')) throw new Error('adubo ausente da loja de ferramentas');
+  game.coins = 999999;
+  game.level = Math.max(game.level || 1, 3);
+  if (!buyTool('fert') || !game.fertOwned) throw new Error('compra do adubo falhou');
+  const freeTile37 = () => {
+    const oa = game.ownedArea;
+    for (let y = oa.y0; y <= oa.y1; y++) for (let x = oa.x0; x <= oa.x1; x++) {
+      if (!occupancy[occIndex(x, y)]) return { x, y };
+    }
+    return null;
+  };
+  const sf37 = freeTile37();
+  if (!sf37) throw new Error('sem tile livre para o teste do adubo');
+  tillSoil(sf37.x, sf37.y);
+  const cf37 = plantCrop('wheat', sf37.x, sf37.y, true);
+  if (!cf37) throw new Error('plantio de teste falhou (adubo)');
+  const coinsF37 = game.coins;
+  if (!fertilizeCrop(cf37)) throw new Error('adubo nao aplicado');
+  if (game.coins !== coinsF37 - 10) throw new Error('adubo nao cobrou 10 moedas');
+  if (!cf37.fert) throw new Error('cultivo sem marca de adubo');
+  const progFert = cropProgress(cf37);
+  const progPlain = Math.min(1, (Date.now() - cf37.plantedAt) / (CROPS.wheat.growTime * 1000));
+  if (!(progFert > progPlain)) throw new Error('adubo nao acelerou o crescimento');
+  if (fertilizeCrop(cf37)) throw new Error('adubo duplo aplicado');
+  cf37.plantedAt = Date.now() - CROPS.wheat.growTime * 1000 * 10;
+  const barnF37 = game.barn.wheat || 0;
+  harvestCrop(cf37);
+  if ((game.barn.wheat || 0) !== barnF37 + 2) throw new Error('adubo nao dobrou a colheita');
+  if (fertilizeCrop(cf37)) throw new Error('adubo aplicado em plantio pronto');
+
+  // trator que planta e colhe (estado do trator restaurado no fim: R29 compra o proprio)
+  const trWas37 = game.tractorOwned;
+  game.tractorOwned = true;
+  game.tractor = null;
+  game.coins = 999999;
+  harvestAllCrops();
+  const st37 = freeTile37();
+  if (!st37) throw new Error('sem tile livre para o trator');
+  tillSoil(st37.x, st37.y);
+  const cropsTr0 = game.crops.length;
+  if (!startTractor()) throw new Error('trator nao partiu com terra arada livre');
+  for (let i = 0; i < 4000 && game.tractor && game.tractor.active; i++) updateTractor(0.25);
+  if (game.crops.length <= cropsTr0) throw new Error('trator nao plantou nada');
+  game.tractor = null;
+  game.tractorOwned = trWas37;
+
+  // plantar tudo
+  const sp37 = freeTile37();
+  if (!sp37) throw new Error('sem tile livre para plantar tudo');
+  tillSoil(sp37.x, sp37.y);
+  const cropsPa0 = game.crops.length;
+  uiHandlers.plantAll();
+  if (game.crops.length <= cropsPa0) throw new Error('plantar tudo nao plantou');
+
+  // fazendeiro assume colheita e anda mais rapido nela
+  const fj37 = game.farmers[0];
+  fj37.walking = false; fj37.inside = false; fj37.sickT = 0; fj37.riding = false;
+  fj37.fishing = false; fj37.jobKind = null; fj37.role = 'all'; fj37.chest = {}; fj37.wait = 0;
+  const fjx = Math.floor(fj37.gx), fjy = Math.floor(fj37.gy);
+  let cj37 = null;
+  for (const djk of [[1, 0], [0, 1], [1, 1], [-1, 0], [0, -1], [2, 0], [0, 2]]) {
+    const x = fjx + djk[0], y = fjy + djk[1];
+    if (inOwnedArea(x, y) && !occupancy[occIndex(x, y)]) { cj37 = plantCrop('wheat', x, y, true); break; }
+  }
+  if (!cj37) throw new Error('sem tile vizinho para teste de colheita');
+  cj37.plantedAt = Date.now() - CROPS.wheat.growTime * 1000 * 10;
+  game.time = 0.4;
+  game.meetingDone = true;
+  game.day = ((game.day | 0) % 6);
+  updateFarmers(0.05);
+  if (fj37.jobKind !== 'harvest') throw new Error('fazendeiro nao assumiu colheita (' + fj37.jobKind + ')');
+
+  // animal de ouro rende o triplo (teste nao-porco: coleta de porco abate)
+  game.coins = 999999;
+  let goldKind = null;
+  for (const k of Object.keys(ANIMALS)) {
+    if (k === 'pig') continue;
+    if (game.animals.filter(a => a.kind === k).length < MAX_PER_KIND) { goldKind = k; break; }
+  }
+  if (!goldKind) throw new Error('nenhum tipo de animal livre para o teste de ouro');
+  const goldDef37 = ANIMALS[goldKind];
+  game.level = Math.max(game.level || 1, goldDef37.level || 1);
+  if (!buyAnimal(goldKind, true)) throw new Error('compra de animal dourado falhou (' + goldKind + ')');
+  const gA37 = game.animals[game.animals.length - 1];
+  if (!gA37.gold) throw new Error('animal dourado nao marcado');
+  if (gA37.kind !== goldKind) throw new Error('animal comprado com tipo errado');
+  gA37.age = 9999; gA37.product = 1; gA37.prodT = 0;
+  const cb37 = game.coins;
+  if (!collectAnimal(gA37)) throw new Error('coleta do animal dourado falhou');
+  if (game.coins - cb37 !== goldDef37.value * 3) throw new Error('ouro nao rende o triplo (' + goldKind + ')');
+  game.coins = 999999;
+
+  // chuva o dia todo
+  game.allDayRain = true;
+  game.weather = 'clear';
+  game.weatherT = 1;
+  updateWeather(0.1);
+  if (game.weather !== 'rain') throw new Error('chuva o dia todo nao ativou');
+  updateWeather(2);
+  if (game.weather !== 'rain') throw new Error('chuva o dia todo nao segurou');
+  game.allDayRain = false;
+  game.weather = 'clear';
+  game.weatherT = 0;
+  game.flashT = 0;
+
   // R32: lote arado compravel
   game.coins = 999999;
   let plotDone = false;
@@ -967,7 +1073,7 @@ vm.runInContext(`
   if (!startTractor()) throw new Error('trator nao partiu');
   for (let i = 0; i < 3000 && game.tractor.active; i++) updateTractor(0.05);
   if (game.tractor.active) throw new Error('trator nao terminou');
-  if (game.crops.some(c => c.type === 'wheat' && c.gx === 35 && c.gy === 34)) throw new Error('trator nao colheu a fileira');
+  if (game.crops.some(c => c.id === wch.id)) throw new Error('trator nao colheu a fileira'); // replantar no mesmo lugar nao conta (R37)
 
   // R29: neve acumula no inverno derrete fora dele
   game.day = 150; game.snow = 0;

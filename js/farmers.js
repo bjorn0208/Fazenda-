@@ -505,7 +505,7 @@ function updateFarmers(dt) {
         if (Math.abs(fx) >= 0.15) f.lastDir = fx >= 0 ? 1 : -1;
       }
       const dist = Math.hypot(dx, dy);
-      const step = FARMER_SPEED * farmerWorkMul(f) * (f.riding ? 2.5 : 1) * dt;
+      const step = FARMER_SPEED * farmerWorkMul(f) * (f.jobKind === 'harvest' ? 1.5 : 1) * (f.riding ? 2.5 : 1) * dt;
       if (dist <= step) {
         f.gx = f.tx; f.gy = f.ty;
         f.walking = false;
@@ -588,6 +588,7 @@ function updateFarmers(dt) {
     }
     if (H < 8.5 || H >= 19) continue;
     const job = farmerFindJob(f);
+    f.jobKind = job ? job.kind : null;
 
     if (job && job.kind === 'water') {
       const c = job.target;

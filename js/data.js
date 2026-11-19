@@ -311,9 +311,11 @@ const TOOLS = [
   { id: 'can', icon: '🚿', name: 'Regador', price: 180, level: 2,
     desc: 'Permite regar as plantas para crescerem mais rapido.' },
   { id: 'tractor', icon: '🚜', name: 'Trator Colheitadeira', price: 8000, level: 8,
-    desc: 'Colhe as plantacoes prontas sozinho, passando fileira por fileira.' },
+    desc: 'Colhe as plantacoes prontas e planta a terra arada sozinho, passando fileira por fileira.' },
   { id: 'rod', icon: '🎣', name: 'Vara de Pescar', price: 400, level: 2,
     desc: 'Permite pescar no lago; os peixes sao vendidos na hora.' },
+  { id: 'fert', icon: '💩', name: 'Adubo Orgânico', price: 250, level: 3,
+    desc: 'Ativa o botao Fertilizar: 10 moedas por uso, a plantacao cresce quase 2x mais rapido e colhe em dobro.' },
   { id: 'seeds', icon: '🌱', name: 'Pacote de Sementes', price: 0, level: 1,
     desc: 'Adiciona 2 sementes de cada cultura liberada ao seu estoque.' }
 ];

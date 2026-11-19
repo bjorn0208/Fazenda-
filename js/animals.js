@@ -349,6 +349,26 @@ function drawAnimal(ctx, cam, cw, ch, a) {
     ctx.textAlign = 'center';
     ctx.fillText(icon, s.x, s.y - 30 * z * k.scale + bob2);
   }
+  if (a.gold) {
+    ctx.fillStyle = '#ffd54f';
+    for (let si = 0; si < 3; si++) {
+      const tw = Math.sin(a.phase * 3.1 + si * 2.1);
+      if (tw <= 0.15) continue;
+      const sx = s.x + Math.cos(si * 2.4 + a.phase * 0.4) * 14 * z * k.scale;
+      const sy = s.y - (18 + Math.abs(Math.sin(a.phase * 1.7 + si * 3.1)) * 15) * z * k.scale;
+      const sr = Math.max(1, 2.2 * z * (0.5 + tw));
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - sr * 1.6);
+      ctx.lineTo(sx + sr, sy);
+      ctx.lineTo(sx, sy + sr * 1.6);
+      ctx.lineTo(sx - sr, sy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.font = Math.max(9, 12 * z) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\ud83d\udc51', s.x, s.y - 37 * z * k.scale);
+  }
 }
 
 /* Pato: caminha de nadadeiras curtas em terra, nada de boia no lago */

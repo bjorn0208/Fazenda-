@@ -45,6 +45,7 @@ html, body {
 #game-canvas.mode-shovel { cursor: crosshair; }
 #game-canvas.mode-rotate { cursor: pointer; }
 #game-canvas.mode-plant { cursor: cell; }
+#game-canvas.mode-fert { cursor: cell; }
 #game-canvas.mode-water { cursor: pointer; }
 
 .hidden { display: none !important; }

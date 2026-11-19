@@ -683,6 +683,16 @@ function drawCrop(ctx, cam, cw, ch, b) {
       }
     }
   }
+  if (b.fert) {
+    const tw = 0.5 + 0.5 * Math.sin(performance.now() / 300 + b.gx * 3 + b.gy);
+    for (const cop of [[0.18, 0.16], [0.85, 0.28]]) {
+      const fs2 = at(b.gx + cop[0], b.gy + cop[1], 0.3);
+      ctx.fillStyle = 'rgba(255,224,130,' + (0.3 + 0.5 * tw).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(fs2.x, fs2.y - 5 * z, Math.max(1, 1.7 * z * (0.7 + 0.5 * tw)), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   ctx.lineCap = 'butt';
 
   const center = at(b.gx + 0.5, b.gy + 0.5, 0);
