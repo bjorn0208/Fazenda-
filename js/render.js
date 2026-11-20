@@ -1120,6 +1120,16 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     ctx.closePath(); ctx.fill();
   }
 
+  // Girar: areas quadradas (decoracoes como espantalho e moinho) giram espelhando o desenho
+  const mirrorOn = w === d && b.rot % 2 === 1 && b.type !== 'signpost';
+  if (mirrorOn) {
+    const cp = projectPoint(gx + w / 2, gy + d / 2, 0);
+    const cs = worldToScreen(cam, cp.x, cp.y, cw, ch);
+    ctx.save();
+    ctx.translate(2 * cs.x, 0);
+    ctx.scale(-1, 1);
+  }
+
   switch (b.type) {
     case 'house':   drawHouse(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'barn':    drawBarn(ctx, cam, cw, ch, gx, gy, w, d, q); break;
@@ -1149,6 +1159,8 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'fountain': drawFountain(ctx, cam, cw, ch, gx, gy, w, d); break;
     case 'windmill': drawWindmill(ctx, cam, cw, ch, gx, gy, w, d); break;
   }
+
+  if (mirrorOn) ctx.restore();
 }
 
 /* --- Casa: paredes, telhado, chaminé com fumaça, janelas acesas, arbustos --- */

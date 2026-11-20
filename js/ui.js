@@ -189,7 +189,9 @@ const I18N = {
     'toast.seedsBought': '{icon} +2 sementes de cada cultura liberada!',
     'toast.tractorNone': 'Nada pronto para colher nem terra arada livre.',
     'toast.tractorGo': 'Trator a caminho! Colhe o pronto e planta a terra arada.',
-    'toast.tractorDone': 'Trator terminou o serviço de campo.',
+    'toast.tractorDone': 'Trator terminou o servi\u00e7o de campo.',
+    'toast.tractorOff': 'Trator desligado. Ele fica estacionado ate voce ligar de novo.',
+    'toast.tractorNoSeeds': 'Trator parado: acabaram as sementes do bau.',
     'toast.taskDone': '{icon} Tarefa do nível concluída: {label}! +{c} moedas 🪙',
     'tool.hoe': 'Enxada', 'tool.hoe_desc': 'Permite arar a terra para plantar.',
     'tool.can': 'Regador', 'tool.can_desc': 'Permite regar as plantas para crescerem mais rápido.',
@@ -468,6 +470,8 @@ const I18N = {
     'toast.tractorNone': 'Nothing ready to harvest and no free tilled soil.',
     'toast.tractorGo': 'Tractor on the way! It harvests ready crops and plants tilled soil.',
     'toast.tractorDone': 'The tractor finished the field work.',
+    'toast.tractorOff': 'Tractor turned off. It stays parked until you switch it on.',
+    'toast.tractorNoSeeds': 'Tractor stopped: the seed chest is empty.',
     'toast.taskDone': '{icon} Level task done: {label}! +{c} coins 🪙',
     'tool.hoe': 'Hoe', 'tool.hoe_desc': 'Lets you till the soil for planting.',
     'tool.can': 'Watering Can', 'tool.can_desc': 'Lets you water crops so they grow faster.',
@@ -786,7 +790,10 @@ function refreshHud() {
     dogBtn.classList.toggle('active', game.dogs.some(d => d.active));
   }
   const tractorBtn = $('btn-tractor');
-  if (tractorBtn) tractorBtn.classList.toggle('hidden', !game.tractorOwned);
+  if (tractorBtn) {
+    tractorBtn.classList.toggle('hidden', !game.tractorOwned);
+    tractorBtn.classList.toggle('active', !!game.tractorOn);
+  }
   const ownedTill = upgradeLevel('till') > 0;
   const ownedWater = upgradeLevel('water') > 0;
   const gateBtns = [
@@ -1938,7 +1945,7 @@ function bindUi(handlers) {
   $('btn-pen').onclick = () => handlers.pen();
   $('btn-plot').onclick = () => handlers.plot();
   $('btn-dog').onclick = () => handlers.dog();
-  $('btn-tractor').onclick = () => { if (!game.visiting) startTractor(); };
+  $('btn-tractor').onclick = () => { if (!game.visiting) toggleTractor(); };
   $('btn-fish').onclick = () => handlers.fish();
   $('btn-fert').onclick = () => handlers.fert();
   $('btn-plantall').onclick = () => handlers.plantAll();

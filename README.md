@@ -179,6 +179,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 40 — Trator com liga/desliga, estoque tipo baú e decorações que giram
+
+- 🚜 **Interruptor do trator**: o botão do trator agora liga e desliga a máquina. Desligada, ela fica estacionada e não sai do lugar; ligada, varre a lavoura sozinha continuamente (colhe o pronto e planta a terra arada), e volta ao trabalho sozinha quando surgir serviço novo. O botão fica verde quando a máquina está ligada.
+- 🧪 **Estoque tipo baú**: o trator planta somente as sementes que existem no estoque (como o baú dos fazendeiros). Acabou a semente, ele para e avisa — **nunca mais gasta moedas comprando sementes por conta própria**. A semente usada é a escolhida na barra de sementes; se ela não tiver no estoque, ele usa a que tiver em maior quantidade.
+- 🙌 **Girar decorações**: o ↻ Girar do menu de contexto agora funciona para **todas** as construções e decorações — inclusive espantalho, moinho, banco, fonte etc. Áreas quadradas (1×1, 3×3) giram espelhando o desenho, com pré-visualização no fantasma.
+- 💾 Salva com a partida: o trator mantém o estado ligado/desligado entre sessões (sai desligado quando comprado).
+
 ## Revisão 39 — Fim das linhas no lago: taboas consertadas e peixes como peixes
 
 - **Causa raiz das "linhas de pesca" enfim encontrada** 🔎: taboas, vitorias-regias e sapos do lago re-projetavam uma coordenada que ja estava em pixels do mundo com `projectPoint` de novo (dupla projecao) — o topo da haste saia a milhares de pixels de distancia, pintando tracos retos e curvos atravessando a agua, sem nenhum pescador por perto. Com isso a haste da taboa ficava com 500+ px de comprimento, igual a uma linha de vara fantasma.

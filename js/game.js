@@ -37,6 +37,7 @@ const game = {
   upgrades: { water: 0, till: 0 },   // 0 = ferramenta ainda nao comprada
   seeds: {},              // estoque de sementes do jogador: {wheat: 3, ...}
   tractorOwned: false,    // trator comprado na loja de ferramentas
+  tractorOn: false,       // interruptor do trator: ligado trabalha sozinho
   rodOwned: false,        // vara de pescar comprada
   fertOwned: false,       // adubo comprado (ativa o botao Fertilizar)
   allDayRain: false,      // chuva o dia todo sorteada ao raiar do dia
@@ -419,6 +420,7 @@ function buyTool(id) {
   else if (id === 'can') game.upgrades.water = 1;
   else if (id === 'tractor') {
     game.tractorOwned = true;
+    game.tractorOn = false;   // maquina nova sai desligada da loja
     game.tractor = null;
   } else if (id === 'rod') {
     game.rodOwned = true;
@@ -440,21 +442,28 @@ function tractorWalkable(x, y) {
   return !occ || occ.isCrop;
 }
 
+function spawnTractor() {
+  if (game.tractor) return;
+  const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
+  for (let tries = 0; tries < 200; tries++) {
+    const x = game.ownedArea.x0 + Math.floor(Math.random() * (game.ownedArea.x1 - game.ownedArea.x0 + 1));
+    const y = game.ownedArea.y0 + Math.floor(Math.random() * (game.ownedArea.y1 - game.ownedArea.y0 + 1));
+    if (tractorWalkable(x, y)) { spot.x = x; spot.y = y; break; }
+  }
+  game.tractor = { gx: spot.x + 0.5, gy: spot.y + 0.5, tx: spot.x + 0.5, ty: spot.y + 0.5, path: [], phase: 0, smokeT: 0, walking: false };
+}
+
 function startTractor() {
-  if (!game.tractorOwned) return false;
+  if (!game.tractorOwned || !game.tractorOn) return false;
   const ready = tractorNextTarget({ gx: game.ownedArea.x0 + 1, gy: game.ownedArea.y0 + 1 });
   if (!ready) { showToast(t('toast.tractorNone')); return false; }
-  if (!game.tractor) {
-    const spot = { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) };
-    for (let tries = 0; tries < 200; tries++) {
-      const x = game.ownedArea.x0 + Math.floor(Math.random() * (game.ownedArea.x1 - game.ownedArea.x0 + 1));
-      const y = game.ownedArea.y0 + Math.floor(Math.random() * (game.ownedArea.y1 - game.ownedArea.y0 + 1));
-      if (tractorWalkable(x, y)) { spot.x = x; spot.y = y; break; }
-    }
-    game.tractor = { gx: spot.x + 0.5, gy: spot.y + 0.5, tx: spot.x + 0.5, ty: spot.y + 0.5, path: [], phase: 0, smokeT: 0, walking: false };
-  }
+  spawnTractor();
   const tr = game.tractor;
   tr.target = null;
+  tr.idleTold = false;
+  tr.outOfSeeds = false;
+  tr.seedType = ready.seed || null;
+  tr.active = true;
   tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), ready.x, ready.y, tractorWalkable) || [];
   tr.tx = ready.x + 0.5; tr.ty = ready.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
@@ -464,22 +473,61 @@ function startTractor() {
   return true;
 }
 
+/* Interruptor do trator: liga (trabalha varrendo a lavoura) e desliga (fica estacionado) */
+function toggleTractor() {
+  if (!game.tractorOwned) return false;
+  if (!game.tractorOn) {
+    game.tractorOn = true;
+    spawnTractor();
+    if (game.tractor) game.tractor.outOfSeeds = false;
+    const gotWork = startTractor();
+    if (game.tractor) {
+      game.tractor.active = true;        // fica ligado mesmo sem servico agora: continua vendo o campo
+      game.tractor.idleTold = !gotWork;  // startTractor ja avisou quando nao ha nada a fazer
+    }
+    playSound('place');
+    refreshHud();
+    return true;
+  }
+  game.tractorOn = false;
+  if (game.tractor) { game.tractor.active = false; game.tractor.walking = false; }
+  showToast(t('toast.tractorOff'));
+  playSound('remove');
+  refreshHud();
+  return false;
+}
+
+/* Semente do trator: como o bau dos fazendeiros, planta so o que existe no estoque */
+function tractorSeedType() {
+  const pref = state.selectedSeed;
+  if (pref && (game.seeds[pref] || 0) > 0) return pref;
+  let bestT = null, bestN = 0;
+  for (const id of Object.keys(game.seeds)) {
+    const n = game.seeds[id] || 0;
+    if (n > bestN && CROPS[id]) { bestT = id; bestN = n; }
+  }
+  return bestT;
+}
+
 function tractorNextTarget(t) {
   let best = null, bestD = Infinity;
-  const consider = (kind, x, y, ref) => {
+  const consider = (kind, x, y, ref, seed) => {
     const d = Math.hypot(x + 0.5 - t.gx, y + 0.5 - t.gy);
-    if (d < bestD) { bestD = d; best = { kind, x, y, crop: ref || null }; }
+    if (d < bestD) { bestD = d; best = { kind, x, y, crop: ref || null, seed: seed || null }; }
   };
   for (const c of game.crops) {
     if (cropProgress(c) < 1) continue;
     consider('harvest', c.gx, c.gy, c);
   }
-  const oa = game.ownedArea;
-  for (let y = oa.y0; y <= oa.y1; y++) {
-    for (let x = oa.x0; x <= oa.x1; x++) {
-      if (!game.tilled[x + ',' + y]) continue;
-      if (occupancy[occIndex(x, y)]) continue;
-      consider('plant', x, y, null);
+  const seedT = tractorSeedType();
+  if (seedT) {   // sem sementes no estoque o trator nao tem alvo de plantio
+    const oa = game.ownedArea;
+    for (let y = oa.y0; y <= oa.y1; y++) {
+      for (let x = oa.x0; x <= oa.x1; x++) {
+        if (!game.tilled[x + ',' + y]) continue;
+        if (occupancy[occIndex(x, y)]) continue;
+        consider('plant', x, y, null, seedT);
+      }
     }
   }
   return best;
@@ -487,7 +535,7 @@ function tractorNextTarget(t) {
 
 function updateTractor(dt) {
   const tr = game.tractor;
-  if (!tr || !tr.active) return;
+  if (!tr || !tr.active || !game.tractorOn) return;
   tr.phase += dt;
   if (tr.walking) {
     const dx = tr.tx - tr.gx, dy = tr.ty - tr.gy;
@@ -506,10 +554,17 @@ function updateTractor(dt) {
         harvestCrop(occ);
         spawnFloater(occ.gx, occ.gy, '🌾', '#c5e1a5');
       } else if (!occ && game.tilled[tx0 + ',' + ty0] && !game.visiting) {
-        if (!plantCrop(state.selectedSeed, tx0, ty0)) {
-          tr.active = false;
+        // trator planta so o que tem no bau (estoque), sem comprar sementes
+        const st = tr.seedType;
+        if (st && (game.seeds[st] || 0) > 0) {
+          game.seeds[st]--;
+          if (game.seeds[st] <= 0) delete game.seeds[st];
+          plantCrop(st, tx0, ty0, true);
+          tr.outOfSeeds = false;
+        } else {
+          tr.outOfSeeds = true;
           tr.walking = false;
-          showToast(t('toast.tractorDone'));
+          tr.idleTold = false;
           return;
         }
       }
@@ -527,11 +582,19 @@ function updateTractor(dt) {
   }
   const next = tractorNextTarget(tr);
   if (!next) {
-    tr.active = false;
-    showToast(t('toast.tractorDone'));
-    playSound('level');
+    maquina: {
+      tr.walking = false;
+      if (!tr.idleTold) {
+        tr.idleTold = true;
+        if (tr.outOfSeeds) { tr.outOfSeeds = false; showToast(t('toast.tractorNoSeeds')); }
+        else { showToast(t('toast.tractorDone')); playSound('level'); }
+      }
+      break maquina;
+    }
     return;
   }
+  tr.seedType = next.seed || null;
+  tr.idleTold = false;
   tr.path = gridPath(Math.floor(tr.gx), Math.floor(tr.gy), next.x, next.y, tractorWalkable) || [];
   tr.tx = next.x + 0.5; tr.ty = next.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
@@ -1291,7 +1354,7 @@ function snapshotData() {
     day: game.day, weather: game.weather, weatherT: game.weatherT,
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
-    seeds: game.seeds, tractorOwned: game.tractorOwned, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
+    seeds: game.seeds, tractorOwned: game.tractorOwned, tractorOn: game.tractorOn, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
     allDayRain: game.allDayRain, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
@@ -1354,7 +1417,7 @@ function applySaveData(data) {
       day: data.day ?? 0,
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
-      tractorOwned: data.tractorOwned ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
+      tractorOwned: data.tractorOwned ?? false, tractorOn: data.tractorOn ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
       allDayRain: data.allDayRain ?? false, tractor: null,
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',

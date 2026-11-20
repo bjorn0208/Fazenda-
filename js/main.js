@@ -54,7 +54,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v47';
+const GAME_VERSION = 'v48';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {
@@ -487,7 +487,7 @@ function updateBuildingCtx(cam, cw, ch) {
     return;
   }
   const def = BUILDINGS[sel.type];
-  const canRot = def.w !== 1 || def.d !== 1 || sel.type === 'fence';
+  const canRot = true;   // girar liberado para toda construcao e decoracao (espantalho, moinho...)
   const showPanel = CTX_PANEL_TYPES.indexOf(sel.type) !== -1;
   el.style.display = 'block';
   const kids = [];

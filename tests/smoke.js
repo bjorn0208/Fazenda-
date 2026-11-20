@@ -1053,16 +1053,22 @@ vm.runInContext(`
   const trWas37 = game.tractorOwned;
   game.tractorOwned = true;
   game.tractor = null;
+  game.tractorOn = true;
   game.coins = 999999;
+  game.seeds.wheat = (game.seeds.wheat || 0) + 50;
   harvestAllCrops();
   const st37 = freeTile37();
   if (!st37) throw new Error('sem tile livre para o trator');
   tillSoil(st37.x, st37.y);
   const cropsTr0 = game.crops.length;
   if (!startTractor()) throw new Error('trator nao partiu com terra arada livre');
-  for (let i = 0; i < 4000 && game.tractor && game.tractor.active; i++) updateTractor(0.25);
+  let idle37 = false;
+  for (let i = 0; i < 4000; i++) { updateTractor(0.25); if (game.tractor.idleTold) { idle37 = true; break; } }
+  if (!idle37) throw new Error('trator nao avisou fim de servico (R37)');
   if (game.crops.length <= cropsTr0) throw new Error('trator nao plantou nada');
+  if (game.seeds.wheat === undefined || game.seeds.wheat >= 50) throw new Error('trator nao consumiu sementes do estoque');
   game.tractor = null;
+  game.tractorOn = false;
   game.tractorOwned = trWas37;
 
   // plantar tudo
@@ -1175,12 +1181,18 @@ vm.runInContext(`
   game.level = 9;
   if (!buyTool('tractor')) throw new Error('compra do trator falhou');
   if (!game.tractorOwned) throw new Error('trator nao registrado');
+  if (game.tractorOn) throw new Error('trator deveria vir desligado da loja');
   game.tilled['35,34'] = 1;
   const wch = plantCrop('wheat', 35, 34);
   wch.plantedAt -= CROPS.wheat.growTime * 1000;
-  if (!startTractor()) throw new Error('trator nao partiu');
-  for (let i = 0; i < 3000 && game.tractor.active; i++) updateTractor(0.05);
-  if (game.tractor.active) throw new Error('trator nao terminou');
+  const coinsTr29 = game.coins;
+  if (!toggleTractor()) throw new Error('trator nao ligou no interruptor');
+  if (!game.tractorOn || !game.tractor.active) throw new Error('trator deveria estar ligado');
+  for (let i = 0; i < 3000; i++) { updateTractor(0.05); if (game.tractor.idleTold) break; }
+  if (!game.tractor.idleTold) throw new Error('trator nao terminou');
+  if (toggleTractor()) throw new Error('interruptor nao desligou');
+  if (game.tractorOn || game.tractor.active) throw new Error('trator deveria estar desligado');
+  if (game.coins !== coinsTr29) throw new Error('trator gastou moedas comprando sementes');
   if (game.crops.some(c => c.id === wch.id)) throw new Error('trator nao colheu a fileira'); // replantar no mesmo lugar nao conta (R37)
 
   // R29: neve acumula no inverno derrete fora dele
@@ -1236,6 +1248,67 @@ vm.runInContext(`
   localStorage.setItem(SAVE_KEY, '{quebrado');
   if (!loadGame()) throw new Error('loadGame falhou com save principal corrompido');
   if (game.coins !== coinsBak) throw new Error('backup rotativo nao restaurou o save anterior');
+
+  // R40: interruptor liga/desliga do trator, estoque tipo bau e girar decoracoes
+  const trWas40 = game.tractorOwned;
+  game.tractorOwned = true;
+  game.tractor = null;
+  game.tractorOn = false;
+  game.coins = 999999;
+  game.seeds = {};
+  for (const c40r of game.crops) c40r.plantedAt = Date.now();
+  if (tractorSeedType() !== null) throw new Error('semente deveria ser nula com estoque vazio');
+  if (!toggleTractor()) throw new Error('trator nao ligou (R40)');
+  if (!game.tractorOn || !game.tractor.active) throw new Error('trator deveria ficar ligado sem servico');
+  const g40 = game.tractor.gx, co40 = game.coins;
+  updateTractor(0.5);
+  if (game.tractor.gx !== g40) throw new Error('trator ligado sem servico deveria ficar parado');
+  if (game.coins !== co40) throw new Error('trator gastou moedas sem servico');
+  game.seeds.wheat = 3;
+  const free40 = () => {
+    const oa40 = game.ownedArea;
+    for (let y = oa40.y0; y <= oa40.y1; y++) for (let x = oa40.x0; x <= oa40.x1; x++) {
+      if (!occupancy[occIndex(x, y)]) return { x, y };
+    }
+    return null;
+  };
+  const sf40 = free40();
+  if (!sf40) throw new Error('sem tile livre (R40)');
+  tillSoil(sf40.x, sf40.y);
+  if (tractorSeedType() !== 'wheat') throw new Error('semente preferida deveria ser wheat');
+  const crops40 = game.crops.length;
+  const coins40 = game.coins;
+  let idle40 = false;
+  for (let i = 0; i < 4000; i++) { updateTractor(0.1); if (game.tractor.idleTold) { idle40 = true; break; } }
+  if (!idle40) throw new Error('trator nao avisou fim de servico (R40)');
+  if (game.crops.length <= crops40) throw new Error('trator nao plantou do estoque');
+  const planted40 = game.crops.length - crops40;
+  if ((game.seeds.wheat || 0) !== 3 - planted40) throw new Error('estoque de sementes deveria baixar 1 por plantio: plantou ' + planted40 + ', ficou ' + game.seeds.wheat);
+  if (game.coins !== coins40) throw new Error('trator deve plantar sem gastar moedas');
+  if (toggleTractor()) throw new Error('trator nao desligou (R40)');
+  if (game.tractorOn || game.tractor.active) throw new Error('trator desligado deveria parar');
+  if (game.tractor.walking) throw new Error('trator desligado nao deveria estar andando');
+  if (!toggleTractor()) throw new Error('segunda alternancia deveria ligar');
+  if (!game.tractorOn) throw new Error('religada nao marcou tractorOn');
+  if (toggleTractor()) throw new Error('alternancia rapida deveria desligar');
+  game.tractor = null;
+  game.tractorOn = false;
+  game.tractorOwned = trWas40;
+
+  // R40: girar decoracoes (espantalho com rotacao 1 espelha o desenho sem erro)
+  const def40 = BUILDINGS.scarecrow;
+  if (def40.w !== 1 || def40.d !== 1) throw new Error('espantalho deveria ser 1x1');
+  const sc40 = free40();
+  if (!sc40) throw new Error('sem tile livre para espantalho');
+  if (!canPlace('scarecrow', sc40.x, sc40.y, 1)) throw new Error('espantalho sem rotacao valida');
+  const scId40 = placeBuilding('scarecrow', sc40.x, sc40.y, 1, true);
+  if (!scId40) throw new Error('espantalho nao colocado com rotacao');
+  render(ctx, cam, 800, 600, state);
+  state.selId = scId40;
+  updateBuildingCtx(cam, 800, 600);
+  state.selId = null;
+  updateBuildingCtx(cam, 800, 600);
+  removeBuilding(scId40);
 
   // reset: apaga os 3 slots e trava o autosave ate recarregar
   saveGame(false);
