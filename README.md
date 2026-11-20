@@ -179,6 +179,16 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 38 — Dia de pesca reforçado, 3 peixes coloridos e salário dos fazendeiros
+
+- **Fim das "varas fantasmas"**: os taboas que ficavam dentro da água do lago pareciam varas de pescar plantadas sem pescadores — agora crescem na margem de areia, fora da água.
+- **Pesca dos fazendeiros só no domingo, das 9h às 16h**: durante a semana eles só trabalham. No domingo, a partir das 9h eles caminham até a margem, armam a vara e ficam pescando no lago.
+- **Fisgada com tempo real**: cada peixe demora de **15 a 20 segundos** para morder (antes variava bem menos).
+- **O peixe é deles**: os fazendeiros não entregam mais peixe para o jogador — cada peixe pescado fica para eles mesmos (sem moedas para o seu balanço).
+- **3 tipos de peixe com cores diferentes**: lambari azul-claro (comum), tilapia verde (média) e dourado laranja (raro, 8%) — no lago, na bóia e na fisgada, cada espécie mostra a própria cor.
+- **Salário dos fazendeiros 💸**: **todo dia 10 do mês** cada fazendeiro recebe **R$ 20.000** — descontado das suas moedas automaticamente. Se a grana não cobrir, eles ficam tristes até o próximo pagamento.
+- Service worker e cache atualizados para **v46**.
+
 ## Revisão 37 — Novas habilidades: adubo, plantar tudo, chuva o dia todo, trator que planta e animais de ouro
 
 - **Adubo Orgânico (💩, 250 moedas na loja de ferramentas)**: novo botão **Fertilizar** na barra inferior. Cada uso custa 10 moedas: a plantação adubada cresce quase 2x mais rápido (55% do tempo) e a colheita rende **2 unidades** em vez de 1. Cultivo adubado brilha com pontinhos dourados no canteiro. Não dá para adubar plantio pronto ou já adubado (o jogo avisa).

@@ -251,6 +251,7 @@ vm.runInContext(`
   for (let i = 0; i < 105; i++) buyAnimal('chicken');
   const chickens = game.animals.filter(a => a.kind === 'chicken').length;
   if (chickens !== 100) throw new Error('limite de 100 por especie falhou: ' + chickens);
+  for (const a of game.animals) a.gold = false; // testes de valor abaixo assumem animais comuns (R38 ouro e sorteado)
   updateAnimals(0.016);
   render(ctx, cam, 800, 600, state);
 
@@ -909,6 +910,60 @@ vm.runInContext(`
   fs36.gx = fs36.fishSpot.x + 0.4; fs36.gy = fs36.fishSpot.y + 0.4;
   render(ctx, cam, 800, 600, state);
   fs36.fishing = false; fs36.fishSpot = null;
+
+  // R38: pesca so no domingo das 9h as 16h, peixe fica com o fazendeiro, 3 peixes coloridos e salario no dia 10
+  if (FISH.length !== 3 || FISH.some(x => !x.color || !x.icon || !x.value)) throw new Error('catalogo de peixes deve ter 3 tipos coloridos');
+  const chSum38 = FISH.reduce((acc, x) => acc + x.chance, 0);
+  if (Math.abs(chSum38 - 1) > 0.002) throw new Error('chances dos peixes nao somam 1');
+  let lk38 = lakeBuilding();
+  if (!lk38) {
+    const oa38 = game.ownedArea;
+    for (let y = oa38.y0; y <= oa38.y1 - 6 && !lk38; y++) {
+      for (let x = oa38.x0; x <= oa38.x1 - 6 && !lk38; x++) {
+        if (canPlace('lake', x, y, 0)) lk38 = placeBuilding('lake', x, y, 0, true);
+      }
+    }
+  }
+  const fw38 = game.farmers[0];
+  if (lk38 && fw38) {
+    const sh38 = randomLakeShoreTile();
+    fw38.walking = false; fw38.inside = false; fw38.sickT = 0; fw38.riding = false;
+    fw38.fishing = false; fw38.fishSpot = null; fw38.fishT = undefined; fw38.wait = 0;
+    fw38.barDone = true; fw38.role = 'all'; fw38.jobKind = null;
+    if (sh38) { fw38.fishSpot = sh38; fw38.gx = sh38.x + 0.5; fw38.gy = sh38.y + 0.5; }
+    game.day = 6; game.time = 8 / 24; game.meetingDone = true;
+    updateFarmers(0.05);
+    if (!fw38.fishing) throw new Error('fazendeiro deveria pescar no domingo entre 9h e 16h');
+    if (!(fw38.fishT >= 14.5 && fw38.fishT <= 20.5)) throw new Error('fisgada fora da faixa de 15 a 20 s');
+    const coins38 = game.coins;
+    fw38.fishT = 0.05;
+    let got38 = false;
+    for (let i = 0; i < 40 && !got38; i++) { updateFarmers(0.05); got38 = fw38.fishT >= 14.5; }
+    if (!got38) throw new Error('fazendeiro nao pegou peixe');
+    if (game.coins !== coins38) throw new Error('peixe do fazendeiro nao pode pagar o jogador');
+    game.time = 10 / 24; // 16h
+    updateFarmers(0.05);
+    if (fw38.fishing) throw new Error('pesca deveria terminar as 16h');
+    game.day = 0; game.time = 8 / 24; fw38.fishing = true;
+    updateFarmers(0.05);
+    if (fw38.fishing) throw new Error('pesca dos fazendeiros so pode ser no domingo');
+    fw38.fishing = false; fw38.fishSpot = null; fw38.fishT = undefined;
+    removeBuilding(lk38.id);
+  }
+
+  // salario: cada fazendeiro recebe 20.000 no dia 10 do mes, do bolso do jogador
+  const nf38 = game.farmers.length;
+  game.coins = 500000;
+  const w0_38 = game.coins;
+  game.day = 38; game.time = 0.999;
+  advanceClock(20);
+  if (game.coins !== w0_38 - nf38 * FARMER_SALARY) throw new Error('salario do dia 10 nao pago (n=' + nf38 + ' delta=' + (w0_38 - game.coins) + ')');
+  game.coins = 100;
+  game.day = 68; game.time = 0.999;
+  advanceClock(20);
+  if (game.coins !== 100) throw new Error('salario sem saldo nao pode deixar moedas negativas');
+  game.allDayRain = false; game.weather = 'clear'; game.weatherT = 0;
+
 
   // R37: adubo, plantar tudo, trator que planta, chuva o dia todo e animais de ouro
   if (!TOOLS.some(x => x.id === 'fert')) throw new Error('adubo ausente da loja de ferramentas');

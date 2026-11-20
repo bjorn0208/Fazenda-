@@ -131,13 +131,12 @@ function farmerFishing(f, dt) {
     return;
   }
   f.fishing = true;
-  if (f.fishT === undefined) f.fishT = 12 + Math.random() * 10;
+  if (f.fishT === undefined) f.fishT = 15 + Math.random() * 5;
   f.fishT -= dt;
   if (f.fishT <= 0) {
-    f.fishT = 18 + Math.random() * 22;
+    f.fishT = 15 + Math.random() * 5;
     const fish = rollFish();
-    addCoins(fish.value);
-    spawnFloater(f.gx - 0.5, f.gy - 1, fish.icon + ' +' + fish.value + ' \ud83e\ude99', '#4fc3f7');
+    spawnFloater(f.gx - 0.5, f.gy - 1, fish.icon, fish.color || '#4fc3f7');
     playSound('splash');
     if (Math.random() < 0.3) farmerSay(f, mindLine('fish'), 4200);
   } else if (Math.random() < dt * 0.06) {
@@ -583,7 +582,8 @@ function updateFarmers(dt) {
       }
     }
     if (isSunday()) {
-      farmerFishing(f, dt);
+      if (H >= 9 && H < 16) farmerFishing(f, dt);
+      else { f.fishing = false; if (Math.random() < 0.15) wanderIdle(f); }
       continue;
     }
     if (H < 8.5 || H >= 19) continue;

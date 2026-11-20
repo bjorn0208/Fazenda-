@@ -253,6 +253,9 @@ function plantCrop(type, gx, gy, free) {
 /* ---------- Adubo: cresce quase 2x mais rapido e colhe em dobro ---------- */
 const FERT_COST = 10;
 
+/* Salario dos fazendeiros: 20.000 cada, pago todo dia 10 do mes (sai do bolso do jogador) */
+const FARMER_SALARY = 20000;
+
 function fertilizeCrop(crop) {
   if (!crop || !crop.isCrop || game.visiting) return false;
   if (crop.fert) { showToast(t('toast.fertAlready')); return false; }
@@ -757,6 +760,18 @@ function advanceClock(dt) {
       game.weather = 'rain';
       game.weatherT = DAY_LENGTH;
       showToast(t('toast.rainDay'));
+    }
+    if (gameDate().day === 10 && game.farmers.length) {
+      const wageTotal = game.farmers.length * FARMER_SALARY;
+      if (game.coins >= wageTotal) {
+        addCoins(-wageTotal);
+        showToast(t('toast.salary', { n: wageTotal, k: game.farmers.length }));
+        spawnFloater(game.farmers[0].gx, game.farmers[0].gy - 1, '\ud83d\udcb8 -' + wageTotal, '#ef9a9a');
+        playSound('level');
+      } else {
+        showToast(t('toast.salaryMissing'));
+        for (const fw of game.farmers) fw.mood = 'triste';
+      }
     }
   }
   if (seasonIndex() === 3) game.snow = Math.min(1, game.snow + dt / 180);

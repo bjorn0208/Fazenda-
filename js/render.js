@@ -1688,6 +1688,7 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       const ps = worldToScreen(cam, pp1.x, pp1.y, cw, ch);
       const qs = worldToScreen(cam, pp2.x, pp2.y, cw, ch);
       const head = Math.atan2(qs.y - ps.y, qs.x - ps.x);
+      const fcol = (FISH[i % FISH.length] || FISH[0]).color;
       const sc = 0.85 + 0.28 * Math.abs(Math.sin(i * 2.3)) ;
       const z2 = cam.zoom, L = 8.5 * z2 * sc, H = 3.4 * z2 * sc;
       const wag = Math.sin(t * 4.2 + i * 1.6) * H * 0.4;
@@ -1695,7 +1696,7 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       ctx.translate(ps.x, ps.y);
       ctx.rotate(head);
       ctx.globalAlpha = 0.6;
-      ctx.fillStyle = '#45606e';
+      ctx.fillStyle = fcol;
       ctx.beginPath();
       ctx.ellipse(-L * 0.12, 0, L * 0.92, H, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -1706,7 +1707,7 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       ctx.lineTo(-L * 1.5, H * 1.15 + wag);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#5b7787';
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
       ctx.beginPath();
       ctx.ellipse(-L * 0.05, -H * 0.1, L * 0.55, H * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -1779,21 +1780,23 @@ function drawLake(ctx, cam, cw, ch, gx, gy, w, d, q) {
       }
     }
 
-    for (const [ang, k] of [[5.7, 0.85], [0.35, 0.95], [3.9, 0.9]]) {
+    for (const [ang, gap] of [[5.7, 0.2], [0.35, 0.26], [3.9, 0.18]]) {
+      const wobA = 1 + 0.13 * Math.sin(ang * 3 + sA) + 0.07 * Math.cos(ang * 5 + sB);
+      const rxb = (w / 2 - 0.52) * wobA + gap, ryb = (d / 2 - 0.52) * wobA + gap;
+      const base = projectPoint(cxw + Math.cos(ang) * rxb, cyw + Math.sin(ang) * ryb, 0);
       const sway = Math.sin(t * 1.5 + ang * 7) * 0.02;
-      const base = inWater(ang, k);
-      const top = projectPoint(base.x + sway, base.y, 0.55);
+      const top = projectPoint(base.x + sway, base.y, 0.34);
       const bs = worldToScreen(cam, base.x, base.y, cw, ch);
       const ts = worldToScreen(cam, top.x, top.y, cw, ch);
       ctx.strokeStyle = '#558b2f';
-      ctx.lineWidth = 2 * cam.zoom;
+      ctx.lineWidth = Math.max(1, 1.3 * cam.zoom);
       ctx.beginPath();
       ctx.moveTo(bs.x, bs.y);
-      ctx.quadraticCurveTo(bs.x, (bs.y + ts.y) / 2, ts.x, ts.y);
+      ctx.quadraticCurveTo(bs.x + 2 * cam.zoom, (bs.y + ts.y) / 2, ts.x, ts.y);
       ctx.stroke();
       ctx.fillStyle = '#6d4c41';
       ctx.beginPath();
-      ctx.ellipse(ts.x, ts.y, 2 * cam.zoom, 4.5 * cam.zoom, 0, 0, Math.PI * 2);
+      ctx.ellipse(ts.x, ts.y, 1.5 * cam.zoom, 3 * cam.zoom, 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }

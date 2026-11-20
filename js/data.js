@@ -327,10 +327,9 @@ const PLOT_PRICE_PER_TILE = 8;
 
 /* Peixes do lago — sorteados ao pescar (jogador com a vara e fazendeiros no domingo). */
 const FISH = [
-  { id: 'lambari', icon: '🐟', value: 8, chance: 0.55 },
-  { id: 'tilapia', icon: '🐟', value: 18, chance: 0.28 },
-  { id: 'carpa', icon: '🐠', value: 32, chance: 0.13 },
-  { id: 'dourado', icon: '🐠', value: 60, chance: 0.04 }
+  { id: 'lambari', icon: '🐟', value: 8, chance: 0.60, color: '#8ecae6' },
+  { id: 'tilapia', icon: '🐟', value: 18, chance: 0.32, color: '#69a297' },
+  { id: 'dourado', icon: '🐠', value: 60, chance: 0.08, color: '#ffb300' }
 ];
 const PEN_PRICE_PER_TILE = 15;
 
