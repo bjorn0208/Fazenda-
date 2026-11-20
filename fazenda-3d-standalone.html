@@ -790,7 +790,7 @@ body.tools-right-hidden #build-bar { transform: translate(-50%, calc(100% + 48px
 <button id="btn-collapse-right" class="collapse-btn" title="Minimizar ferramentas"><span class="collapse-arrow">▼</span></button>
 
 <!-- Diagnostico: versao + zoom ao vivo -->
-<div id="debug-badge">v48</div>
+<div id="debug-badge">v49</div>
 
 <!-- Barra de sementes (modo plantar) -->
 <div id="seed-bar" class="hidden"></div>
@@ -876,6 +876,12 @@ const BUILDINGS = {
     id: 'stall', name: 'Barraca de Vendas', icon: '🎪',
     price: 200, w: 2, d: 1, level: 1, category: 'construcoes',
     desc: 'Ponto de comercialização de produtos (fase 3).',
+    refund: 0.5
+  },
+  mine: {
+    id: 'mine', name: 'Mina de Pedra', icon: '⛏️',
+    price: 2500, w: 2, d: 2, level: 5, category: 'construcoes',
+    desc: 'Fazendeiros entram e trazem pedra, carvão, ferro e, com sorte, diamantes.',
     refund: 0.5
   },
   fence: {
@@ -1122,6 +1128,15 @@ const PRODUCTS = {
   pie: { id: 'pie', name: 'Torta', icon: '🥧', sell: 480, xp: 60 },
   juice: { id: 'juice', name: 'Suco', icon: '🧃', sell: 380, xp: 45 },
   stew: { id: 'stew', name: 'Ensopado', icon: '🍲', sell: 640, xp: 80 }
+};
+
+/* Recursos da floresta e da mina — madeira, pedras e minerais para vender no celeiro. */
+const RESOURCES = {
+  wood: { id: 'wood', name: 'Madeira', icon: '🪵', sell: 14 },
+  stone: { id: 'stone', name: 'Pedra', icon: '🪨', sell: 8 },
+  coal: { id: 'coal', name: 'Carvão', icon: '⚫', sell: 20 },
+  iron: { id: 'iron', name: 'Ferro', icon: '🔩', sell: 45 },
+  diamond: { id: 'diamond', name: 'Diamante', icon: '💎', sell: 150 }
 };
 
 const RECIPES = [
@@ -1456,6 +1471,7 @@ const game = {
   fertOwned: false,       // adubo comprado (ativa o botao Fertilizar)
   allDayRain: false,      // chuva o dia todo sorteada ao raiar do dia
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
+  forest: [],             // floresta sustentavel: {id, kind: pine|oak, gx, gy, isTree, plantedAt}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
   playerFace: '👨‍🌾',
@@ -1744,11 +1760,11 @@ function harvestAllCrops() {
 
 /* ---------- Celeiro: vender estoque ---------- */
 function barnItemValue(id) {
-  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || 0;
+  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || (RESOURCES[id] && RESOURCES[id].sell) || 0;
 }
 
 function barnItemIcon(id) {
-  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || '📦';
+  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || (RESOURCES[id] && RESOURCES[id].icon) || '📦';
 }
 
 function sellBarnItem(id, n) {
@@ -2013,6 +2029,68 @@ function updateTractor(dt) {
   tr.tx = next.x + 0.5; tr.ty = next.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
+}
+
+/* ---------- Floresta sustentavel + mina ---------- */
+const FOREST_CAP = 14;      // maximo de arvores no replantio automatico
+const TREE_GROW_SEC = 110;  // da muda a arvore madura
+
+function forestProgress(t) {
+  return Math.min(1, (Date.now() - t.plantedAt) / (TREE_GROW_SEC * 1000));
+}
+
+function forestTileFree(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)] && !game.tilled[x + ',' + y];
+}
+
+function plantForest(kind, x, y) {
+  if (!forestTileFree(x, y)) return null;
+  const tree = { id: 'f' + game.nextId++, kind: kind || 'pine', gx: x, gy: y, isTree: true, plantedAt: Date.now() };
+  game.forest.push(tree);
+  occupancy[occIndex(x, y)] = tree;
+  return tree;
+}
+
+function chopForest(tree) {
+  const idx = game.forest.indexOf(tree);
+  if (idx === -1) return 0;
+  game.forest.splice(idx, 1);
+  if (occupancy[occIndex(tree.gx, tree.gy)] === tree) occupancy[occIndex(tree.gx, tree.gy)] = null;
+  game.barn.wood = (game.barn.wood || 0) + (tree.kind === 'oak' ? 2 : 1);
+  addXp(4);
+  game.stats.wood_chopped = (game.stats.wood_chopped || 0) + 1;
+  playSound('dig');
+  return 1;
+}
+
+/* Fazendeiros entram na mina e voltam com pedras; quanto mais trabalham, mais comuns ficam as raras. */
+function rollMineResource() {
+  const trips = game.stats.mine_trips || 0;
+  const diamond = Math.min(0.12, 0.03 + trips * 0.001);
+  const iron = 0.15, coal = 0.22;
+  const r = Math.random();
+  if (r < diamond) return 'diamond';
+  if (r < diamond + iron) return 'iron';
+  if (r < diamond + iron + coal) return 'coal';
+  return 'stone';
+}
+
+function mineBuilding() {
+  return game.buildings.find(b => b.type === 'mine');
+}
+
+function mineEntrance(m) {
+  const ww = BUILDINGS.mine.w, dw = BUILDINGS.mine.d;
+  let best = null, bestD = Infinity;
+  for (let x = m.gx - 1; x <= m.gx + ww; x++) {
+    for (let y = m.gy - 1; y <= m.gy + dw; y++) {
+      if (x >= m.gx && x < m.gx + ww && y >= m.gy && y < m.gy + dw) continue;   // so o anel em volta
+      if (!farmerWalkable(x, y)) continue;
+      const d = Math.hypot(x + 0.5 - (m.gx + ww / 2), y + 0.5 - (m.gy + dw / 2)) - (y === m.gy + dw ? 3 : 0);
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    }
+  }
+  return best || { x: m.gx, y: m.gy + dw };
 }
 
 /* ---------- Entregador de moto ---------- */
@@ -2769,6 +2847,7 @@ function snapshotData() {
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     seeds: game.seeds, tractorOwned: game.tractorOwned, tractorOn: game.tractorOn, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
+    forest: game.forest,
     allDayRain: game.allDayRain, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
@@ -2832,7 +2911,7 @@ function applySaveData(data) {
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
       tractorOwned: data.tractorOwned ?? false, tractorOn: data.tractorOn ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
-      allDayRain: data.allDayRain ?? false, tractor: null,
+      allDayRain: data.allDayRain ?? false, tractor: null, forest: data.forest ? data.forest.slice() : [],
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',
@@ -2862,6 +2941,10 @@ function applySaveData(data) {
     occupancy.fill(null);
     for (const b of game.buildings) markOccupancy(b, true);
     for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
+    for (const tr41 of game.forest) {
+      tr41.isTree = true;
+      occupancy[occIndex(tr41.gx, tr41.gy)] = tr41;
+    }
     return true;
   } catch (e) {
     console.error('Falha ao aplicar estado', e);
@@ -2902,6 +2985,12 @@ function shovelTile(gx, gy) {
   if (b) {
     const r = removeBuilding(b.id);
     return r ? { what: t('b_' + r.def.id), refund: r.refund } : null;
+  }
+  const ft41 = game.forest.findIndex(x => x.gx === gx && x.gy === gy);
+  if (ft41 !== -1) {
+    chopForest(game.forest[ft41]);
+    playSound('remove');
+    return { what: t('b_tree'), refund: 0 };
   }
   const key = gx + ',' + gy;
   if (game.tilled[key]) {
@@ -4028,6 +4117,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
     items.push({ key: b.gx + b.gy + f.w + f.d, kind: 'b', ref: b });
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
+  for (const t of game.forest) items.push({ key: t.gx + t.gy + 1, kind: 'w', ref: t });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
@@ -4044,6 +4134,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawBuilding(ctx, cam, cw, ch, b);
     } else if (it.kind === 'c') {
       drawCrop(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'w') {
+      drawForestTree(ctx, cam, cw, ch, b);
     } else if (it.kind === 'f') {
       drawFarmer(ctx, cam, cw, ch, b);
       drawFarmerFishingGear(ctx, cam, cw, ch, b);
@@ -4095,6 +4187,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'coop':    drawCoop(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'well':    drawWell(ctx, cam, cw, ch, gx, gy, q); break;
     case 'stall':   drawStall(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'mine':    drawMine(ctx, cam, cw, ch, gx, gy, w, d); break;
     case 'fence':   drawFence(ctx, cam, cw, ch, gx, gy, b.rot, q); break;
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
     case 'tree_pine':   drawTree(ctx, cam, cw, ch, gx, gy, q, 'pine'); break;
@@ -4422,6 +4515,95 @@ function drawFence(ctx, cam, cw, ch, gx, gy, rot, q) {
 }
 
 /* --- Árvore: copa em camadas, frutas, sombra --- */
+/* Arvore da floresta sustentavel: cresce da muda ao porte adulto */
+function drawForestTree(ctx, cam, cw, ch, t) {
+  const prog = forestProgress(t);
+  const s = 0.25 + 0.75 * prog;
+  drawShadow(ctx, cam, cw, ch, t.gx, t.gy, 1, 1, 0.2 * s);
+  const c = projectPoint(t.gx + 0.5, t.gy + 0.5, 0);
+  const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+  const z = cam.zoom * s;
+  if (t.kind === 'pine') {
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(cs.x - 2 * z, cs.y - 9 * z, 4 * z, 9 * z);
+    const tri = (w, h, yBase, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(cs.x, cs.y - (yBase + h) * z);
+      ctx.lineTo(cs.x - w * z, cs.y - yBase * z);
+      ctx.lineTo(cs.x + w * z, cs.y - yBase * z);
+      ctx.closePath(); ctx.fill();
+    };
+    tri(7.5, 6, 7, '#33691e');
+    tri(6.4, 7, 11, '#388e3c');
+    tri(5.2, 7, 15, '#43a047');
+  } else {
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(cs.x - 2.4 * z, cs.y - 10 * z, 4.8 * z, 10 * z);
+    ctx.fillStyle = '#2e7d32';
+    ctx.beginPath(); ctx.arc(cs.x, cs.y - 15 * z, 8.5 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#388e3c';
+    ctx.beginPath(); ctx.arc(cs.x - 3.2 * z, cs.y - 12.4 * z, 6.2 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4caf50';
+    ctx.beginPath(); ctx.arc(cs.x + 3.6 * z, cs.y - 13.2 * z, 5.6 * z, 0, Math.PI * 2); ctx.fill();
+  }
+  if (prog >= 1 && Math.sin(performance.now() / 900 + t.gx) > 0.96) {
+    ctx.strokeStyle = '#a1887f';
+    ctx.lineWidth = 1.2 * cam.zoom;
+    ctx.beginPath(); ctx.moveTo(cs.x, cs.y - 18 * z); ctx.lineTo(cs.x + 3 * z, cs.y - 22 * z); ctx.stroke();
+  }
+}
+
+/* Mina de pedra: monte com entrada escura, vigas de madeira e brilho de minerio */
+function drawMine(ctx, cam, cw, ch, gx, gy, w, d) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.28);
+  const z = cam.zoom;
+  const c = projectPoint(gx + w / 2, gy + d / 2, 0);
+  const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+  ctx.fillStyle = '#8d99a4';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 32 * z, cs.y);
+  ctx.lineTo(cs.x - 14 * z, cs.y - 26 * z);
+  ctx.lineTo(cs.x + 10 * z, cs.y - 29 * z);
+  ctx.lineTo(cs.x + 32 * z, cs.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#a7b6c0';
+  ctx.beginPath();
+  ctx.moveTo(cs.x + 10 * z, cs.y - 29 * z);
+  ctx.lineTo(cs.x + 32 * z, cs.y);
+  ctx.lineTo(cs.x + 6 * z, cs.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#546e7a';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 22 * z, cs.y - 6 * z);
+  ctx.lineTo(cs.x - 12 * z, cs.y - 18 * z);
+  ctx.lineTo(cs.x - 6 * z, cs.y - 6 * z);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 9 * z, cs.y - 1 * z);
+  ctx.lineTo(cs.x - 9 * z, cs.y - 10 * z);
+  ctx.quadraticCurveTo(cs.x, cs.y - 17 * z, cs.x + 9 * z, cs.y - 10 * z);
+  ctx.lineTo(cs.x + 9 * z, cs.y - 1 * z);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#6d4c41';
+  ctx.fillRect(cs.x - 11.5 * z, cs.y - 12 * z, 2.6 * z, 11 * z);
+  ctx.fillRect(cs.x + 8.9 * z, cs.y - 12 * z, 2.6 * z, 11 * z);
+  ctx.fillRect(cs.x - 11.5 * z, cs.y - 13.8 * z, 22 * z, 2.4 * z);
+  ctx.fillStyle = '#b0bec5';
+  ctx.beginPath(); ctx.ellipse(cs.x - 17 * z, cs.y + 2 * z, 4 * z, 2.4 * z, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cs.x + 15 * z, cs.y + 3 * z, 4.8 * z, 2.8 * z, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(214,226,235,0.5)';
+  ctx.fillRect(cs.x - 25 * z, cs.y - 14 * z, 3 * z, 1.2 * z);
+  const glint = 0.45 + 0.35 * Math.sin(performance.now() / 700);
+  ctx.fillStyle = 'rgba(255,213,79,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x - 18 * z, cs.y - 13 * z, 1.8 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(144,202,249,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x + 18 * z, cs.y - 17 * z, 1.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(229,115,115,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x - 5 * z, cs.y - 22 * z, 1.5 * z, 0, Math.PI * 2); ctx.fill();
+}
+
 function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
   if (variant === 'pine') {
     drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
@@ -6653,6 +6835,16 @@ function farmerFindWaterTarget(f) {
   return bestFree || best;
 }
 
+function farmerFindForestSpot(f) {
+  const a = game.ownedArea;
+  for (let tries = 0; tries < 25; tries++) {
+    const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
+    const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
+    if (forestTileFree(x, y) && !farmerTargetBusy(f, x, y)) return { x, y };
+  }
+  return null;
+}
+
 function hasHorse() {
   return game.animals.some(a => a.kind === 'horse' && isAdult(a));
 }
@@ -6676,6 +6868,19 @@ function farmerFindJob(f) {
     }
     best = bestFree || best;
     if (best) return { kind: 'harvest', target: best };
+    // floresta sustentavel: cortar arvores maduras para madeira
+    let bestTree = null, bestTreeD = Infinity;
+    for (const t41 of game.forest) {
+      if (forestProgress(t41) < 1) continue;
+      const d = Math.hypot(t41.gx + 0.5 - f.gx, t41.gy + 0.5 - f.gy);
+      if (d < bestTreeD && !farmerTargetBusy(f, t41.gx, t41.gy)) { bestTreeD = d; bestTree = t41; }
+    }
+    if (bestTree) return { kind: 'chop', target: bestTree };
+    // replantar mudas onde couber
+    if (game.forest.length < FOREST_CAP && Math.random() < 0.35) {
+      const spot = farmerFindForestSpot(f);
+      if (spot) return { kind: 'plantTree', spot };
+    }
     const dry = farmerFindWaterTarget(f);
     if (dry) return { kind: 'water', target: dry };
   }
@@ -6690,6 +6895,8 @@ function farmerFindJob(f) {
     }
     if (an) return { kind: 'animal', target: an };
   }
+  const mine41 = game.buildings.find(b => b.type === 'mine');
+  if (mine41 && Math.random() < 0.5) return { kind: 'mine', target: mine41 };
   return null;
 }
 
@@ -6837,6 +7044,26 @@ function updateFarmers(dt) {
       continue;
     }
 
+    if (f.inMine) {
+      f.inside = true; f.walking = false; f.riding = false;
+      const hM41 = gameHour();
+      if (hM41 >= 19 || hM41 < 7.5) { f.inMine = false; f.inside = false; }
+      else {
+        f.mineT -= dt;
+        if (f.mineT <= 0) {
+          f.inMine = false; f.inside = false;
+          const res = rollMineResource();
+          game.barn[res] = (game.barn[res] || 0) + 1;
+          game.stats.mine_trips = (game.stats.mine_trips || 0) + 1;
+          const m41 = game.buildings.find(b => b.type === 'mine');
+          if (m41) { const eng = mineEntrance(m41); spawnFloater(eng.x, eng.y, (RESOURCES[res] || RESOURCES.stone).icon, '#b0bec5'); }
+          farmerWorkCost(f);
+          f.wait = 0.6;
+        }
+      }
+      continue;
+    }
+
     f.wait -= dt;
     if (f.wait > 0) continue;
 
@@ -6867,6 +7094,7 @@ function updateFarmers(dt) {
 
     if (H >= 19 || H < 7.5) {
       f.fishing = false;
+      if (f.inMine) { f.inMine = false; f.inside = false; }   // sai da mina ao anoitecer
       const bar = game.buildings.find(b => b.type === 'bar');
       if (bar && f.barTonight && !f.barDone && (H >= 19 || H < 3)) {
         f.atBar = true;
@@ -6981,6 +7209,50 @@ function updateFarmers(dt) {
         f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
         f.walking = true;
       }
+      continue;
+    }
+
+    if (job && job.kind === 'chop') {
+      const t41 = job.target;
+      if (!t41 || game.forest.indexOf(t41) === -1) { f.wait = 1; continue; }
+      if (Math.hypot(t41.gx + 0.5 - f.gx, t41.gy + 0.5 - f.gy) < 1.1) {
+        if (chopForest(t41) > 0) spawnFloater(t41.gx, t41.gy, '\ud83e\udeb5', '#a1887f');
+        f.wait = 0.8;
+      } else {
+        f.riding = false;
+        f.tx = t41.gx + 0.5; f.ty = t41.gy + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'plantTree') {
+      const spot = job.spot;
+      if (!spot || !forestTileFree(spot.x, spot.y)) { f.wait = 2; continue; }
+      if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.9) {
+        const nt = plantForest(Math.random() < 0.6 ? 'pine' : 'oak', spot.x, spot.y);
+        if (nt) { spawnFloater(spot.x, spot.y, '\ud83c\udf31', '#aed581'); farmerWorkCost(f); }
+        f.wait = 0.6;
+      } else {
+        f.riding = false;
+        f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'mine') {
+      const m41 = job.target;
+      const eng = mineEntrance(m41);
+      if (Math.hypot(eng.x + 0.5 - f.gx, eng.y + 0.5 - f.gy) < 0.9) {
+        f.inMine = true; f.inside = true;
+        f.mineT = 8 + Math.random() * 7;
+        spawnFloater(eng.x, eng.y, '\u26cf\ufe0f', '#90a4ae');
+        continue;
+      }
+      f.riding = false;
+      f.tx = eng.x + 0.5; f.ty = eng.y + 0.5;
+      f.walking = true;
       continue;
     }
 
@@ -7227,6 +7499,7 @@ const I18N = {
     'b_coop': 'Galinheiro', 'b_coop_desc': 'Abriga galinhas e produz ovos (fase 2).',
     'b_well': 'Poço', 'b_well_desc': 'Fornece água para irrigação (fase 2).',
     'b_stall': 'Barraca de Vendas', 'b_stall_desc': 'Ponto de comercialização de produtos (fase 3).',
+    'b_mine': 'Mina de Pedra', 'b_mine_desc': 'Fazendeiros entram e trazem pedra, carvão, ferro e, com sorte, diamantes.',
     'b_fence': 'Cerca', 'b_fence_desc': 'Delimita áreas e currais.',
     'b_tree': 'Árvore', 'b_tree_desc': 'Decoração natural da fazenda.',
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
@@ -7507,6 +7780,7 @@ const I18N = {
     'b_coop': 'Chicken Coop', 'b_coop_desc': 'Houses chickens and produces eggs (phase 2).',
     'b_well': 'Well', 'b_well_desc': 'Provides water for irrigation (phase 2).',
     'b_stall': 'Market Stall', 'b_stall_desc': 'Selling point for products (phase 3).',
+    'b_mine': 'Stone Mine', 'b_mine_desc': 'Farmers go inside and bring back stone, coal, iron and with luck diamonds.',
     'b_fence': 'Fence', 'b_fence_desc': 'Delimits areas and pens.',
     'b_tree': 'Tree', 'b_tree_desc': 'Natural farm decoration.',
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
@@ -8835,7 +9109,7 @@ function openMultiplayer() {
 
 /* ---------- Celeiro & Mercado ---------- */
 function barnItemName(id) {
-  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
+  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || (RESOURCES[id] && RESOURCES[id].name) || id;
 }
 
 function openCalendar() {
@@ -9398,7 +9672,7 @@ function zoomAt(sx, sy, factor) {
 }
 
 /* ---------- Diagnostico na tela ---------- */
-const GAME_VERSION = 'v48';
+const GAME_VERSION = 'v49';
 const dbgBadge = $('debug-badge');
 function dbgShowZoom() {
   if (dbgBadge && !dbgBadge.classList.contains('dbg-error')) {

@@ -40,6 +40,12 @@ const BUILDINGS = {
     desc: 'Ponto de comercialização de produtos (fase 3).',
     refund: 0.5
   },
+  mine: {
+    id: 'mine', name: 'Mina de Pedra', icon: '⛏️',
+    price: 2500, w: 2, d: 2, level: 5, category: 'construcoes',
+    desc: 'Fazendeiros entram e trazem pedra, carvão, ferro e, com sorte, diamantes.',
+    refund: 0.5
+  },
   fence: {
     id: 'fence', name: 'Cerca', icon: '🚧',
     price: 10, w: 1, d: 1, level: 1, category: 'cercas',
@@ -284,6 +290,15 @@ const PRODUCTS = {
   pie: { id: 'pie', name: 'Torta', icon: '🥧', sell: 480, xp: 60 },
   juice: { id: 'juice', name: 'Suco', icon: '🧃', sell: 380, xp: 45 },
   stew: { id: 'stew', name: 'Ensopado', icon: '🍲', sell: 640, xp: 80 }
+};
+
+/* Recursos da floresta e da mina — madeira, pedras e minerais para vender no celeiro. */
+const RESOURCES = {
+  wood: { id: 'wood', name: 'Madeira', icon: '🪵', sell: 14 },
+  stone: { id: 'stone', name: 'Pedra', icon: '🪨', sell: 8 },
+  coal: { id: 'coal', name: 'Carvão', icon: '⚫', sell: 20 },
+  iron: { id: 'iron', name: 'Ferro', icon: '🔩', sell: 45 },
+  diamond: { id: 'diamond', name: 'Diamante', icon: '💎', sell: 150 }
 };
 
 const RECIPES = [

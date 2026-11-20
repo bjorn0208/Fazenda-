@@ -80,6 +80,7 @@ const I18N = {
     'b_coop': 'Galinheiro', 'b_coop_desc': 'Abriga galinhas e produz ovos (fase 2).',
     'b_well': 'Poço', 'b_well_desc': 'Fornece água para irrigação (fase 2).',
     'b_stall': 'Barraca de Vendas', 'b_stall_desc': 'Ponto de comercialização de produtos (fase 3).',
+    'b_mine': 'Mina de Pedra', 'b_mine_desc': 'Fazendeiros entram e trazem pedra, carvão, ferro e, com sorte, diamantes.',
     'b_fence': 'Cerca', 'b_fence_desc': 'Delimita áreas e currais.',
     'b_tree': 'Árvore', 'b_tree_desc': 'Decoração natural da fazenda.',
     'b_flowers': 'Canteiro de Flores', 'b_flowers_desc': 'Enfeita os caminhos da fazenda.',
@@ -360,6 +361,7 @@ const I18N = {
     'b_coop': 'Chicken Coop', 'b_coop_desc': 'Houses chickens and produces eggs (phase 2).',
     'b_well': 'Well', 'b_well_desc': 'Provides water for irrigation (phase 2).',
     'b_stall': 'Market Stall', 'b_stall_desc': 'Selling point for products (phase 3).',
+    'b_mine': 'Stone Mine', 'b_mine_desc': 'Farmers go inside and bring back stone, coal, iron and with luck diamonds.',
     'b_fence': 'Fence', 'b_fence_desc': 'Delimits areas and pens.',
     'b_tree': 'Tree', 'b_tree_desc': 'Natural farm decoration.',
     'b_flowers': 'Flower Bed', 'b_flowers_desc': 'Beautifies the farm paths.',
@@ -1688,7 +1690,7 @@ function openMultiplayer() {
 
 /* ---------- Celeiro & Mercado ---------- */
 function barnItemName(id) {
-  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || id;
+  return (CROPS[id] && t('c_' + id)) || (PRODUCTS[id] && PRODUCTS[id].name) || (RESOURCES[id] && RESOURCES[id].name) || id;
 }
 
 function openCalendar() {

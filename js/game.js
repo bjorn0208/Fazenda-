@@ -42,6 +42,7 @@ const game = {
   fertOwned: false,       // adubo comprado (ativa o botao Fertilizar)
   allDayRain: false,      // chuva o dia todo sorteada ao raiar do dia
   tractor: null,          // trator em campo (transiente): {gx,gy,active,path,tx,ty,phase,walking}
+  forest: [],             // floresta sustentavel: {id, kind: pine|oak, gx, gy, isTree, plantedAt}
   snow: 0,                // camada de neve acumulada no inverno (0 a 1)
   playerName: 'Fazendeiro',
   playerFace: '👨‍🌾',
@@ -330,11 +331,11 @@ function harvestAllCrops() {
 
 /* ---------- Celeiro: vender estoque ---------- */
 function barnItemValue(id) {
-  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || 0;
+  return (CROPS[id] && CROPS[id].sell) || (PRODUCTS[id] && PRODUCTS[id].sell) || (RESOURCES[id] && RESOURCES[id].sell) || 0;
 }
 
 function barnItemIcon(id) {
-  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || '📦';
+  return (CROPS[id] && CROPS[id].icon) || (PRODUCTS[id] && PRODUCTS[id].icon) || (RESOURCES[id] && RESOURCES[id].icon) || '📦';
 }
 
 function sellBarnItem(id, n) {
@@ -599,6 +600,68 @@ function updateTractor(dt) {
   tr.tx = next.x + 0.5; tr.ty = next.y + 0.5;
   if (tr.path.length) { const w = tr.path.shift(); tr.tx = w.x + 0.5; tr.ty = w.y + 0.5; }
   tr.walking = true;
+}
+
+/* ---------- Floresta sustentavel + mina ---------- */
+const FOREST_CAP = 14;      // maximo de arvores no replantio automatico
+const TREE_GROW_SEC = 110;  // da muda a arvore madura
+
+function forestProgress(t) {
+  return Math.min(1, (Date.now() - t.plantedAt) / (TREE_GROW_SEC * 1000));
+}
+
+function forestTileFree(x, y) {
+  return inBounds(x, y) && inOwnedArea(x, y) && !occupancy[occIndex(x, y)] && !game.tilled[x + ',' + y];
+}
+
+function plantForest(kind, x, y) {
+  if (!forestTileFree(x, y)) return null;
+  const tree = { id: 'f' + game.nextId++, kind: kind || 'pine', gx: x, gy: y, isTree: true, plantedAt: Date.now() };
+  game.forest.push(tree);
+  occupancy[occIndex(x, y)] = tree;
+  return tree;
+}
+
+function chopForest(tree) {
+  const idx = game.forest.indexOf(tree);
+  if (idx === -1) return 0;
+  game.forest.splice(idx, 1);
+  if (occupancy[occIndex(tree.gx, tree.gy)] === tree) occupancy[occIndex(tree.gx, tree.gy)] = null;
+  game.barn.wood = (game.barn.wood || 0) + (tree.kind === 'oak' ? 2 : 1);
+  addXp(4);
+  game.stats.wood_chopped = (game.stats.wood_chopped || 0) + 1;
+  playSound('dig');
+  return 1;
+}
+
+/* Fazendeiros entram na mina e voltam com pedras; quanto mais trabalham, mais comuns ficam as raras. */
+function rollMineResource() {
+  const trips = game.stats.mine_trips || 0;
+  const diamond = Math.min(0.12, 0.03 + trips * 0.001);
+  const iron = 0.15, coal = 0.22;
+  const r = Math.random();
+  if (r < diamond) return 'diamond';
+  if (r < diamond + iron) return 'iron';
+  if (r < diamond + iron + coal) return 'coal';
+  return 'stone';
+}
+
+function mineBuilding() {
+  return game.buildings.find(b => b.type === 'mine');
+}
+
+function mineEntrance(m) {
+  const ww = BUILDINGS.mine.w, dw = BUILDINGS.mine.d;
+  let best = null, bestD = Infinity;
+  for (let x = m.gx - 1; x <= m.gx + ww; x++) {
+    for (let y = m.gy - 1; y <= m.gy + dw; y++) {
+      if (x >= m.gx && x < m.gx + ww && y >= m.gy && y < m.gy + dw) continue;   // so o anel em volta
+      if (!farmerWalkable(x, y)) continue;
+      const d = Math.hypot(x + 0.5 - (m.gx + ww / 2), y + 0.5 - (m.gy + dw / 2)) - (y === m.gy + dw ? 3 : 0);
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    }
+  }
+  return best || { x: m.gx, y: m.gy + dw };
 }
 
 /* ---------- Entregador de moto ---------- */
@@ -1355,6 +1418,7 @@ function snapshotData() {
     tutorialDone: game.tutorialDone, introDone: game.introDone,
     stats: game.stats, missionsClaimed: game.missionsClaimed,
     seeds: game.seeds, tractorOwned: game.tractorOwned, tractorOn: game.tractorOn, rodOwned: game.rodOwned, fertOwned: game.fertOwned,
+    forest: game.forest,
     allDayRain: game.allDayRain, snow: game.snow,
     playerName: game.playerName, playerFace: game.playerFace,
     levelTasks: game.levelTasks, tasksLevel: game.tasksLevel,
@@ -1418,7 +1482,7 @@ function applySaveData(data) {
       weather: data.weather ?? 'clear', weatherT: data.weatherT ?? 0,
       seeds: data.seeds ?? {},
       tractorOwned: data.tractorOwned ?? false, tractorOn: data.tractorOn ?? false, rodOwned: data.rodOwned ?? false, fertOwned: data.fertOwned ?? false,
-      allDayRain: data.allDayRain ?? false, tractor: null,
+      allDayRain: data.allDayRain ?? false, tractor: null, forest: data.forest ? data.forest.slice() : [],
       snow: data.snow ?? 0,
       playerName: data.playerName ?? 'Fazendeiro',
       playerFace: data.playerFace ?? '👨‍🌾',
@@ -1448,6 +1512,10 @@ function applySaveData(data) {
     occupancy.fill(null);
     for (const b of game.buildings) markOccupancy(b, true);
     for (const c of game.crops) occupancy[occIndex(c.gx, c.gy)] = c;
+    for (const tr41 of game.forest) {
+      tr41.isTree = true;
+      occupancy[occIndex(tr41.gx, tr41.gy)] = tr41;
+    }
     return true;
   } catch (e) {
     console.error('Falha ao aplicar estado', e);
@@ -1488,6 +1556,12 @@ function shovelTile(gx, gy) {
   if (b) {
     const r = removeBuilding(b.id);
     return r ? { what: t('b_' + r.def.id), refund: r.refund } : null;
+  }
+  const ft41 = game.forest.findIndex(x => x.gx === gx && x.gy === gy);
+  if (ft41 !== -1) {
+    chopForest(game.forest[ft41]);
+    playSound('remove');
+    return { what: t('b_tree'), refund: 0 };
   }
   const key = gx + ',' + gy;
   if (game.tilled[key]) {

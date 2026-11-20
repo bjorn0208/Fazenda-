@@ -332,6 +332,16 @@ function farmerFindWaterTarget(f) {
   return bestFree || best;
 }
 
+function farmerFindForestSpot(f) {
+  const a = game.ownedArea;
+  for (let tries = 0; tries < 25; tries++) {
+    const x = a.x0 + Math.floor(Math.random() * (a.x1 - a.x0 + 1));
+    const y = a.y0 + Math.floor(Math.random() * (a.y1 - a.y0 + 1));
+    if (forestTileFree(x, y) && !farmerTargetBusy(f, x, y)) return { x, y };
+  }
+  return null;
+}
+
 function hasHorse() {
   return game.animals.some(a => a.kind === 'horse' && isAdult(a));
 }
@@ -355,6 +365,19 @@ function farmerFindJob(f) {
     }
     best = bestFree || best;
     if (best) return { kind: 'harvest', target: best };
+    // floresta sustentavel: cortar arvores maduras para madeira
+    let bestTree = null, bestTreeD = Infinity;
+    for (const t41 of game.forest) {
+      if (forestProgress(t41) < 1) continue;
+      const d = Math.hypot(t41.gx + 0.5 - f.gx, t41.gy + 0.5 - f.gy);
+      if (d < bestTreeD && !farmerTargetBusy(f, t41.gx, t41.gy)) { bestTreeD = d; bestTree = t41; }
+    }
+    if (bestTree) return { kind: 'chop', target: bestTree };
+    // replantar mudas onde couber
+    if (game.forest.length < FOREST_CAP && Math.random() < 0.35) {
+      const spot = farmerFindForestSpot(f);
+      if (spot) return { kind: 'plantTree', spot };
+    }
     const dry = farmerFindWaterTarget(f);
     if (dry) return { kind: 'water', target: dry };
   }
@@ -369,6 +392,8 @@ function farmerFindJob(f) {
     }
     if (an) return { kind: 'animal', target: an };
   }
+  const mine41 = game.buildings.find(b => b.type === 'mine');
+  if (mine41 && Math.random() < 0.5) return { kind: 'mine', target: mine41 };
   return null;
 }
 
@@ -516,6 +541,26 @@ function updateFarmers(dt) {
       continue;
     }
 
+    if (f.inMine) {
+      f.inside = true; f.walking = false; f.riding = false;
+      const hM41 = gameHour();
+      if (hM41 >= 19 || hM41 < 7.5) { f.inMine = false; f.inside = false; }
+      else {
+        f.mineT -= dt;
+        if (f.mineT <= 0) {
+          f.inMine = false; f.inside = false;
+          const res = rollMineResource();
+          game.barn[res] = (game.barn[res] || 0) + 1;
+          game.stats.mine_trips = (game.stats.mine_trips || 0) + 1;
+          const m41 = game.buildings.find(b => b.type === 'mine');
+          if (m41) { const eng = mineEntrance(m41); spawnFloater(eng.x, eng.y, (RESOURCES[res] || RESOURCES.stone).icon, '#b0bec5'); }
+          farmerWorkCost(f);
+          f.wait = 0.6;
+        }
+      }
+      continue;
+    }
+
     f.wait -= dt;
     if (f.wait > 0) continue;
 
@@ -546,6 +591,7 @@ function updateFarmers(dt) {
 
     if (H >= 19 || H < 7.5) {
       f.fishing = false;
+      if (f.inMine) { f.inMine = false; f.inside = false; }   // sai da mina ao anoitecer
       const bar = game.buildings.find(b => b.type === 'bar');
       if (bar && f.barTonight && !f.barDone && (H >= 19 || H < 3)) {
         f.atBar = true;
@@ -660,6 +706,50 @@ function updateFarmers(dt) {
         f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
         f.walking = true;
       }
+      continue;
+    }
+
+    if (job && job.kind === 'chop') {
+      const t41 = job.target;
+      if (!t41 || game.forest.indexOf(t41) === -1) { f.wait = 1; continue; }
+      if (Math.hypot(t41.gx + 0.5 - f.gx, t41.gy + 0.5 - f.gy) < 1.1) {
+        if (chopForest(t41) > 0) spawnFloater(t41.gx, t41.gy, '\ud83e\udeb5', '#a1887f');
+        f.wait = 0.8;
+      } else {
+        f.riding = false;
+        f.tx = t41.gx + 0.5; f.ty = t41.gy + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'plantTree') {
+      const spot = job.spot;
+      if (!spot || !forestTileFree(spot.x, spot.y)) { f.wait = 2; continue; }
+      if (Math.hypot(spot.x + 0.5 - f.gx, spot.y + 0.5 - f.gy) < 0.9) {
+        const nt = plantForest(Math.random() < 0.6 ? 'pine' : 'oak', spot.x, spot.y);
+        if (nt) { spawnFloater(spot.x, spot.y, '\ud83c\udf31', '#aed581'); farmerWorkCost(f); }
+        f.wait = 0.6;
+      } else {
+        f.riding = false;
+        f.tx = spot.x + 0.5; f.ty = spot.y + 0.5;
+        f.walking = true;
+      }
+      continue;
+    }
+
+    if (job && job.kind === 'mine') {
+      const m41 = job.target;
+      const eng = mineEntrance(m41);
+      if (Math.hypot(eng.x + 0.5 - f.gx, eng.y + 0.5 - f.gy) < 0.9) {
+        f.inMine = true; f.inside = true;
+        f.mineT = 8 + Math.random() * 7;
+        spawnFloater(eng.x, eng.y, '\u26cf\ufe0f', '#90a4ae');
+        continue;
+      }
+      f.riding = false;
+      f.tx = eng.x + 0.5; f.ty = eng.y + 0.5;
+      f.walking = true;
       continue;
     }
 

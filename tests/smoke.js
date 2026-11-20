@@ -1310,6 +1310,75 @@ vm.runInContext(`
   updateBuildingCtx(cam, 800, 600);
   removeBuilding(scId40);
 
+  // R41: floresta sustentavel (fazendeiros plantam e cortam arvores) e mina com recursos
+  if (!RESOURCES.wood || !RESOURCES.iron || !RESOURCES.diamond) throw new Error('tabela de recursos ausente');
+  if (barnItemValue('wood') !== RESOURCES.wood.sell) throw new Error('valor da madeira errado');
+  if (barnItemIcon('diamond') !== '\ud83d\udc8e') throw new Error('icone do diamante errado');
+  if (barnItemName('coal').indexOf('Carv') === -1) throw new Error('nome do carvao errado');
+  const free41 = () => {
+    const oa41 = game.ownedArea;
+    for (let y = oa41.y0; y <= oa41.y1; y++) for (let x = oa41.x0; x <= oa41.x1; x++) {
+      if (!occupancy[occIndex(x, y)] && !game.tilled[x + ',' + y]) return { x, y };
+    }
+    return null;
+  };
+  const sf41 = free41();
+  if (!sf41) throw new Error('sem tile livre (R41)');
+  const tree41 = plantForest('pine', sf41.x, sf41.y);
+  if (!tree41 || game.forest.length !== 1) throw new Error('muda nao plantada');
+  if (occupancy[occIndex(sf41.x, sf41.y)] !== tree41) throw new Error('muda nao ocupa o tile');
+  if (forestProgress(tree41) !== 0) throw new Error('muda ja nasceu madura');
+  const wood41 = game.barn.wood || 0;
+  if (chopForest(tree41) !== 1) throw new Error('corte nao rendeu madeira');
+  if ((game.barn.wood || 0) !== wood41 + 1) throw new Error('madeira nao foi para o celeiro');
+  if (game.forest.length !== 0) throw new Error('arvore nao saiu da floresta');
+  const coins41 = game.coins;
+  if (!sellBarnItem('wood', 1)) throw new Error('venda de madeira falhou');
+  if (game.coins !== coins41 + RESOURCES.wood.sell) throw new Error('venda de madeira nao pagou');
+  game.barn.wood = 2;
+  if (!sellBarnItem('wood', 2)) throw new Error('venda dupla de madeira falhou');
+  game.barn.diamond = 1;
+  if (sellBarnItem('diamond', 1) && game.coins <= coins41) throw new Error('diamante valeu errado');
+
+  // mina: entrada, sorteio de recursos e viagem do fazendeiro
+  let mt41 = null;
+  {
+    const oa42 = game.ownedArea;
+    for (let y = oa42.y0; y < oa42.y1 && !mt41; y++) for (let x = oa42.x0; x < oa42.x1; x++) {
+      let ok = true;
+      for (let dx = 0; dx < 2 && ok; dx++) for (let dy = 0; dy < 2 && ok; dy++) {
+        if (occupancy[occIndex(x + dx, y + dy)] || game.tilled[(x + dx) + ',' + (y + dy)]) ok = false;
+      }
+      if (ok) { mt41 = { x, y }; break; }
+    }
+  }
+  if (!mt41) throw new Error('sem area 2x2 livre para a mina');
+  if (!canPlace('mine', mt41.x, mt41.y, 0)) throw new Error('mina sem posicao valida');
+  const mId41 = placeBuilding('mine', mt41.x, mt41.y, 0, true);
+  if (!mId41 || !mineBuilding()) throw new Error('mina nao registrada');
+  const seen41 = new Set();
+  for (let i = 0; i < 400; i++) seen41.add(rollMineResource());
+  for (const k41 of ['stone', 'coal', 'iron', 'diamond']) {
+    if (!seen41.has(k41)) throw new Error('recurso nunca sorteado: ' + k41);
+  }
+  const eng41 = mineEntrance(mineBuilding());
+  if (!farmerWalkable(eng41.x, eng41.y)) throw new Error('entrada da mina inacessivel');
+  const fam41 = game.farmers[0];
+  const barnBefore41 = {};
+  for (const k42 of Object.keys(RESOURCES)) barnBefore41[k42] = game.barn[k42] || 0;
+  const trips41 = game.stats.mine_trips || 0;
+  fam41.inMine = true; fam41.mineT = 0.01; fam41.inside = true;
+  for (let i = 0; i < 50 && fam41.inMine; i++) updateFarmers(0.1);
+  if (fam41.inMine || fam41.inside) throw new Error('fazendeiro nao saiu da mina');
+  if ((game.stats.mine_trips || 0) <= trips41) throw new Error('viagem de mina nao contada');
+  let got41 = 0;
+  for (const k42 of Object.keys(RESOURCES)) got41 += (game.barn[k42] || 0) - barnBefore41[k42];
+  if (got41 !== 1) throw new Error('mina nao devolveu exatamente 1 recurso: ' + got41);
+  render(ctx, cam, 800, 600, state);
+  removeBuilding(mId41);
+  updateFarmers(0.05);
+  game.stats.mine_trips = 0;
+
   // reset: apaga os 3 slots e trava o autosave ate recarregar
   saveGame(false);
   resetGame();

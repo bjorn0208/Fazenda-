@@ -179,6 +179,13 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 41 — Floresta sustentável, mina com minerais e venda de recursos
+
+- 🌲 **Floresta sustentável**: os fazendeiros agora plantam mudas de árvores (pinheiro e carvalho) nos cantos livres da fazenda e as deixam crescer. Quando a árvore fica adulta, eles cortam e a madeira (🪵) vai para o celeiro — e eles replantam de novo, mantendo o ciclo. Carvalho rende 2 troncos por corte.
+- ⛏️ **Mina de Pedra** (nova construção na loja, 2 500 moedas, nível 5): os fazendeiros entram pela boca escura com a picareta e voltam com pedras. Quanto mais eles trabalham na mina, mais comuns ficam as pedras raras: pedra comum, carvão, ferro e o raro 💎 diamante — a chance do diamante sobe conforme o número de viagens.
+- 💰 **Vender recursos**: madeira, pedra, carvão, ferro e diamante aparecem no gerenciador do celeiro com preços de venda (14, 8, 20, 45 e 150 moedas). Eles trazem o material, você acumula e vende no mercado.
+- 🪨 Novos desenhos: a mina é um monte de pedra com boca escura, vigas de madeira e veios minerais brilhando; as árvores brotam como mudinhas e crescem de verdade no campo. A pá também remove árvores da floresta.
+
 ## Revisão 40 — Trator com liga/desliga, estoque tipo baú e decorações que giram
 
 - 🚜 **Interruptor do trator**: o botão do trator agora liga e desliga a máquina. Desligada, ela fica estacionada e não sai do lugar; ligada, varre a lavoura sozinha continuamente (colhe o pronto e planta a terra arada), e volta ao trabalho sozinha quando surgir serviço novo. O botão fica verde quando a máquina está ligada.

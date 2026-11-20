@@ -1070,6 +1070,7 @@ function drawBuildings(ctx, cam, cw, ch, state) {
     items.push({ key: b.gx + b.gy + f.w + f.d, kind: 'b', ref: b });
   }
   for (const c of game.crops) items.push({ key: c.gx + c.gy + 1, kind: 'c', ref: c });
+  for (const t of game.forest) items.push({ key: t.gx + t.gy + 1, kind: 'w', ref: t });
   for (const an of game.animals) items.push({ key: an.gx + an.gy, kind: 'a', ref: an });
   for (const fm of game.farmers) if (!fm.inside) items.push({ key: fm.gx + fm.gy + 1, kind: 'f', ref: fm });
   for (const dg of game.dogs) items.push({ key: dg.gx + dg.gy, kind: 'd', ref: dg });
@@ -1086,6 +1087,8 @@ function drawBuildings(ctx, cam, cw, ch, state) {
       drawBuilding(ctx, cam, cw, ch, b);
     } else if (it.kind === 'c') {
       drawCrop(ctx, cam, cw, ch, b);
+    } else if (it.kind === 'w') {
+      drawForestTree(ctx, cam, cw, ch, b);
     } else if (it.kind === 'f') {
       drawFarmer(ctx, cam, cw, ch, b);
       drawFarmerFishingGear(ctx, cam, cw, ch, b);
@@ -1137,6 +1140,7 @@ function drawBuilding(ctx, cam, cw, ch, b, selected) {
     case 'coop':    drawCoop(ctx, cam, cw, ch, gx, gy, w, d, q); break;
     case 'well':    drawWell(ctx, cam, cw, ch, gx, gy, q); break;
     case 'stall':   drawStall(ctx, cam, cw, ch, gx, gy, w, d, q); break;
+    case 'mine':    drawMine(ctx, cam, cw, ch, gx, gy, w, d); break;
     case 'fence':   drawFence(ctx, cam, cw, ch, gx, gy, b.rot, q); break;
     case 'tree':    drawTree(ctx, cam, cw, ch, gx, gy, q); break;
     case 'tree_pine':   drawTree(ctx, cam, cw, ch, gx, gy, q, 'pine'); break;
@@ -1464,6 +1468,95 @@ function drawFence(ctx, cam, cw, ch, gx, gy, rot, q) {
 }
 
 /* --- Árvore: copa em camadas, frutas, sombra --- */
+/* Arvore da floresta sustentavel: cresce da muda ao porte adulto */
+function drawForestTree(ctx, cam, cw, ch, t) {
+  const prog = forestProgress(t);
+  const s = 0.25 + 0.75 * prog;
+  drawShadow(ctx, cam, cw, ch, t.gx, t.gy, 1, 1, 0.2 * s);
+  const c = projectPoint(t.gx + 0.5, t.gy + 0.5, 0);
+  const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+  const z = cam.zoom * s;
+  if (t.kind === 'pine') {
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(cs.x - 2 * z, cs.y - 9 * z, 4 * z, 9 * z);
+    const tri = (w, h, yBase, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(cs.x, cs.y - (yBase + h) * z);
+      ctx.lineTo(cs.x - w * z, cs.y - yBase * z);
+      ctx.lineTo(cs.x + w * z, cs.y - yBase * z);
+      ctx.closePath(); ctx.fill();
+    };
+    tri(7.5, 6, 7, '#33691e');
+    tri(6.4, 7, 11, '#388e3c');
+    tri(5.2, 7, 15, '#43a047');
+  } else {
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(cs.x - 2.4 * z, cs.y - 10 * z, 4.8 * z, 10 * z);
+    ctx.fillStyle = '#2e7d32';
+    ctx.beginPath(); ctx.arc(cs.x, cs.y - 15 * z, 8.5 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#388e3c';
+    ctx.beginPath(); ctx.arc(cs.x - 3.2 * z, cs.y - 12.4 * z, 6.2 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4caf50';
+    ctx.beginPath(); ctx.arc(cs.x + 3.6 * z, cs.y - 13.2 * z, 5.6 * z, 0, Math.PI * 2); ctx.fill();
+  }
+  if (prog >= 1 && Math.sin(performance.now() / 900 + t.gx) > 0.96) {
+    ctx.strokeStyle = '#a1887f';
+    ctx.lineWidth = 1.2 * cam.zoom;
+    ctx.beginPath(); ctx.moveTo(cs.x, cs.y - 18 * z); ctx.lineTo(cs.x + 3 * z, cs.y - 22 * z); ctx.stroke();
+  }
+}
+
+/* Mina de pedra: monte com entrada escura, vigas de madeira e brilho de minerio */
+function drawMine(ctx, cam, cw, ch, gx, gy, w, d) {
+  drawShadow(ctx, cam, cw, ch, gx, gy, w, d, 0.28);
+  const z = cam.zoom;
+  const c = projectPoint(gx + w / 2, gy + d / 2, 0);
+  const cs = worldToScreen(cam, c.x, c.y, cw, ch);
+  ctx.fillStyle = '#8d99a4';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 32 * z, cs.y);
+  ctx.lineTo(cs.x - 14 * z, cs.y - 26 * z);
+  ctx.lineTo(cs.x + 10 * z, cs.y - 29 * z);
+  ctx.lineTo(cs.x + 32 * z, cs.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#a7b6c0';
+  ctx.beginPath();
+  ctx.moveTo(cs.x + 10 * z, cs.y - 29 * z);
+  ctx.lineTo(cs.x + 32 * z, cs.y);
+  ctx.lineTo(cs.x + 6 * z, cs.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#546e7a';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 22 * z, cs.y - 6 * z);
+  ctx.lineTo(cs.x - 12 * z, cs.y - 18 * z);
+  ctx.lineTo(cs.x - 6 * z, cs.y - 6 * z);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.beginPath();
+  ctx.moveTo(cs.x - 9 * z, cs.y - 1 * z);
+  ctx.lineTo(cs.x - 9 * z, cs.y - 10 * z);
+  ctx.quadraticCurveTo(cs.x, cs.y - 17 * z, cs.x + 9 * z, cs.y - 10 * z);
+  ctx.lineTo(cs.x + 9 * z, cs.y - 1 * z);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#6d4c41';
+  ctx.fillRect(cs.x - 11.5 * z, cs.y - 12 * z, 2.6 * z, 11 * z);
+  ctx.fillRect(cs.x + 8.9 * z, cs.y - 12 * z, 2.6 * z, 11 * z);
+  ctx.fillRect(cs.x - 11.5 * z, cs.y - 13.8 * z, 22 * z, 2.4 * z);
+  ctx.fillStyle = '#b0bec5';
+  ctx.beginPath(); ctx.ellipse(cs.x - 17 * z, cs.y + 2 * z, 4 * z, 2.4 * z, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cs.x + 15 * z, cs.y + 3 * z, 4.8 * z, 2.8 * z, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(214,226,235,0.5)';
+  ctx.fillRect(cs.x - 25 * z, cs.y - 14 * z, 3 * z, 1.2 * z);
+  const glint = 0.45 + 0.35 * Math.sin(performance.now() / 700);
+  ctx.fillStyle = 'rgba(255,213,79,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x - 18 * z, cs.y - 13 * z, 1.8 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(144,202,249,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x + 18 * z, cs.y - 17 * z, 1.6 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(229,115,115,' + glint.toFixed(2) + ')';
+  ctx.beginPath(); ctx.arc(cs.x - 5 * z, cs.y - 22 * z, 1.5 * z, 0, Math.PI * 2); ctx.fill();
+}
+
 function drawTree(ctx, cam, cw, ch, gx, gy, q, variant) {
   if (variant === 'pine') {
     drawShadow(ctx, cam, cw, ch, gx, gy, 1, 1, 0.22);
