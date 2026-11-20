@@ -964,6 +964,59 @@ vm.runInContext(`
   if (game.coins !== 100) throw new Error('salario sem saldo nao pode deixar moedas negativas');
   game.allDayRain = false; game.weather = 'clear'; game.weatherT = 0;
 
+  // R39: fim das linhas fantasma no lago (dupla projecao das taboas corrigida)
+  // e peixes desenhados como peixes (cor de cada especie + contorno escuro + sombra)
+  if (typeof shadeHex !== 'function') throw new Error('shadeHex ausente');
+  if (shadeHex('#8ecae6', 0.38) !== 'rgb(54,77,87)') throw new Error('shadeHex calcula errado');
+  let lk39 = lakeBuilding();
+  if (!lk39) {
+    const oa39 = game.ownedArea;
+    for (let y = oa39.y0; y <= oa39.y1 - 6 && !lk39; y++) {
+      for (let x = oa39.x0; x <= oa39.x1 - 6 && !lk39; x++) {
+        if (canPlace('lake', x, y, 0)) lk39 = placeBuilding('lake', x, y, 0, true);
+      }
+    }
+  }
+  if (lk39) {
+    const styles39 = [];
+    const n39 = () => {};
+    const rec39 = {
+      lineWidth: 1, lineCap: 'butt', globalAlpha: 1, font: '', textAlign: 'left',
+      beginPath: n39, closePath: n39,
+      moveTo: n39, lineTo: n39, quadraticCurveTo: n39,
+      ellipse: n39, arc: n39, fill: n39, stroke: n39,
+      save: n39, restore: n39, translate: n39, rotate: n39, setLineDash: n39,
+      fillText: n39, strokeText: n39, rect: n39, clip: n39,
+      createLinearGradient: () => ({ addColorStop: n39 })
+    };
+    const defStyle39 = (name) => Object.defineProperty(rec39, name, {
+      set(v) { styles39.push(String(v)); this['_' + name] = v; },
+      get() { return this['_' + name] || ''; }
+    });
+    defStyle39('fillStyle'); defStyle39('strokeStyle');
+    /* so stroked paths com EXATAMENTE 1 quadraticCurveTo: unica geometria
+       assim nesse e do desenho das taboas (a haste do reed); blobs usam fill */
+    const spans39 = [];
+    let from39 = null, quads39 = 0, lastSpan39 = 0;
+    rec39.beginPath = () => { quads39 = 0; lastSpan39 = 0; };
+    rec39.moveTo = (x, y) => { from39 = [x, y]; };
+    rec39.quadraticCurveTo = (a, b, x, y) => {
+      quads39++;
+      lastSpan39 = from39 ? Math.hypot(x - from39[0], y - from39[1]) : 0;
+    };
+    rec39.stroke = () => { if (quads39 === 1) spans39.push(lastSpan39); };
+    drawLake(rec39, cam, 800, 600, lk39.gx, lk39.gy, 7, 7, 'alta');
+    for (const fd39 of FISH) {
+      if (styles39.indexOf(fd39.color) === -1) throw new Error('peixe ' + fd39.color + ' nao desenhado no lago');
+    }
+    if (styles39.indexOf(shadeHex('#8ecae6', 0.38)) === -1) throw new Error('contorno escuro do peixe ausente');
+    if (styles39.indexOf('rgba(10,55,80,0.28)') === -1) throw new Error('sombra do peixe no fundo ausente');
+    if (spans39.length !== 3) throw new Error('esperava 3 taboas, veio ' + spans39.length);
+    for (const sp39 of spans39) {
+      if (sp39 > 60) throw new Error('linha fantasma de ' + Math.round(sp39) + ' px no lago (dupla projecao)');
+    }
+  }
+
 
   // R37: adubo, plantar tudo, trator que planta, chuva o dia todo e animais de ouro
   if (!TOOLS.some(x => x.id === 'fert')) throw new Error('adubo ausente da loja de ferramentas');

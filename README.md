@@ -179,6 +179,15 @@ Varredura estática de chamadas indefinidas + simulação completa (render de to
 - **Plantio contínuo** (v39): o fazendeiro não planta mais só de manhã — o que tiver no baú ele planta o dia inteiro (08:30-19:00), uma muda ao lado da outra, enquanto houver terra arada; misturado com colher o que estiver pronto e regar o que estiver seco.
 - **Carro da abertura melhorado** (v39): anda em linha reta (estrada até a língua da fazenda), fica mais bonito (faróis, vidro, rodas, sombra) e **só um boneco desce** — o fazendeiro principal, que usa seu nome do perfil e camisa verde própria; o motorista fica dentro do carro e vai embora. Fazendeiros comprados depois são funcionários com camisas sortidas.
 
+## Revisão 39 — Fim das linhas no lago: taboas consertadas e peixes como peixes
+
+- **Causa raiz das "linhas de pesca" enfim encontrada** 🔎: taboas, vitorias-regias e sapos do lago re-projetavam uma coordenada que ja estava em pixels do mundo com `projectPoint` de novo (dupla projecao) — o topo da haste saia a milhares de pixels de distancia, pintando tracos retos e curvos atravessando a agua, sem nenhum pescador por perto. Com isso a haste da taboa ficava com 500+ px de comprimento, igual a uma linha de vara fantasma.
+- **Taboas consertadas**: base e topo agora sao calculados em coordenadas de grade e projetados uma unica vez — as hastes ficam curtinhas, firmes na margem de areia.
+- **Vitorias-regias e sapos de volta ao lugar**: o mesmo bug de dupla projecao os jogava para fora da agua; agora boiam onde devem (vitorias-regias na superficie, sapos pulando no lago).
+- **Peixes redesenhados como peixes de verdade**: corpo mais gorducho, contorno escuro definindo a silhueta (cada especie escurecida da sua propria cor), rabo em leque, barbatana peitoral, barriga clara, olho e uma sombra no fundo do lago ancorando cada peixe na agua — nada mais de "gravetos" na superficie, mesmo de longe.
+- Teste novo no smoke: valida o desenho do lago (3 especies coloridas, contorno e sombra presentes) e garante que nenhum traco de taboa passa de 60 px (a dupla projecao gerava mais de 3.000).
+- Service worker e cache atualizados para **v47**.
+
 ## Revisão 38 — Dia de pesca reforçado, 3 peixes coloridos e salário dos fazendeiros
 
 - **Fim das "varas fantasmas"**: os taboas que ficavam dentro da água do lago pareciam varas de pescar plantadas sem pescadores — agora crescem na margem de areia, fora da água.
